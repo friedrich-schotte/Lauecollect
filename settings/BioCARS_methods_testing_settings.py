@@ -1,0 +1,12 @@
+title = 'BioCARS Methods Testing'
+motor_names = ['high_speed_chopper_modes.value', 'heat_load_chopper_modes.value', 'Ensemble_SAXS.mode', 'Ensemble_SAXS.passes']
+names = ['high_speed_chopper_mode', 'heat_load_chopper_mode', 'Ensemble_mode', 'passes_per_image']
+motor_labels = ['HS Chopper', 'HL Chopper', 'ALIO Mode', 'Passes per image']
+formats = ['%s', '%s', '%s', '%d']
+line0.high_speed_chopper_modes.value = 'C-1'
+line0.heat_load_chopper_modes.value = u'82-1.5'
+line0.Ensemble_SAXS.mode = u'Laue-5Hz'
+line0.Ensemble_SAXS.passes = 1
+line0.updated = '21 Sep 10:53'
+line0.description = 'Laue-5Hz'
+command_row = 0

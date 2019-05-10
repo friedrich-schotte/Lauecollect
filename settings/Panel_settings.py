@@ -1,0 +1,2 @@
+CustomView = ['Delay', 'Mode', 'Period [1-kHz cycles]', 'Laser', 'X-ray ms shutter', 'Pump', 'Trigger code', 'X-ray detector trigger', 'X-ray scope trigger', 'Laser scope trigger', 'Image number', 'Pass number', 'Pulses', 'Image number increment', 'Pass number increment', 'Queue [passes]', 'Buffer length [bytes]', 'Buffer capacity [bytes]', 'Cache', 'Cache size [passes]', 'Running']
+view = 'Custom'

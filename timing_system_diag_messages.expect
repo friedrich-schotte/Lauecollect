@@ -1,0 +1,26 @@
+#!/usr/bin/expect
+while {1} {
+spawn telnet id14timing2.cars.aps.anl.gov
+set timeout -1
+trap {
+  send \x03
+  send_user "You pressed Ctrl+C\n"
+} SIGINT
+expect "login:" {} eof {
+  wait
+  send_user "\033\[07m Hit Enter to reconnect \033\[00m"
+  expect_user -re "(.*)\n"
+  continue
+}
+send "root\r"
+expect "Password:"
+send "root\r"
+expect "# "
+send "cd /home/timing_system\r"
+expect "# "
+send "cat /proc/kmsg\r"
+interact
+wait
+send_user "\033\[07m Hit Enter to reconnect \033\[00m"
+expect_user -re "(.*)\n"
+}

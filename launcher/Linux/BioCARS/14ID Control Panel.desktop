@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=14ID Control Panel
+Type=Application
+Terminal=false
+Exec=csh -c "medm -x -attach idOptics2.adl"
+Comment[en_US]=F. Schotte, 1 Apr 2013
+Comment=F. Schotte, 4 Mar 2013
+GenericName[en_US]=MEDM screen for X,Y,Z and Phi motors of fast diffractometer
+Icon=/net/id14b4/home/useridb/NIH/Software/icons/14ID Control Panel.png

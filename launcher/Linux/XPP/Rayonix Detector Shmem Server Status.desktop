@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Rayonix Detector Shmem Server Status
+Comment=F. Schotte, 30 Jan 2012
+Type=Application
+Terminal=Yes
+Exec=gnome-terminal -t "Rayonix Detector Shmem Server Status" -e "telnet daq-xpp-mon05 40000"
+Icon=/usr/share/icons/gnome/32x32/apps/gnome-terminal.png

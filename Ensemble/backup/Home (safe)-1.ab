@@ -1,0 +1,16 @@
+' (!)Retract helium cone before running.
+ACKNOWLEDGEALL
+ENABLE X Y Z PumpA LZ msShut_ext
+PLANE 0
+RECONCILE X Y Z PumpA LZ msShut_ext
+WAIT MODE MOVEDONE
+HOME Z
+HOME Y
+MOVEABS Y 12
+HOME X
+MOVEABS Y 0
+HOME LZ
+HOME msShut_ext
+PumpA_pos = PCMD(PumpA)
+MOVEABS PumpA 50*CEIL(PumpA_pos/50) F 20 'Move PumpA to the next largest multiple of 50 before terminating program.	
+HOME PumpA

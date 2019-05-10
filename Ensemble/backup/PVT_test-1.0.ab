@@ -1,0 +1,27 @@
+PROGRAM
+'Set up for PVT calls
+
+	Plane 1
+	RECONCILE Z
+	Z_pos = PCMD(Z)
+	
+	Z_start = -9
+	Z_end = 12
+	
+	ABS 'Positions specified in absolute coordinates
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	
+	Scope_Trigger_Delay = 0 
+	SCOPETRIGPERIOD -2 					' 0.5 ms per point
+	SCOPEBUFFER  400
+	SCOPETRIG
+	'Move motors into position to start.
+	PVT Z Z_pos,0 TIME 0.001 
+	PVT Z Z_end,0 TIME 0.1
+	PVT Z Z_start,0 TIME 0.16
+	START
+END PROGRAM
+
+

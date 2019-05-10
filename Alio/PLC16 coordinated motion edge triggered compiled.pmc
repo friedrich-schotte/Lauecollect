@@ -1,0 +1,177 @@
+; This code waits for a pulse from the FPGA to cause a coordinated motion.
+; Steps motors by the amount in P255-258
+; Need to arm the system by setting a P variable (P250)
+; Set P250=0 to disable coordinated motions.
+; Set P250=1 to enable XYZ motion.
+; Set P250=2 to enable phi motion.
+; Set P250=3 to enable X motion.
+; Set P250=4 to enable Y motion.
+; Set P250=5 to enable Z motion.
+; Set P251 to the speed (mm/s).
+; Set P252 to the acceleration time (msec).
+; P255-258 are the step sizes for phi,x,y and z, respectively.
+; P259 Number of steps/counts to watch for.
+; P260-263 Starting phi, x, y, and z, respectively.
+; P264 counter for steps/triggers.
+; P265 is a shadow variable to allow for edge triggering.
+; P266 is the delay in msec to wait after it recieves a trigger.
+; RH 9/25/15
+
+; Will need to add a counter to return to the beginning after so many steps. Also
+; need to be able to reset counter with EPICS at the beginning of a scan. Counter will 
+; not count until all motors are finished moving.
+; Also need to send the ALIO the starting positions.
+
+CLOSE
+END GATHER
+DELETE GATHER
+DELETE TRACE
+
+#define TriggerPulse L8
+L8->Y:$78400,8
+; In-position check
+; L5187/M5187 is for all motors in the coordinate system. Background check
+; L140/M140 is only for the Z motor. Background check.
+; L144/M144 is only for the Zmotor but is a foreground check. Must set I13=1.
+; 
+;#define MotorsInPosition L5187
+;MotorsInPosition->Y:$203F,17
+;#define ZmotorInPosition L140 ; Really only for testing
+;MotorsInPosition->Y:$C0,0
+;#define MotorsInPosition L144
+;MotorsInPosition->Y:$C0,13
+#define ZInPosition L144
+ZInPosition->Y:$C0,13
+#define PhiInPosition L244
+PhiInPosition->Y:$140,13
+#define XInPosition L344
+XInPosition->Y:$1C0,13
+#define YInPosition L444
+YInPosition->Y:$240,13
+
+OPEN PLCC 16 CLEAR
+; This waits for the FPGA trigger but only moves the motor if the motion is enabled and the motor is idle.
+; This effectively suppresses all extra pulses that are being sent by the FPGA.
+;IF(TriggerPulse=1 and P250!=0 and MotorsInPosition=1)
+;IF(TriggerPulse=1 and P250!=0 and ZInPosition=1 and PhiInPosition=1 and XInPosition=1 and YInPosition=1)
+IF(TriggerPulse=1 and P250!=0 and ZInPosition=1)
+; Set the proper motor speed and accel from the pmac code
+	IF(P265=0)
+		Q222=P251
+		Q223=P252 / 2
+		Q224=P252
+
+		P1001=-P255
+		P1007=-P256
+		P1008=P257
+		P1009=P258
+		M2=1 ; Sets M0 high before the delay command.
+		P265=1
+
+; Motion is delayed by this much (in seconds) after the trigger is recieved. 
+; This is to fix a problem with the FPGA where the sample translation pulse comes before 
+; the ms pulse. 2259? or 2500?
+		I5111=INT(2500*P266)
+		WHILE (I5111>0)
+		ENDWHILE
+		M2=1 ; Sets M0 high before the motion command.
+
+; Execute prog 16
+		COMMAND "&1B16R"
+
+		P264=P264+1
+		
+; This is a countdown timer. It limits number times that this part of the code will execute
+; with a single trigger pulse. This protects the stage from going faster than 10 Hz.
+; 2259 servo cycles per second.
+; Trigger pulse length should not matter as long as it is less than the clock resolution (0.44 ms)
+; 1 ms trigger pulse works fine. 50 Ohm 4 V.
+		I5111=113 ; ~=50 ms
+		WHILE (I5111>0)
+		ENDWHILE
+
+; This waits for the motion to stop. In-position is defined by I128 (for motor 1). This is set to
+; 160 which corresponds to 10 counts(160/16) So ~1.56 um for the linear motors and ~1.78 mdeg.
+		;DWELL0
+		WHILE(ZInPosition=0 and PhiInPosition=0 and XInPosition=0 and YInPosition=0)
+		ENDWHILE
+
+; This sends the motors back to the starting position if it is at the end of travel.
+		IF(P264!<P259)
+			Q222=100; Set speed to max
+			P1001=P260
+			P1007=-P261
+			P1008=P262
+			P1009=P263
+			COMMAND "&1B17R"; Drive to start
+			P264=0 ; Reset counter
+		END IF
+	END IF
+ELSE
+	P265=0
+END IF
+CLOSE
+
+
+OPEN PROG 16 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+INC
+LINEAR
+
+IF(P250=1)
+X(P1007)Y(P1008)Z(P1009)
+END IF
+
+IF(P250=2)
+A(P1001)
+END IF
+
+IF(P250=3)
+X(P1007)
+END IF
+
+IF(P250=4)
+Y(P1008)
+END IF
+
+IF(P250=5)
+Z(P1009)
+END IF
+;M2=1 ; Sets M2 high before the motion command. But it doesn't wait for the motion to finish!
+CLOSE
+
+OPEN PROG 17 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+ABS
+LINEAR
+
+IF(P250=1)
+X(P1007)Y(P1008)Z(P1009)
+END IF
+
+IF(P250=2)
+A(P1001)
+END IF
+
+IF(P250=3)
+X(P1007)
+END IF
+
+IF(P250=4)
+Y(P1008)
+END IF
+
+IF(P250=5)
+Z(P1009)
+END IF
+;M2=1 ; Sets M2 high before the motion command. But it doesn't wait for the motion to finish!
+CLOSE
+; ** End of Upload **

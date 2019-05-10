@@ -1,0 +1,101 @@
+
+		; **** BCM file generated: Tue, Dec 09 2014, 07:45:26 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		2
+		pushc_i		$000003e8
+		startsync_cmd
+		chkdbg
+	.ln		3
+L0
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L1
+		chkdbg
+	.ln		4
+		sync_cmd
+		chkdbg
+	.ln		5
+		pusha		FA
+		pushc_i		$00000000
+		extpos_cmd
+		store_d
+		chkdbg
+	.ln		7
+		sync_cmd
+		chkdbg
+	.ln		8
+		pusha		FB
+		pushc_i		$00000000
+		extpos_cmd
+		store_d
+		chkdbg
+	.ln		9
+		pushc_i		$00000015
+		pusha		FPRINTSTRING
+		pshrgpa
+		pushc_i		$00000001
+		pshgpa		_LC0
+		pushv_d		FB
+		cnvt_di
+		pushv_d		FA
+		cnvt_di
+		sub_i
+		pushc_i		$00000000
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		10
+		pushc_i		$00000015
+		pusha		FPRINTSTRING
+		pshrgpa
+		print_cmd
+		bra		L0
+L1
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\auxiliary encoder test.ab
+
+
+	org	y:
+
+	.def	FPRINTSTRING
+	.val	FPRINTSTRING
+	.scl	2
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+FPRINTSTRING		bsc	21
+
+	org	y:
+
+	.def	FA
+	.val	FA
+	.scl	2
+	.type	$7
+	.endef
+FA		bsc	2
+
+	org	y:
+
+	.def	FB
+	.val	FB
+	.scl	2
+	.type	$7
+	.endef
+FB		bsc	2
+
+	org	y:
+_LC0
+	dc	$000a6425
+
+

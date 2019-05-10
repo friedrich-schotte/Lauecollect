@@ -1,0 +1,2 @@
+CustomView = ['Data']
+view = 'Standard'

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Wide-field Camera
+Comment=F. Schotte, 30 Jan 2012
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh WidefieldCamera.py
+Icon=/reg/neh/home/schotte/Software/Lauecollect/icons/camera.png
+Type=Application

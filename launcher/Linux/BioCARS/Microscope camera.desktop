@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Wide-field camera
+Type=Application
+Terminal=false
+Name[en_US]=Microscope camera
+Exec=ssh id14b4 NIH/Software/MicroscopeCamera
+Comment[en_US]=F. Schotte, 30 Jan 2012
+Comment=F. Schotte, 30 Jan 2012
+Icon=/net/id14b4/home/useridb/NIH/Software/icons/camera.png
+GenericName[en_US]=Prosilica GigE Camera

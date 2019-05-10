@@ -1,0 +1,8 @@
+Under Windows, Wireshark/Etherreal connect capture from the internal loopback address 127.0.0.1. However it can capture from a "Microsoft Loopback Adapter". But additional setup is needed.
+
+Followed instructions at wiki.wireshark.org/CaptureSetup/Loopback 
+
+C:\>ipconfig /all
+Found the first IP address of the loopback adapter to be 137.187.224.216 and its "physical address" to be 02-00-4C-4F-4F-50 (2-0-LOOP).
+C:\>arp -s 137.187.224.216 02-00-4C-4F-4F-50
+C:\>route add 137.187.224.216 137.187.224.216 mask 255.255.255.255

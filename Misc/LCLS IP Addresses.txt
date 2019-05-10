@@ -1,0 +1,24 @@
+172.21.46.70 gige-xpp-cam01.pcdsn, Wide-field Camera # 02-2131A-16519, 00:0f:31:02:75:ca
+172.21.46.200 ics-xpp-l403-pico5.pcdsn, 15" MacBook Pro. Friedrich Schotte, ac:87:a3:04:bc:15
+172.21.46.201 ics-xpp-l403-pico5-win.pcdsn, 15” MacBook, Pro Friedrich Schotte, Windows VM, 00:1c:42:41:f0:73
+172.21.46.202 ics-xpp-l403-NIH-IOC.pcdsn, Microscope Camera # 02-2131A-06190, 00:0f:31:01:8f:db (was:Fit-PC Linux box)
+172.21.46.203 ics-xpp-l403-MC-sample.pcdsn, Ensemble Motion Controller, 00:11:89:0:30:01
+172.21.46.204 ics-xpp-l403-MC-xray-shutter.pcdsn xray-shutter, Soloist Motion Controller, 00:11:89:0:2:5a 
+172.21.46.205 ics-xpp-l403-atto.pcdsn, 13” MacBook, Philip Anfinrud, 00:1b:63:bc:72:cd
+
+172.21.46.206 ics-xpp-lj12-NIH-instrumentation.pcdsn, MacBook Pro Instrumentation, 68:5b:35:88:84:e5
+172.21.46.207 ics-xpp-lj12-timing01.pcdsn Timing System, 00:11:0C:09:85:C9
+172.21.46.208 ics-xpp-lj12-timing02.pcdsn Timing System, 00:11:0C:09:85:BE
+172.21.46.209 ics-xpp-lj12-pico13.pcdsn, MacBook Pro, Hyun Sun Cho, 68:5b:35:88:84:e5
+
+172.21.46.32 scope-ics-xpp-waverunner1.pcdsn, LeCroy Oscilloscope 400 MHz, 10 GS/s, 0:4:5f:b1:9a:b3
+172.21.46.133 con-ics-xpp-rayonix.pcdsn, Rayonix Detector, 08:60:6e:d9:7a:eb
+
+172.21.46.21 con-ics-xpp-control.pcdsn, Beamline Control, 00:1b:21:98:51:4e
+172.21.46.22 con-ics-xpp-daq.pcdsn, Beamline Control, 00:25:90:92:6A:58
+
+172.21.46.74 ioc-ics-xpplogin.pcdsn, Instrumentation Gateway 
+
+172.21.38.51 webcam-xpp-ceiling1.pcdsn Video Camera
+172.21.38.53 webcam-xpp-ceiling2.pcdsn Video Camera
+172.21.38.52 webcam-xpp-ceiling3.pcdsn Video Camera 

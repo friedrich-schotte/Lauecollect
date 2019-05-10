@@ -1,0 +1,11 @@
+phi_motor_name = 'SamplePhi'
+phi_scale = 1.0
+rotation_center_x = 0.0
+rotation_center_y = 0.0
+x_motor_name = 'SampleX'
+x_scale = 1.0
+xy_rotating = True
+y_motor_name = 'SampleY'
+y_scale = 1.0
+z_motor_name = 'SampleZ'
+z_scale = 1.0

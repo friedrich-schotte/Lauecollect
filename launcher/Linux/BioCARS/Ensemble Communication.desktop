@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=NIH Diffractometer
+Type=Application
+Terminal=false
+Exec=csh -c "medm -x -attach -macro P=14IDB:,R=SAMPLECOM asynOctet.adl"
+Comment[en_US]=F. Schotte, 30 Mar 2013
+Comment=F. Schotte, 4 Mar 2013
+GenericName[en_US]=ASCII command interface of motion controller
+Name[en_US]=Ensemble Communication

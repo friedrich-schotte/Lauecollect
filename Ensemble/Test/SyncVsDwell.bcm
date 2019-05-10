@@ -1,0 +1,83 @@
+
+		; **** BCM file generated: Fri, Nov 28 2014, 02:00:55 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		31
+		pushc_i		$000003e8
+		startsync_cmd
+		chkdbg
+	.ln		33
+		cleartimer_emb
+		chkdbg
+	.ln		35
+L0
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L1
+		chkdbg
+	.ln		39
+		sync_cmd
+		chkdbg
+	.ln		41
+		pusha		FTEMPVALUE
+		timer_emb
+		pushc_d		$d2f1a9fc $3f50624d
+		mpy_d
+		store_d
+		chkdbg
+	.ln		43
+		pushc_i		$00000019
+		pusha		FMYSTRING
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC0
+		pushv_d		FTEMPVALUE
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		44
+		pushc_i		$00000019
+		pusha		FMYSTRING
+		pshrgpa
+		print_cmd
+		bra		L0
+L1
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\syncvsdwell.ab
+
+
+	org	y:
+
+	.def	FMYSTRING
+	.val	FMYSTRING
+	.scl	2
+	.dim	25
+	.strt	0
+	.size	25
+	.type	$3c
+	.endef
+FMYSTRING		bsc	25
+
+	org	y:
+
+	.def	FTEMPVALUE
+	.val	FTEMPVALUE
+	.scl	2
+	.type	$7
+	.endef
+FTEMPVALUE		bsc	2
+
+	org	y:
+_LC0
+	dc	$656d6954, $206e6920, $6f636553, $3a73646e, $00672520
+
+

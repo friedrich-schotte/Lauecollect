@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Timing System 0scilloscope
+Comment=F. Schotte Jan 28, 2016
+Type=Application
+Exec=vncviewer scope-ics-xpp-waverunner1
+Icon=/usr/share/icons/hicolor/48x48/apps/tigervnc.png

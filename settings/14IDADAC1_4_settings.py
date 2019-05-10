@@ -1,0 +1,1 @@
+VAL.filename = '//mx340hs/data/anfinrud_1810/Archive//14IDA.DAC1_4.VAL.txt'

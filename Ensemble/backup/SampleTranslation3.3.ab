@@ -1,0 +1,465 @@
+' This program is to tranlate the sample for a WAXS experiment
+' synchronously to an exteranl trigger signal.
+' The maximum trigger needed rate is 82 Hz, the translation step 150 um.
+' The tranlations is trigger by a rising edge at the digital input 0.
+
+' Friedrich Schotte, NIH, 30 Sep 2008 - 30 Mar 2013
+
+HEADER
+  INCLUDE "StringLibHeader.abi"
+END HEADER
+
+DECLARATIONS
+  GLOBAL Version AS STRING = "3.3"
+  GLOBAL res AS DOUBLE 'encoder resolution in mm
+  GLOBAL stepsize AS DOUBLE 'increment for triggered motion (um)
+  GLOBAL start_pos AS DOUBLE 'turning point for triggered motion (um)
+  GLOBAL end_pos AS DOUBLE 'turning point for triggered motion (um)
+  GLOBAL auto_return AS INTEGER 'automatically return to start at end of travel
+  GLOBAL auto_reverse AS INTEGER 'automatically reverse direction at end of travel
+  GLOBAL speed AS DOUBLE 'top speed in um/s
+  GLOBAL step_acceleration AS DOUBLE 'for triggered operation in um/s2
+  GLOBAL acceleration AS DOUBLE 'for non-triggered motion in um/s2
+  GLOBAL low_limit AS DOUBLE 'limit switch trigger point (um)
+  GLOBAL high_limit AS DOUBLE 'limit switch trigger point (um)
+  GLOBAL trigger_enabled AS INTEGER 'move stage on external trigger
+  GLOBAL timer_enabled AS INTEGER 'move stage on a timer  
+  GLOBAL timer_period AS DOUBLE 'timer period on ms  
+  GLOBAL last_level AS INTEGER 'digital input state
+  GLOBAL trigger_count AS INTEGER 'number of trigger events detected
+  GLOBAL step_count AS INTEGER 'number of triggered steps operations
+  GLOBAL trigged_step AS INTEGER 'Was last move done on external trigger?
+END DECLARATIONS
+
+PROGRAM
+  'Initialize global variables
+  res = 1.0 'position in mutiples of of mm
+  stepsize = 0.48292/res 'increment for triggered motion 
+  start_pos = -11.160/res 'turning point for triggered motion
+  end_pos = 12.503/res 'turning point for triggered motion
+  auto_return = 1 'automatically return to start at end of travel
+  auto_reverse = 0 'automatically reverse direction at end of travel
+  trigger_enabled = 0 'move stage on external trigger
+  timer_enabled = 0 'move stage on a timer  
+  timer_period = 24.0 'timer period in ms  
+  speed = 200/res 'top speed in units/s
+  low_limit = -13.000/res 'limit switch trigger point
+  high_limit = 13.000/res 'limit switch trigger point
+  step_acceleration = 14000.000/res 'for triggered operation in units/s2
+  acceleration = step_acceleration 'for non-triggered motion in um/s2 (0.25 s for full stroke)
+  trigger_count = 0 'number of trigger events detected
+  step_count = 0 'number of triggered steps operations
+  triggered_step = 0 'Was last move done on external trigger?
+
+  DIM direct as INTEGER = 1 'direction of next move 1 = forward, -1 = backward
+  DIM current_pos as DOUBLE
+  DIM level AS INTEGER 'digital input state
+  DIM bits AS INTEGER 'status bits
+  DIM HL AS INTEGER, LL AS INTEGER, moving AS INTEGER  'high limit, low limit
+  DIM t AS INTEGER 'time in milliseconds
+  DIM do_step AS INTEGER 'Start motion?
+  'DIM msg as STRING 'for diagnostic messages
+
+  ' With and incremental encoder, after power on, in order for the controller
+  ' to know the absolute angle of the motor it needs to find the "reference" mark 
+  ' of the encoder. The HOME command rotates the motor until the the marker input
+  ' level goes high, then stops there and resets the encoder accumulator count to
+  ' zero.
+  ' The program check first if a home run has already been performed, and does
+  ' it only if it has not been done before.
+  DIM HOMED AS INTEGER 
+  bits = AXISSTATUS(Z)
+  HOMED = (bits >> 1) BAND 1
+  IF NOT HOMED THEN
+    WAIT MODE MOVEDONE 'After a motion command, wait for it to complete.
+    FAULTACK Z 'Make sure fault state is cleared.
+    ENABLE Z 'Turn the drive on.
+    HOME Z 'Find the home switch and set encoder count to 0.
+	DISABLE Z 'Turn the drive off.
+    WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+  END IF
+
+  WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+  RAMP MODE Z RATE 'The acceation ramp is determind by the RAMP RATE parameter (default)
+
+  FAULTACK Z 'Make sure any fault state is cleared.
+
+  ' Go to the starting position using the normal acceleration rate.
+  'ENABLE Z 'turn the drive on
+  'RAMP RATE Z acceleration
+  'MOVEABS Z end_pos ZF speed ' Start at positive end of stroke.
+  
+  ' Read digital inputs (on AUX I/O connector)
+  last_level = DIN(X,1,0)
+
+  WHILE 1
+	do_step = 0 
+    IF trigger_enabled THEN
+      ' Read digital inputs (on AUX I/O connector)
+      level = DIN(X,1,0)
+      DOUT X,1,level ' Timing marker for debugging
+	  IF level = 1 AND last_level = 0 THEN
+		do_step = 1
+	  END IF 
+	  IF do_step THEN trigger_count = trigger_count+1 END IF
+	  last_level = level
+	END IF
+    IF timer_enabled THEN
+	  t = TIMER()
+	  IF t >= timer_period THEN do_step = 1 END IF
+	  IF do_step THEN CLEARTIMER END IF
+	END IF
+    ' On the rising edge of input 1, operated the stage momentarily advancing
+    ' one step forward or backward.
+    IF do_step THEN
+	  bits = AXISSTATUS(Z)
+	  moving = (bits >> 3) BAND 1
+	  ' Ignore trigger if still busy performing the last motion,
+	  ' unless the last motion was externally triggered.
+	  IF NOT moving OR triggered_step THEN
+	    current_pos = PCMD(Z)
+	    IF end_pos > start_pos THEN HP = end_pos ELSE HP = start_pos END IF
+	    IF end_pos > start_pos THEN LP = start_pos ELSE LP = end_pos END IF
+        HL = (bits >> 22) BAND 1
+        LL = (bits >> 23) BAND 1
+        'IF NOT moving THEN
+		'  FAULTACK Z 'Make sure any fault state is cleared.
+		'END IF 
+        'ENABLE Z 'turn the drive on
+	    ' Optionally, return to start at end of travel.
+	    IF auto_return THEN
+          IF stepsize>0 AND current_pos+stepsize > HP+1 OR HL THEN
+            RAMP RATE Z acceleration
+            MOVEABS Z LP ZF speed ' D position in um, F in um/s
+		    triggered_step = 0
+            step_count = step_count+1
+          ELSEIF stepsize<0 AND current_pos+stepsize < LP-1 OR LL THEN
+            RAMP RATE Z acceleration
+            MOVEABS Z HP ZF speed ' D position in um, F in um/s
+		    triggered_step = 0
+            step_count = step_count+1
+          ELSE
+		    RAMP RATE Z step_acceleration
+			MOVEABS Z current_pos+stepsize ZF speed ' D position in um, F in um/s
+		    triggered_step = 1
+            step_count = step_count+1
+		  END IF
+	    ' Optionally, reverse direction at end of travel.
+	    ELSEIF auto_reverse THEN
+          IF current_pos+stepsize > HP OR HL THEN
+            stepsize = -1*ABS(stepsize)
+          ELSEIF current_pos+stepsize < LP OR LL THEN
+            stepsize = ABS(stepsize)
+          END IF
+          RAMP RATE Z step_acceleration 
+		  MOVEABS Z current_pos+stepsize ZF speed ' D position in um, F in um/s
+		  triggered_step = 1
+          step_count = step_count+1
+	    ' Respect soft and hard limits when running on external trigger.
+	    ELSEIF (stepsize>0 AND current_pos+stepsize <= HP AND NOT HL) OR 
+	      (stepsize<0 AND current_pos+stepsize >= LP AND NOT LL) THEN
+          RAMP RATE Z step_acceleration 
+          MOVEABS Z current_pos+stepsize ZF speed ' D position in um, F in um/s
+		  triggered_step = 1
+          step_count = step_count+1
+	    END IF
+      END IF
+    END IF
+  
+    CALL Handle_Communication()
+  WEND
+END PROGRAM
+
+'This procedure performs procedure performs communications
+'with a remote client.
+'Overhead for calling this procedure: 166 us
+FUNCTION Handle_Communication()
+  DIM command_input AS STRING(80),command AS STRING(80)
+  DIM reply AS STRING(80),reply_output AS STRING(80) 
+  DIM parameter AS STRING(40)
+  DIM nbytes AS INTEGER, n AS INTEGER, offset AS INTEGER
+  DIM pos AS DOUBLE, bits AS INTEGER, old_value AS DOUBLE
+  DIM moving AS INTEGER
+  DIM GO_TO_ AS STRING = "GO TO "
+  DIM TIMER_PERIOD_IS_ AS STRING = "TIMER PERIOD IS "
+  DIM STEP_SIZE_IS_ AS STRING = "STEP SIZE IS "
+  DIM LIMIT_TRAVEL_FROM_ AS STRING = "LIMIT TRAVEL FROM "
+  DIM START_POSITION_ AS STRING = "START POSITION "
+  DIM END_POSITION_ AS STRING = "END POSITION "
+  DIM TO_ AS STRING = " TO "
+  DIM TOP_SPEED_ AS STRING = "TOP SPEED "
+  DIM ACCELERATION_ AS STRING = "ACCELERATION "
+  DIM TRIG_ACCEL_ AS STRING = "TRIG. ACCEL. "
+  DIM SET_THE_LOW_LIMIT_TO_ AS STRING = "SET THE LOW LIMIT TO "
+  DIM SET_THE_HIGH_LIMIT_TO_ AS STRING = "SET THE HIGH LIMIT TO "
+  DIM TRIGGER_COUNT_ AS STRING = "TRIGGER COUNT "
+  DIM STEP_COUNT_ AS STRING = "STEP COUNT "
+  DIM OK_ AS STRING = "OK: "
+  DIM QUESTION_MARK AS STRING = "?",PERIOD AS STRING = "."
+  DIM EXCLAMATION_MARK AS STRING = "!"
+  DIM ending AS STRING(1)
+	
+  command_input = GETPARM(UserString0) 'UserString0 = 145
+  
+  n = LEN(command_input)
+  IF n>0 THEN 
+    CALL ExtractStrFromStr(command_input,ending,n-1,1) 
+  ELSE 
+    ENDING = ""
+  END IF
+  
+  IF (FindStrInStr(QUESTION_MARK,ending) == 0 OR FindStrInStr(EXCLAMATION_MARK,ending) == 0)
+    AND FindStrInStr(OK_,command_input) <> 0
+	AND FindStrInStr(QUESTION_MARK,command_input) <> 0 
+  THEN
+        command = command_input
+	  	CALL ToUpperStr (command) 'Convert everything to upper case
+		
+        IF command = "IS THE STAGE MOVING?" THEN
+          bits = AXISSTATUS(Z)
+          IF (bits >> 3) BAND 1 THEN
+          	reply = "The stage is moving."
+          ELSE
+	        reply = "The stage is not moving."
+          END IF
+        ELSEIF command = "CURRENT POS?" THEN
+		  pos = PFBK(Z)
+          FORMAT reply,"Current pos %g mm.",DBLV:res*pos
+        ELSEIF FindStrInStr(GO_TO_,command) = 0 THEN
+		  offset = LEN(GO_TO_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          pos = CDBL(parameter)/res
+		  bits = AXISSTATUS(Z)
+	      moving = (bits >> 3) BAND 1
+		  IF  NOT moving THEN
+            FAULTACK Z 'Clear fault status (if present).
+		  END IF
+          ENABLE Z 'Turn on drive (if off).
+          WAIT MODE NOWAIT
+		  RAMP RATE Z acceleration
+          MOVEABS Z pos ZF speed
+          triggered_step = 0
+		  pos = PCMD(Z)
+          FORMAT reply,"Command pos %g mm.",DBLV:res*pos
+        ELSEIF command = "COMMAND POS?" THEN
+		  pos = PCMD(Z)
+          FORMAT reply,"Command pos %g mm.",DBLV:res*pos
+		ELSEIF command = "IS TRIGGER ENABLED?" THEN
+          IF trigger_enabled THEN
+            reply = "Trigger is enabled."
+          ELSE
+            reply = "Trigger is disabled."
+		  END IF
+		ELSEIF command = "ENABLE TRIGGER!" THEN
+          trigger_enabled = 1
+          reply = "Trigger is enabled."
+		ELSEIF command = "DISABLE TRIGGER!" THEN
+          trigger_enabled = 0
+          reply = "Trigger is disabled."
+		ELSEIF command = "IS TIMER ENABLED?" THEN
+          IF timer_enabled THEN
+            reply = "Timer is enabled."
+          ELSE
+            reply = "Timer is disabled."
+		  END IF
+		ELSEIF command = "ENABLE TIMER!" THEN
+          timer_enabled = 1
+          reply = "Timer is enabled."
+		ELSEIF command = "DISABLE TIMER!" THEN
+          timer_enabled = 0
+          reply = "Timer is disabled."
+        ELSEIF command = "TIMER PERIOD?" THEN
+          FORMAT reply,"Timer period is %g s.",DBLV:timer_period*0.001
+		ELSEIF FindStrInStr(TIMER_PERIOD_IS_,command) = 0 THEN
+		  offset = LEN(TIMER_PERIOD_IS_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          timer_period = CDBL(parameter)/0.001
+          FORMAT reply,"Timer period is %g s.",DBLV:timer_period*0.001
+        ELSEIF command = "STEP SIZE?" THEN
+          FORMAT reply,"Step size is %g.",DBLV:stepsize*res
+		ELSEIF FindStrInStr(STEP_SIZE_IS_,command) = 0 THEN
+          old_value = stepsize
+		  offset = LEN(STEP_SIZE_IS_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          stepsize = CDBL(parameter)/res
+          FORMAT reply,"Step size is %g.",DBLV:stepsize*res
+        ELSEIF command = "CALIBRATE THE STAGE!" THEN
+          'This drives the stage to the home switch coming from 
+          'the low limit (as specified by the parameter HomeType
+          '= 0x1) and sets the encoder count to 0 at the point the 
+          'home switch is triggered. 
+		  'The HOME command will block execution unit completed.
+          'WAIT MODE NOWAIT does not effect the HOME command.
+          FAULTACK Z 'Clear fault status (if present).
+          ENABLE Z 'turn on drive (if off)
+		  HOME Z
+          reply = "Calibrating the stage."
+        ELSEIF command = "IS THE STAGE CALIBRATED?" THEN
+          'Check if a home run has already been performed.
+          bits = AXISSTATUS(Z)
+          IF (bits >> 1) BAND 1 THEN
+	        reply = "The stage is calibrated."
+          ELSE
+	        reply = "The stage is not calibrated."
+          END IF
+        ELSEIF command = "AT HIGH LIMIT?" THEN
+          bits = AXISSTATUS(Z)
+          IF (bits >> 22) BAND 1 THEN
+          	reply = "At high limit."
+          ELSE
+	        reply = "Not at high limit."
+          END IF
+        ELSEIF command = "AT LOW LIMIT?" THEN
+          bits = AXISSTATUS(Z)
+          IF (bits >> 23) BAND 1 THEN
+          	reply = "At low limit."
+          ELSE
+	        reply = "Not at low limit."
+          END IF
+        ELSEIF command = "AUTO REVERSE?" THEN
+          IF auto_reverse THEN
+            reply = "Auto reverse enabled."
+          ELSE
+            reply = "Auto reverse disabled."
+		  END IF
+		ELSEIF command = "ENABLE AUTO REVERSE!" THEN
+          auto_reverse = 1
+		  auto_return = 0
+          reply = "Auto reverse enabled."
+		ELSEIF command = "DISABLE AUTO REVERSE!" THEN
+          auto_reverse = 0
+          reply = "Auto reverse disabled."
+        ELSEIF command = "AUTO RETURN?" THEN
+          IF auto_return THEN
+            reply = "Auto return enabled."
+          ELSE
+            reply = "Auto return disabled."
+		  END IF
+		ELSEIF command = "ENABLE AUTO RETURN!" THEN
+          auto_return = 1
+		  auto_reverse = 0
+          reply = "Auto return enabled."
+		ELSEIF command = "DISABLE AUTO RETURN!" THEN
+          auto_return = 0
+          reply = "Auto return disabled."
+        ELSEIF command = "TRAVEL LIMITS?" THEN
+          FORMAT reply,"Travel is limited from %g to %g mm.",
+		    DBLV:start_pos*res,DBLV:end_pos*res
+		ELSEIF FindStrInStr(LIMIT_TRAVEL_FROM_,command) = 0 THEN
+		  old_start_pos = start_pos
+		  old_end_pos = end_pos
+		  offset = LEN(LIMIT_TRAVEL_FROM_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          start_pos = CDBL(parameter)/res
+		  offset = FindStrInStr(TO_,command)+LEN(TO_)
+		  CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+		  end_pos = CDBL(parameter)/res
+          FORMAT reply,"Travel is limited from %g to %g mm.",
+		    DBLV:start_pos*res,DBLV:end_pos*res
+        ELSEIF command = "START POSITION?" THEN
+          FORMAT reply,"Start position %g mm.",DBLV:start_pos*res
+		ELSEIF FindStrInStr(START_POSITION_,command) = 0 THEN
+		  old_value = start_pos
+		  offset = LEN(START_POSITION_)
+		  CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+		  start_pos = CDBL(parameter)/res
+          FORMAT reply,"Start position %g mm.",DBLV:start_pos*res
+        ELSEIF command = "END POSITION?" THEN
+          FORMAT reply,"End position %g mm.",DBLV:end_pos*res
+		ELSEIF FindStrInStr(END_POSITION_,command) = 0 THEN
+		  old_value = end_pos
+		  offset = LEN(END_POSITION_)
+		  CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+		  end_pos = CDBL(parameter)/res
+          FORMAT reply,"End position %g mm.",DBLV:end_pos*res
+		ELSEIF command = "IS THE DRIVE ENABLED?" THEN
+          bits = AXISSTATUS(Z)
+          IF (bits >> 0) BAND 1 THEN
+          	reply = "The drive is enabled."
+          ELSE
+	        reply = "The drive is disabled."
+          END IF
+		ELSEIF command = "ENABLE DRIVE" THEN
+  	      bits = AXISSTATUS(Z)
+	      moving = (bits >> 3) BAND 1
+		  IF NOT not moving THEN
+		    FAULTACK Z 'Clear fault status (if present).
+		  END IF
+          ENABLE Z
+	      reply = "The drive is enabled."
+		ELSEIF command = "DISABLE DRIVE" THEN
+          DISABLE Z
+          reply = "The drive is disabled."
+		ELSEIF command = "TOP SPEED?" THEN
+          FORMAT reply,"Top speed is %g mm/s.",DBLV:speed*res
+		ELSEIF FindStrInStr(TOP_SPEED_,command) = 0 THEN
+		  offset = LEN(TOP_SPEED_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          speed = CDBL(parameter)/res
+          FORMAT reply,"Top speed is %g mm/s.",DBLV:speed*res
+		ELSEIF command = "TRIG. ACCEL.?" THEN
+          FORMAT reply,"Trig. accel. %g mm/s2.",
+		    DBLV:step_acceleration*res
+		ELSEIF FindStrInStr(TRIG_ACCEL_,command) = 0 THEN
+		  offset = LEN(TRIG_ACCEL_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          step_acceleration = CDBL(parameter)/res
+          FORMAT reply,"Trig. accel. %g mm/s2.",
+		    DBLV:step_acceleration*res
+		ELSEIF command = "ACCELERATION?" THEN
+          FORMAT reply,"Acceleration %g mm/s2.",DBLV:acceleration*res
+		ELSEIF FindStrInStr(ACCELERATION_,command) = 0 THEN
+		  offset = LEN(ACCELERATION_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          acceleration = CDBL(parameter)/res
+          FORMAT reply,"Acceleration %g mm/s2.",DBLV:acceleration*res
+		ELSEIF command = "STOP!" THEN
+		  trigger_enabled = 0
+		  ABORT Z
+          reply = "Stopped."
+		ELSEIF command = "LOW LIMIT?" THEN
+          FORMAT reply,"The low limit is %g mm.",DBLV:low_limit*res
+		ELSEIF FindStrInStr(SET_THE_LOW_LIMIT_TO_,command) = 0 THEN
+		  offset = LEN(SET_THE_LOW_LIMIT_TO_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          low_limit = CDBL(parameter)/res
+          FORMAT reply,"The low limit is %g mm.",DBLV:low_limit*res
+		ELSEIF command = "HIGH LIMIT?" THEN
+          FORMAT reply,"The high limit is %g mm.",DBLV:high_limit*res
+		ELSEIF FindStrInStr(SET_THE_HIGH_LIMIT_TO_,command) = 0 THEN
+		  offset = LEN(SET_THE_HIGH_LIMIT_TO_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          high_limit = CDBL(parameter)/res
+          FORMAT reply,"The high limit is %g mm.",DBLV:high_limit*res
+		ELSEIF command = "TRIGGER COUNT?" THEN
+          FORMAT reply,"The trigger count is %d.",INTV:trigger_count
+		ELSEIF FindStrInStr(TRIGGER_COUNT_,command) = 0 THEN
+		  offset = LEN(TRIGGER_COUNT_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          trigger_count = CINT(parameter)
+          FORMAT reply,"The trigger count is %d.",INTV:trigger_count
+		ELSEIF command = "STEP COUNT?" THEN
+          FORMAT reply,"The step count is %d.",INTV:step_count
+		ELSEIF FindStrInStr(STEP_COUNT_,command) = 0 THEN
+		  offset = LEN(STEP_COUNT_)
+          CALL ExtractStrFromStr(command,parameter,offset,LEN(command)-offset)
+          step_count = CINT(parameter)
+          FORMAT reply,"The step count is %d.",INTV:step_count
+		ELSEIF command = "SAVE PARAMETERS!" THEN
+          'Not implemented (yet).
+          reply = "Saving Parameters."
+		ELSEIF command = "SOFTWARE VERSION?" THEN
+          FORMAT reply, "Software version is %s.",STRV:Version
+		ELSE
+          reply = ""
+		END IF
+	
+	    'In the reply, "OK: " indicates success, "?" failure.
+        IF reply <> "" THEN
+          CALL ConcatStrToStr(OK_,reply,reply_output)
+        ELSE
+          CALL ConcatStrToStr(QUESTION_MARK,command_input,reply_output)
+        END IF
+        SETPARM UserString0,reply_output 'UserString0 = 145
+  END IF
+END FUNCTION

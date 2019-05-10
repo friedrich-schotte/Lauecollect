@@ -1,0 +1,329 @@
+' MotorVerification.ab
+' 
+' Based on a test program that came as sample program with the Soloist 2.04
+' software:
+' C:\Program Files\Aerotech\Soloist\Samples\AeroBasic\MotorVerification.ab
+'  
+' Recoded by Friedrich Schotte, NIH, 20 Sep 2008 - 30 Jan 2015 
+' to produce more diagnostic messages.
+'
+' Notes on program use:
+' 
+'   This program is designed to determine a commutation 
+'   offset for most systems, and makes these assumptions: 
+'
+'   1. The position and velocity feedback sources are the 
+'      same (VelocityFeedbackType = 0).
+'   2. The encoder counts positive in the positive motion
+'      direction (FeedbackSetup Parameter, 
+'      Position Feedback Direction = Normal).
+'   3. The motor is intended to be phased so that positive 
+'      MSET angle increments move the axis in the CW 
+'      direction on rotary motors (away from the cables
+'      on linear motor forcers).
+'
+'   If the first condition is not true and the Position and 
+'   Velocity feedback resolutions are different, the test of
+'   the Counts per Cycle fails because the CfgMotCntsRev 
+'   parameter is based on the velocity feedback counts, 
+'   while this program reads the position feedback.
+'
+'   If the second condition is not true, the Direction test 
+'   fails because this verifies direction by ensuring
+'   that the encoder counts positive for positive MSETs.
+'
+'   If the third condition is not true, two motor phases are
+'   swapped. This passes all the tests if the encoder is wired
+'   backwards and the two Hall signals associated with the
+'   swapped motor phases are also swapped; however,
+'   this can mean that limit switch signals are inverted 
+'   (that is, plus or CW motion triggers the CCW limit switch). 
+'   This, in turn, leads to improper behavior on limit
+'   switches. For this reason, Aerotech does not recommend
+'   this condition.
+'
+'   This program can experience problems if the commutation offset
+'   is exactly at a Hall transition point (for example, if the
+'   offset is exactly 30 degrees). 
+'
+'   In this case, one of the given  20-degree MSET locations
+'   provides the state before or after
+'   transition. The
+'   PhaseOffset is ignored. The best course of action is to
+'   change the value of the CfgMotOffsetAng parameter to a small
+'   value (for example, five degrees), and rerun the test. Factor
+'   out the five degrees in the final commutation angle.
+' 
+'   PhaseOffset is the value required for the CfgMotOffsetAng 
+'   parameter to fully null out offsets. 
+
+HEADER
+  DEFINE AXIS_NUMBER 6 'Edit this line. Zero-based integer
+END HEADER
+
+DECLARATIONS
+GLOBAL HallExpected(18) AS INTEGER
+END DECLARATIONS
+
+PROGRAM
+    DIM axis AS INTEGER
+	DIM MSG AS STRING
+	DIM normal_fault_mask AS INTEGER, fault_mask AS INTEGER
+	DIM LL AS INTEGER, HL AS INTEGER
+	DIM LLactive AS INTEGER, HLactive AS INTEGER
+    DIM I AS INTEGER
+    DIM test_sign AS INTEGER, test_offset AS INTEGER, count AS INTEGER
+	DIM sign AS INTEGER, my_offset AS INTEGER
+	DIM matches AS INTEGER, best_matches AS INTEGER
+	
+	axis = AXIS_NUMBER
+
+    ' Initialize Variables
+    CALL InitHallStates()
+	' Set MSET current to 1/2 of RMS current setting for motor.
+	DIM Amps AS DOUBLE
+    Amps = GETPARM(@axis,AverageCurrentThreshold) / 2
+
+    PRINT "Turning off position error, CW+CCW hardware limit fault: "
+    normal_fault_mask = GETPARM(@axis,FaultMask)
+	'bit 0 = position error, 2 = CW hardware limit, 3 = CCW hardware limit
+    fault_mask = normal_fault_mask BAND BNOT ((1<<0) BOR (1<<2) BOR (1<<3))
+	FORMAT MSG,"FaultMaskGlobal: %08X\n",INTV:fault_mask
+	PRINT MSG
+    SETPARM FaultMask,fault_mask 
+    
+    FAULTACK @axis ' Clear fault status (if present).
+    MSET @axis, Amps, 0 ' Start at 0 for the first read of position.
+    DWELL 1                   
+
+    ' Read Hall sensors as function of motor phase in open-loop mode
+	DIM Phase AS INTEGER, Pos(19) AS DOUBLE
+	DIM StateCount AS INTEGER
+	DIM Halls AS INTEGER, HallStates(19) AS INTEGER, bits AS INTEGER
+	DIM A AS INTEGER, B AS INTEGER,C AS INTEGER
+	DIM Ae AS INTEGER, Be AS INTEGER,Ce AS INTEGER
+
+	PRINT "Checking phase offset of Hall sensors...\n"
+	PRINT "phase expected detected position\n"
+	PRINT "[deg] A B C    A B C            \n"
+	Phase = 0
+    FOR I = 0 to 18
+        MSET @axis, Amps, Phase
+        DWELL 0.3
+        bits = AXISSTATUS(@axis)
+        HallStates(I) = bits BAND 0x1C000000
+		A = (bits >> 26) BAND 1
+		B = (bits >> 27) BAND 1
+		C = (bits >> 28) BAND 1
+		' Check for collision with limit switches
+		HL = (bits >> 22) BAND 1
+		LL = (bits >> 23) BAND 1
+		bits = GETPARM(@axis,EndOfTravelLimitSetup)
+		LLactive = (bits >> 1) BAND 1
+		HLactive = (bits >> 2) BAND 1
+		IF HL = HLactive THEN
+		    PRINT "Hit positive end of travel.\n"
+			PRINT "Recommendation: Move to different position before starting program.\n"
+			DISABLE @axis
+			SETPARM FaultMask,normal_fault_mask
+			EXIT PROGRAM 
+		END IF
+		IF LL = LLactive THEN
+		    PRINT "Hit negative end of travel.\n"
+			PRINT "Recommendation: Move to different position before starting program.\n"
+			DISABLE @axis
+			SETPARM FaultMask,normal_fault_mask
+			EXIT PROGRAM 
+		END IF
+		bits = HallExpected(I) BAND 0x1C000000
+		Ae = (bits >> 26) BAND 1
+		Be = (bits >> 27) BAND 1
+		Ce = (bits >> 28) BAND 1
+		Pos(I) = PFBK(@axis)
+		FORMAT MSG,"%03d   %d %d %d    %d %d %d    %8.0f\n",INTV:Phase,
+		    INTV:Ae,INTV:Be,INTV:Ce,INTV:A,INTV:B,INTV:C,DBLV:Pos(I)
+		PRINT MSG
+		Phase = MOD(Phase+20,360)
+    NEXT I
+ 	
+	'Return to starting point
+	FOR Phase = 315 TO 0 STEP -45
+        MSET @axis, Amps, Phase
+		DWELL 0.05
+	NEXT Phase
+	DWELL 0.5
+    DISABLE @axis
+	SETPARM FaultMask,normal_fault_mask
+
+    ' Check whether encoder was counting up when the
+	' motor moved positive direction. 
+	IF Pos(0) < Pos(18) THEN
+		PRINT "Motor and encoder direction are consistent.\n"
+    END IF 
+	IF Pos(0) > Pos(18) THEN
+	    PRINT "Encoder counts backward when motor moves forward.\n"
+		PRINT "Recommendation: Change parameter FeedbackSetup, "
+		PRINT "invert bit 'Position Feedback Direction'.\n"
+		EXIT PROGRAM
+    END IF
+	IF Pos(0) == Pos(18) THEN
+	    PRINT "Encoder indicates that motor did not move.\n"
+		EXIT PROGRAM
+    END IF
+	
+	' Check whether Hall sensors are wired correctly.
+	DIM PhaseOffset AS INTEGER
+	best_matches = 0
+	FOR test_sign = -1 to 1 STEP 2
+	    FOR test_offset = 0 to 17
+		    matches = 0
+            FOR StateCount = 0 to 17
+	            count = MOD(StateCount*test_sign + test_offset + 18,18)
+                IF HallStates(count) = HallExpected(StateCount) THEN
+                    matches = matches + 1
+                END IF
+            NEXT StateCount
+			IF matches > best_matches THEN
+			    best_matches = matches
+			    my_offset = test_offset
+			    sign = test_sign
+			END IF
+	    NEXT test_offset
+		IF matches = 18 THEN
+			EXIT FOR
+		END IF
+	NEXT test_sign
+	IF best_matches < 8 THEN
+		PRINT "Discrepancy between detected and expected Hall states "
+		PRINT "cannot be explained by an offset or direction change.\n"
+		PRINT "Are Hall sensors wired correctly?\n"
+		FORMAT MSG,"(sign %d, offset %d, %d of 18 states match)\n",
+	        INTV:sign,INTV:my_offset,INTV:best_matches
+	    PRINT MSG
+		EXIT PROGRAM
+	END IF
+    IF sign = -1 THEN
+	    PRINT "Hall sensors are counting backwards.\n"
+		PRINT "Recommendation: Swap two Hall sensor phases.\n"
+		FORMAT MSG,"(sign %d, offset %d, %d of 18 states match)\n",
+	        INTV:sign,INTV:my_offset,INTV:best_matches
+	    PRINT MSG
+		EXIT PROGRAM
+	ELSE
+	    PRINT "Hall sensor wiring is OK.\n"
+		PhaseOffset = my_offset*20
+		FORMAT MSG,"Hall sensor phase offset: ca. %d deg, %d of 18 states match\n",
+		    INTV:PhaseOffset,INTV:best_matches
+	    PRINT MSG
+	END IF
+
+    ' Checking whether the parameter encoder counts per revolution is set
+	' properly. 
+	DIM EncoderCntsRev AS INTEGER, CountsExpected AS DOUBLE
+	DIM CountsMoved AS DOUBLE, CountThreshold AS DOUBLE
+    DIM EncoderCyclesRev AS INTEGER,scale_factor as DOUBLE
+
+	EncoderCntsRev = GETPARM(@axis,CountsPerRev) 'encoder counts per revolution.
+	EncoderCyclesRev = GETPARM(@axis,CyclesPerRev)
+	scale_factor = GETPARM(@axis,CountsPerUnit)
+	
+    CountsExpected = EncoderCntsRev / EncoderCyclesRev
+    CountsMoved = ABS(Pos(18) - Pos(0)) * scale_factor;
+	FORMAT MSG,"Encoder counts per cycle: measured %g, expected: %g\n",
+	    DBLV:CountsMoved,DBLV:CountsExpected
+	PRINT MSG
+	
+	CountThreshold = CountsExpected * 0.05 ' 5% tolerance for counts.
+	IF ABS(CountsMoved - CountsExpected) > CountThreshold THEN
+		EncoderCntsRev = CountsMoved * EncoderCyclesRev
+        FORMAT MSG,"Recommendation: set parameter CfgMotCntsRev to %d\n",
+		    INTV:EncoderCntsRev
+		PRINT MSG
+    END IF
+
+	PRINT "Refining phase offset of Hall sensors...\n"
+	Phase = PhaseOffset
+	MSET @axis, Amps, Phase 'Go to starting position
+    DWELL 0.5
+	
+	PRINT "Looking for transition 0 0 1 to 0 1 1, defining 30-deg point.\n"
+   	PRINT "Phase Hall states\n"
+   	PRINT "[deg] A B C\n"
+
+    FOR I = 0 TO 359
+	    'This is to overcome static friction when changing the phase by
+		'small increments.
+        MSET @axis, Amps, MOD(Phase+20,360)
+        DWELL 0.3
+        MSET @axis, Amps, Phase
+        DWELL 0.3
+	    bits = AXISSTATUS(@axis) 'Read Halls
+      	Halls = bits BAND 0x1C000000 'mask extra bits.
+		A = (bits >> 26) BAND 1
+		B = (bits >> 27) BAND 1
+		C = (bits >> 28) BAND 1
+		FORMAT MSG,"%03d   %d %d %d\n",INTV:Phase,INTV:A,INTV:B,INTV:C
+		PRINT MSG
+        IF Halls = 0x18000000 THEN ' the 30-degree transition
+		    FORMAT MSG,"Found 30-deg point at %d deg.\n",INTV:Phase
+            PRINT MSG
+            EXIT FOR
+        END IF
+        Phase = MOD(Phase+1,360)
+    NEXT I
+
+    DISABLE @axis
+    
+    ' At end of this loop, Phase is the offset angle from the last
+	' MSET, which is the 30-degree transition.
+    PhaseOffset = Phase - 30
+	FORMAT MSG, "Hall sensor phase offset: %d deg\n",INTV:PhaseOffset
+	PRINT MSG
+	    
+    IF PhaseOffset <> 0 THEN
+	    DIM MotOffsetAng AS INTEGER
+	    MotOffsetAng = PhaseOffset
+	    MotOffsetAng = MOD(MotOffsetAng,360)
+	    PRINT "Recommendation: "
+        FORMAT MSG, "Change parameter CommutationOffset from %d to %d. ",
+	        INTV:GETPARM(@axis,CommutationOffset),INTV:MotOffsetAng
+	    PRINT MSG
+	    FORMAT MSG,"(Command: \"SETPARM CommutationOffset, %d\")\n",INTV:MotOffsetAng
+	    PRINT MSG
+	END IF
+
+END PROGRAM
+
+'Generate table of expected Hall states an function of motor phase.
+FUNCTION InitHallStates()
+    HallExpected(0) = 0x10000000        '   0 degrees	0 0 1
+    HallExpected(1) = 0x10000000        '  20 degrees	0 0 1
+    HallExpected(2) = 0x18000000        '  40 degrees	0 1 1
+    HallExpected(3) = 0x18000000        '  60 degrees	0 1 1
+    HallExpected(4) = 0x18000000        '  80 degrees	0 1 1
+    HallExpected(5) = 0x08000000        ' 100 degrees	0 1 0
+    HallExpected(6) = 0x08000000        ' 120 degrees	0 1 0
+    HallExpected(7) = 0x08000000        ' 140 degrees	0 1 0
+    HallExpected(8) = 0x0C000000        ' 160 degrees	1 1 0
+    HallExpected(9) = 0x0C000000        ' 180 degrees	1 1 0
+    HallExpected(10) = 0x0C000000       ' 200 degrees	1 1 0
+    HallExpected(11) = 0x04000000       ' 220 degrees	1 0 0
+    HallExpected(12) = 0x04000000       ' 240 degrees	1 0 0
+    HallExpected(13) = 0x04000000       ' 260 degrees	1 0 0
+    HallExpected(14) = 0x14000000       ' 280 degrees	1 0 1
+    HallExpected(15) = 0x14000000       ' 300 degrees	1 0 1
+    HallExpected(16) = 0x14000000       ' 320 degrees	1 0 1
+    HallExpected(17) = 0x10000000       ' 340 degrees	0 0 1
+END FUNCTION
+
+' Calculates x modulo y. The result is always postive or zero and smaller
+' than y.
+FUNCTION MOD(BYVAL x AS INTEGER,BYVAL y AS INTEGER) AS INTEGER
+  DIM Z AS INTEGER
+  Z = X - (X / Y) * Y
+    IF (Z >= 0) THEN
+	  MOD = Z
+	ELSE
+	  MOD = Y + Z
+    END IF
+END FUNCTION

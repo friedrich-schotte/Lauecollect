@@ -1,0 +1,11 @@
+counter_name = 'S:SRcurrentAI.VAL'
+Size = wx.Size(667, 473)
+logfile = '//id14bxf/data/anfinrud_1106/Logfiles/test.log'
+average_count = 10
+max_value = nan
+min_value = nan
+start_fraction = 0
+reject_outliers = False
+outlier_cutoff = 2.5
+show_statistics = False
+time_window = 30

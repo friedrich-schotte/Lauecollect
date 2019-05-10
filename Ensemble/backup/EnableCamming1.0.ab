@@ -1,0 +1,89 @@
+' Friedrich Schotte, NIH, 12 Apr 2013 - 12 Apr 2013
+' Based on Aerotech Sample program "Camming.ab"
+' Version 1.0
+
+HEADER
+  INCLUDE "GearCamLibHeader.abi"
+END HEADER
+
+PROGRAM
+
+DIM CommandStatus AS INTEGER
+DIM filename AS STRING = "test.cmx"
+
+' The cam functionality not only consumes a task, but it
+' also consumes a plane. Therefore, it works best when
+' it has its own dedicates plane. We will make this use
+' plane 1, since all other tasks will default to using
+' plane 0.
+PLANE 1
+
+' This command loads the table. The arguments are:
+'  FileNameString - Name of the file to load
+'  1              - Rollover Enabled
+'  0              - Cam Offset (0 units)
+'  0              - Output Mask (used with OUTPUT keywords in file)
+CommandStatus = LoadCamTable(filename, 1, 0, 0)
+
+' This function returns only two kinds of error codes.
+' All other types of errors will be displayed through
+' Task Error status (such as errors in the ordering of
+' the cam table).
+IF CommandStatus = 1 THEN
+	PRINT "File wasn't found!\n"
+	EXIT PROGRAM
+ELSEIF CommandStatus = 2 THEN
+	PRINT "Endpoints don't match with rollover enabled!\n"
+	EXIT PROGRAM
+END IF
+
+CALL initial_setup()
+
+' This command starts the cam. The arguments are:
+'  0   - Master Axis 0 (X axis)
+'  2   - Master Source (1 = External Position)
+'  2   - Slave Axis 1 (Z axis)
+'  1.0 - Slave Scale Factor (1:1 slave to master ratio)
+CommandStatus = CamTableStart(0, 2, 2, 1.0)
+
+' Once the above command has been issued, DoubleRegister number 128
+' will be modified to hold the Slave Scale Factor (1.0 in this example).
+' To change the slave scale factor dynamically, another task can run
+' a register set command to write a new value, for example
+'DGLOBAL(128) = 1.5    ' Change scale factor to 1.5
+' However, this will cause an INSTANTANEOUS change in the slave position,
+' so the changes applied in this manner must be small.
+
+' This function returns only two kinds of error codes.
+' All other types of errors will be displayed through
+' Task Error status (such as errors in the ordering of
+' the cam table).
+IF CommandStatus = 1 THEN
+	PRINT "Table wasn't loaded!\n"
+ELSEIF CommandStatus = 2 THEN
+	PRINT "Unrecognized master source type!\n"
+END IF
+
+END PROGRAM
+
+FUNCTION initial_setup()
+  DIM bits AS INTEGER, moving as INTEGER, homed AS INTEGER
+  IF AXISFAULT(Z) <> 0 THEN
+    FAULTACK Z
+  END IF
+  bits = AXISSTATUS(Z)
+  moving = (bits >> 3) BAND 1
+  IF moving THEN
+    ABORT Z
+  END IF 
+  ENABLE Z 'Turn the drive on.
+  bits = AXISSTATUS(Z)
+  homed = (bits >> 1) BAND 1
+  IF NOT homed THEN
+    HOME Z 'Find the home switch and set encoder count to 0.
+	WAIT MOVEDONE Z
+  END IF
+  ' Go to starting positon
+  MOVEABS Z -12 ZF 20
+  WAIT MOVEDONE Z
+END FUNCTION

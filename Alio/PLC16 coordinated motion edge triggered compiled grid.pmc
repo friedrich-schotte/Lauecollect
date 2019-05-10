@@ -1,0 +1,259 @@
+; This code waits for a pulse from the FPGA to cause a coordinated motion.
+; This code is meant to be compiled for the fastest possible triggering.
+; 
+; Steps motors by the amount in P255-258
+; Need to arm the system by setting a P variable (P250, Mode)
+; Set P250=0 to disable coordinated motions.
+; Set P250=1 to enable XYZ motion.
+; Set P250=2 to enable phi motion.
+; Set P250=3 to enable X motion.
+; Set P250=4 to enable Y motion.
+; Set P250=5 to enable Z motion.
+; Set P250=6 to enable grid scanning.
+; Set P251 to the speed (mm/s).
+; Set P252 to the acceleration time (msec).
+; P255-258 are the step sizes for phi,x,y and z, respectively.
+; P259 Number of steps/counts to watch for.
+; P260-263 Starting phi, x, y, and z, respectively.
+; P264 counter for steps/triggers.
+; P265 is a shadow variable to allow for edge triggering.
+; P266 is the delay in msec to wait after it recieves a trigger.
+; P267 Row number
+; P270 Xstep_size_in_row
+; P271 Ystep_size_in_row
+; P272 Zstep_size_in_row
+; P273 Xshift_per_row
+; P274 Yshift_per_row
+; P275 Zshift_per_row
+; P276 Direction of translation
+; RH 9/25/15
+; Added the ability to delay the actions after the trigger is recieved (P266). 5/20/16
+; Added macros to make the code more readable. 5/24/16
+; Added grid scanning. 5/24/16
+
+; Will need to add a counter to return to the beginning after so many steps. Also
+; need to be able to reset counter with EPICS at the beginning of a scan. Counter will 
+; not count until all motors are finished moving.
+; Also need to send the ALIO the starting positions.
+
+CLOSE
+END GATHER
+DELETE GATHER
+DELETE TRACE
+
+#define TriggerPulse L8
+L8->Y:$78400,8
+#define Mode P250
+#define Speed P251
+#define Acc P252
+#define Phi_step_size P255
+#define X_step_size P256
+#define Y_step_size P257
+#define Z_step_size P258
+#define Steps_expected P259
+#define Phi_start P260
+#define X_start P261
+#define Y_start P262
+#define Z_start P263
+#define Step_counter P264
+#define Edge_trigger P265
+#define Motion_delay P266
+#define Row P267
+#define Xstep_size_in_row P270
+#define Ystep_size_in_row P271
+#define Zstep_size_in_row P272
+#define Xshift_per_row P273
+#define Yshift_per_row P274
+#define Zshift_per_row P275
+#define Direction P276
+; In-position check
+; L5187/M5187 is for all motors in the coordinate system. Background check
+; L140/M140 is only for the Z motor. Background check.
+; L144/M144 is only for the Zmotor but is a foreground check. Must set I13=1.
+; 
+;#define MotorsInPosition L5187
+;MotorsInPosition->Y:$203F,17
+;#define ZmotorInPosition L140 ; Really only for testing
+;MotorsInPosition->Y:$C0,0
+;#define MotorsInPosition L144
+;MotorsInPosition->Y:$C0,13
+#define ZInPosition L144
+ZInPosition->Y:$C0,13
+#define PhiInPosition L244
+PhiInPosition->Y:$140,13
+#define XInPosition L344
+XInPosition->Y:$1C0,13
+#define YInPosition L444
+YInPosition->Y:$240,13
+
+OPEN PLCC 16 CLEAR
+; This waits for the FPGA trigger but only moves the motor if the motion is enabled and the motor is idle.
+; This effectively suppresses all extra pulses that are being sent by the FPGA.
+;IF(TriggerPulse=1 and P250!=0 and MotorsInPosition=1)
+;IF(TriggerPulse=1 and P250!=0 and ZInPosition=1 and PhiInPosition=1 and XInPosition=1 and YInPosition=1)
+IF(TriggerPulse=1 and Mode!=0 and ZInPosition=1)
+; Set the proper motor speed and accel from the pmac code
+	IF(Edge_trigger=0)
+		Edge_trigger=1
+
+; Motion is delayed by this much (in seconds) after the trigger is recieved. 
+; This is to fix a problem with the FPGA where the sample translation pulse comes before 
+; the ms pulse. 2259? or 2500?
+		I5111=INT(2500*Motion_delay)
+		WHILE (I5111>0)
+		ENDWHILE
+		M2=1 ; Sets M2 high before the motion command.
+
+		IF(Mode=6)
+; This is for scanning grids
+;			Row=0
+;			Step_counter=0
+;			Direction=1
+			Q222=Speed
+			Q223=Acc / 2
+			Q224=Acc
+
+			IF(Step_counter<(Steps_expected+1) and Direction=1)
+				P1007=-(Step_counter*Xstep_size_in_row+X_start+(Row*Xshift_per_row))
+				P1008=Step_counter*Ystep_size_in_row+Y_start+(Row*Yshift_per_row)
+				P1009=Step_counter*Zstep_size_in_row+Z_start+(Row*Zshift_per_row)
+				COMMAND "&1B17R"
+				Step_counter=Step_counter+1
+			END IF
+			IF(Step_counter<(Steps_expected+1) and Direction=0)
+				P1007=-((Steps_expected-Step_counter-1)*Xstep_size_in_row+X_start+(Row*Xshift_per_row))
+				P1008=(Steps_expected-Step_counter-1)*Ystep_size_in_row+Y_start+(Row*Yshift_per_row)
+				P1009=(Steps_expected-Step_counter-1)*Zstep_size_in_row+Z_start+(Row*Zshift_per_row)
+				COMMAND "&1B17R"
+				Step_counter=Step_counter+1
+			END IF
+			IF(Step_counter!<(Steps_expected+1))
+				Row=Row+1
+				Step_counter=0
+				IF(Direction=1)
+					P1007=-((Steps_expected-1)*Xstep_size_in_row+X_start+(Row*Xshift_per_row))
+					P1008=(Steps_expected-1)*Ystep_size_in_row+Y_start+(Row*Yshift_per_row)
+					P1009=(Steps_expected-1)*Zstep_size_in_row+Z_start+(Row*Zshift_per_row)
+					COMMAND "&1B17R"
+					Direction=0
+				ELSE
+					P1007=-(Step_counter*Xstep_size_in_row+X_start+(Row*Xshift_per_row))
+					P1008=Step_counter*Ystep_size_in_row+Y_start+(Row*Yshift_per_row)
+					P1009=Step_counter*Zstep_size_in_row+Z_start+(Row*Zshift_per_row)
+					COMMAND "&1B17R"
+					Direction=1
+				END IF
+				Step_counter=Step_counter+1
+			END IF
+		ELSE
+			Q222=Speed
+			Q223=Acc / 2
+			Q224=Acc
+
+			P1001=-Phi_step_size
+			P1007=-X_step_size
+			P1008=Y_step_size
+			P1009=Z_step_size
+			M2=1 ; Sets M0 high before the delay command.
+
+; Execute prog 16
+			COMMAND "&1B16R"
+			Step_counter=Step_counter+1
+		
+; This is a countdown timer. It limits number times that this part of the code will execute
+; with a single trigger pulse. This protects the stage from going faster than 10 Hz.
+; 2259 servo cycles per second.
+; Trigger pulse length should not matter as long as it is less than the clock resolution (0.44 ms)
+; 1 ms trigger pulse works fine. 50 Ohm 4 V. 113
+			I5111=113 ; ~=50 ms
+			WHILE (I5111>0)
+			ENDWHILE
+
+; This waits for the motion to stop. In-position is defined by I128 (for motor 1). This is set to
+; 160 which corresponds to 10 counts(160/16) So ~1.56 um for the linear motors and ~1.78 mdeg.
+			;DWELL0
+			WHILE(ZInPosition=0 and PhiInPosition=0 and XInPosition=0 and YInPosition=0)
+			ENDWHILE
+
+; This sends the motors back to the starting position if it is at the end of travel.
+; Could add an extra flag to the IF statement to turn this on or off!
+			IF(Step_counter!<Steps_expected)
+				Q222=100; Set speed to max
+				P1001=Phi_start
+				P1007=-X_start
+				P1008=Y_start
+				P1009=Z_start
+				COMMAND "&1B17R"; Drive to start
+				Step_counter=0 ; Reset counter
+			END IF
+		END IF
+	END IF
+ELSE
+	Edge_trigger=0
+END IF
+CLOSE
+
+
+OPEN PROG 16 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+INC
+LINEAR
+
+IF(Mode=1)
+X(P1007)Y(P1008)Z(P1009)
+END IF
+
+IF(Mode=2)
+A(P1001)
+END IF
+
+IF(Mode=3)
+X(P1007)
+END IF
+
+IF(Mode=4)
+Y(P1008)
+END IF
+
+IF(Mode=5)
+Z(P1009)
+END IF
+;M2=1 ; Sets M2 high before the motion command. But it doesn't wait for the motion to finish!
+;P277=P277+1
+CLOSE
+
+OPEN PROG 17 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+ABS
+LINEAR
+
+IF(Mode=1 or Mode=6)
+X(P1007)Y(P1008)Z(P1009)
+END IF
+
+IF(Mode=2)
+A(P1001)
+END IF
+
+IF(Mode=3)
+X(P1007)
+END IF
+
+IF(Mode=4)
+Y(P1008)
+END IF
+
+IF(Mode=5)
+Z(P1009)
+END IF
+;M2=1 ; Sets M2 high before the motion command. But it doesn't wait for the motion to finish!
+CLOSE
+; ** End of Upload **

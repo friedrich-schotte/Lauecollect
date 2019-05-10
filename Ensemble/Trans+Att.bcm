@@ -1,0 +1,980 @@
+
+		; **** BCM file generated: Mon, Feb 01 2016, 04:31:27 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		55
+		pushc_i		$00000006
+		pushc_i		$00000048
+		pushc_d		$00000000 $411e8480
+		setparm_cmd
+		chkdbg
+	.ln		56
+		pusha		FATTENUATED_POS
+		pushc_d		$00000000 $404c0000
+		store_d
+		chkdbg
+	.ln		57
+		pusha		FCLOSED_POS
+		pushc_d		$00000000 $404f8000
+		store_d
+		chkdbg
+	.ln		58
+		pusha		FOPEN_POS
+		pushc_d		$00000000 $40518000
+		store_d
+		chkdbg
+	.ln		59
+		pusha		FOPEN_CLOSE_SPEED
+		pushc_d		$00000000 $40bc2000
+		store_d
+		chkdbg
+	.ln		61
+		pushc_i		$00000006
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		62
+		pushc_i		$00000006
+		pushc_i		$00000001
+		enable_cmd
+		chkdbg
+	.ln		70
+		pusha		FMSSHUT_BITS
+		pushc_i		$00000006
+		axisstatus_cmd
+		store_i
+		chkdbg
+	.ln		71
+		pusha		FHOME_CYLE_COMPLETE
+		pushv_i		FMSSHUT_BITS
+		pushc_i		$00000001
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		store_i
+		chkdbg
+	.ln		72
+		pushv_i		FHOME_CYLE_COMPLETE
+		pushc_i		$00000000
+		teq_i
+		brcf		L1
+		chkdbg
+	.ln		73
+		pushc_i		$00000006
+		pushc_i		$00000001
+		home_cmd
+L1
+		chkdbg
+	.ln		75
+		pusha		FOPEN_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		cnvt_id
+		store_d
+		chkdbg
+	.ln		76
+		pusha		FATT_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		77
+		pushv_d		FOPEN_LEVEL
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		cnvt_di
+		brcf		L3
+		chkdbg
+	.ln		78
+		pushc_i		$00000006
+		pushv_d		FOPEN_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		bra		L2
+L3
+		chkdbg
+	.ln		79
+		pushv_i		FATT_LEVEL
+		pushc_i		$00000001
+		teq_i
+		brcf		L4
+		chkdbg
+	.ln		80
+		pushc_i		$00000006
+		pushv_d		FATTENUATED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		bra		L2
+L4
+		chkdbg
+	.ln		82
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+L2
+		chkdbg
+	.ln		84
+		pusha		FLAST_OPEN_LEVEL
+		pushv_d		FOPEN_LEVEL
+		store_d
+		chkdbg
+	.ln		85
+		pusha		FLAST_ATT_LEVEL
+		pushv_i		FATT_LEVEL
+		store_i
+		chkdbg
+	.ln		102
+		pushc_i		$00000000
+		pushc_i		$00000005
+		pshgpa		_LC0
+		sglob_cmd
+		chkdbg
+	.ln		103
+		pushc_i		$00000000
+		pushc_d		$9999999a $40139999
+		dbl_cmd
+		chkdbg
+	.ln		104
+		pushc_i		$00000001
+		pushc_i		$00000001
+		int_cmd
+		chkdbg
+	.ln		105
+		pushc_i		$00000002
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		106
+		pushc_i		$00000000
+		pushc_i		$00000001
+		int_cmd
+		chkdbg
+	.ln		107
+		pushc_i		$00000003
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		108
+		pushc_i		$00000006
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		109
+		pushc_i		$00000004
+		pushc_d		$00000000 $40380000
+		dbl_cmd
+		chkdbg
+	.ln		110
+		pushc_i		$00000004
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		111
+		pushc_i		$00000007
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		112
+		pushc_i		$00000009
+		pushc_i		$00000000
+		int_cmd
+		chkdbg
+	.ln		113
+		pushc_i		$0000000a
+		pushc_i		$00000003
+		int_cmd
+		chkdbg
+	.ln		114
+		pushc_d		$00000000 $00000000
+		cnvt_di
+		brcf		L6
+		chkdbg
+	.ln		116
+		pushc_i		$00000006
+		pushc_i		$00000040
+		int_cmd
+		chkdbg
+	.ln		117
+		pusha		FNZ
+		pushc_i		$00000008
+		store_i
+		chkdbg
+	.ln		118
+		pusha		FDZ
+		pushc_d		$00000000 $3ff00000
+		store_d
+		chkdbg
+	.ln		119
+		pusha		FOZ
+		pushc_d		$00000000 $bff00000
+		pushv_i		FNZ
+		cnvt_id
+		mpy_d
+		pushc_d		$00000000 $40000000
+		div_d
+		pushv_d		FDZ
+		mpy_d
+		store_d
+		chkdbg
+	.ln		120
+		pusha		FNY
+		pushc_i		$00000008
+		store_i
+		chkdbg
+	.ln		121
+		pusha		FDY
+		pushc_d		$00000000 $3ff00000
+		store_d
+		chkdbg
+	.ln		122
+		pusha		FOY
+		pushc_d		$00000000 $bff00000
+		pushv_i		FNY
+		cnvt_id
+		mpy_d
+		pushc_d		$00000000 $40000000
+		div_d
+		pushv_d		FDY
+		mpy_d
+		store_d
+		chkdbg
+	.ln		123
+		pusha		FI
+		pushc_i		$00000000
+		store_i
+		pusha		_ForNextLimit0
+		pushc_i		$00000006
+		int_func
+		store_i
+		pusha		_ForNextStep0
+		pushc_i		$00000001
+		store_i
+		bra		L9
+L7
+		pushv_i		FI
+		pushv_i		_ForNextLimit0
+		pushv_i		_ForNextStep0
+		tfor_i
+		brcf		L8
+L9
+		chkdbg
+	.ln		124
+		pushc_i		$00000005
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		pushc_d		$00000000 $00000000
+		dbl_cmd
+		chkdbg
+	.ln		125
+		pushc_i		$00000006
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		pushv_d		FOY
+		pushv_i		FI
+		cnvt_id
+		pushv_i		FNZ
+		cnvt_id
+		div_d
+		floor_emb
+		cnvt_id
+		pushv_d		FDY
+		mpy_d
+		add_d
+		dbl_cmd
+		chkdbg
+	.ln		126
+		pushc_i		$00000007
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		pushv_d		FOZ
+		pushv_i		FI
+		cnvt_id
+		pushv_i		FI
+		cnvt_id
+		pushv_i		FNZ
+		cnvt_id
+		div_d
+		floor_emb
+		cnvt_id
+		pushv_i		FNZ
+		cnvt_id
+		mpy_d
+		sub_d
+		pushv_d		FDZ
+		mpy_d
+		add_d
+		dbl_cmd
+		pusha		FI
+		pushv_i		FI
+		pushv_i		_ForNextStep0
+		add_i
+		store_i
+		bra		L7
+L8
+L6
+		chkdbg
+	.ln		130
+		cleartimer_emb
+		chkdbg
+	.ln		133
+		pushc_i		$00000000
+		waitmode_cmd
+		chkdbg
+	.ln		134
+		pushc_d		$00000000 $00000000
+		scurve_cmd
+		chkdbg
+	.ln		137
+		pusha		FLAST_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		138
+		pusha		FLAST_NT
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		140
+L10
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L11
+		chkdbg
+	.ln		143
+		pusha		FOPEN_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		cnvt_id
+		store_d
+		chkdbg
+	.ln		144
+		pusha		FATT_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		145
+		pushv_d		FOPEN_LEVEL
+		pushv_d		FLAST_OPEN_LEVEL
+		tne_d
+		pushv_i		FATT_LEVEL
+		cnvt_id
+		pushv_i		FLAST_ATT_LEVEL
+		cnvt_id
+		tne_d
+		tor_d
+		cnvt_di
+		brcf		L13
+		chkdbg
+	.ln		146
+		pushv_d		FOPEN_LEVEL
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		cnvt_di
+		brcf		L15
+		chkdbg
+	.ln		147
+		pushc_i		$00000006
+		pushv_d		FOPEN_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		bra		L14
+L15
+		chkdbg
+	.ln		148
+		pushv_i		FATT_LEVEL
+		pushc_i		$00000001
+		teq_i
+		brcf		L16
+		chkdbg
+	.ln		149
+		pushc_i		$00000006
+		pushv_d		FATTENUATED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		bra		L14
+L16
+		chkdbg
+	.ln		151
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+L14
+L13
+		chkdbg
+	.ln		154
+		pusha		FLAST_OPEN_LEVEL
+		pushv_d		FOPEN_LEVEL
+		store_d
+		chkdbg
+	.ln		155
+		pusha		FLAST_ATT_LEVEL
+		pushv_i		FATT_LEVEL
+		store_i
+		chkdbg
+	.ln		158
+		pusha		FDO_STEP
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		159
+		pushc_i		$00000000
+		int_func
+		brcf		L18
+		chkdbg
+	.ln		161
+		pusha		FLEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		163
+		pushv_i		FLEVEL
+		pushc_i		$00000001
+		teq_i
+		pushv_i		FLAST_LEVEL
+		pushc_i		$00000000
+		teq_i
+		tand_i
+		brcf		L20
+		chkdbg
+	.ln		164
+		pusha		FDO_STEP
+		pushc_i		$00000001
+		store_i
+L20
+		chkdbg
+	.ln		166
+		pushv_i		FDO_STEP
+		brcf		L22
+		chkdbg
+	.ln		166
+		pushc_i		$00000004
+		pushc_i		$00000004
+		int_func
+		pushc_i		$00000001
+		add_i
+		int_cmd
+L22
+		chkdbg
+	.ln		167
+		pusha		FLAST_LEVEL
+		pushv_i		FLEVEL
+		store_i
+L18
+		chkdbg
+	.ln		171
+		pushv_i		FDO_STEP
+		brcf		L24
+		chkdbg
+	.ln		172
+		pusha		FI
+		pushc_i		$00000007
+		int_func
+		store_i
+		chkdbg
+	.ln		173
+		pusha		FXP
+		pushc_i		$00000005
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		dbl_func
+		pushc_d		$00000000 $3ff00000
+		div_d
+		store_d
+		chkdbg
+	.ln		174
+		pusha		FYP
+		pushc_i		$00000006
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		dbl_func
+		pushc_d		$00000000 $3ff00000
+		div_d
+		store_d
+		chkdbg
+	.ln		175
+		pusha		FZP
+		pushc_i		$00000007
+		pushc_i		$00000003
+		pushv_i		FI
+		mpy_i
+		add_i
+		dbl_func
+		pushc_d		$00000000 $3ff00000
+		div_d
+		store_d
+		chkdbg
+	.ln		176
+		pushv_d		FXP
+		pushv_d		FXP
+		teq_d
+		pushv_d		FYP
+		pushv_d		FYP
+		teq_d
+		tand_d
+		pushv_d		FZP
+		pushv_d		FZP
+		teq_d
+		tand_d
+		cnvt_di
+		brcf		L26
+		chkdbg
+	.ln		177
+		pushc_i		$00000000
+		pushv_d		FXP
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushv_d		FYP
+		pushc_i		$00000001
+		pushc_i		$00000002
+		pushv_d		FZP
+		pushc_i		$00000001
+		pushc_i		$00000003
+		pushc_i		$00000002
+		index_cmd
+L26
+		chkdbg
+	.ln		180
+		pusha		FI
+		pushv_i		FI
+		pushc_i		$00000001
+		add_i
+		store_i
+		chkdbg
+	.ln		181
+		pushv_i		FI
+		pushc_i		$00000006
+		int_func
+		tge_i
+		brcf		L28
+		chkdbg
+	.ln		182
+		pushc_i		$00000001
+		int_func
+		brcf		L30
+		chkdbg
+	.ln		183
+		pusha		FI
+		pushc_i		$00000000
+		store_i
+		bra		L29
+L30
+		chkdbg
+	.ln		185
+		pusha		FI
+		pushc_i		$00000006
+		int_func
+		pushc_i		$00000001
+		sub_i
+		store_i
+L29
+L28
+		chkdbg
+	.ln		188
+		pushc_i		$00000007
+		pushv_i		FI
+		int_cmd
+L24
+		bra		L10
+L11
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,s:\software\lauecollect\ensemble\trans+att.ab
+	.file		1,c:\program files (x86)\aerotech\ensemble\aerobasic\include\stringlibheader.abi
+
+
+	org	y:
+
+	.def	FOPEN_POS
+	.val	FOPEN_POS
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_POS		bsc	2
+
+	org	y:
+
+	.def	FCLOSED_POS
+	.val	FCLOSED_POS
+	.scl	2
+	.type	$7
+	.endef
+FCLOSED_POS		bsc	2
+
+	org	y:
+
+	.def	FATTENUATED_POS
+	.val	FATTENUATED_POS
+	.scl	2
+	.type	$7
+	.endef
+FATTENUATED_POS		bsc	2
+
+	org	y:
+
+	.def	FOPEN_CLOSE_SPEED
+	.val	FOPEN_CLOSE_SPEED
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_CLOSE_SPEED		bsc	2
+
+	org	y:
+
+	.def	FCURRENT_POS
+	.val	FCURRENT_POS
+	.scl	2
+	.type	$7
+	.endef
+FCURRENT_POS		bsc	2
+
+	org	y:
+
+	.def	FOPEN_LEVEL
+	.val	FOPEN_LEVEL
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_LEVEL		bsc	2
+
+	org	y:
+
+	.def	FATT_LEVEL
+	.val	FATT_LEVEL
+	.scl	2
+	.type	$4
+	.endef
+FATT_LEVEL		bsc	1
+
+	org	y:
+
+	.def	FLAST_OPEN_LEVEL
+	.val	FLAST_OPEN_LEVEL
+	.scl	2
+	.type	$7
+	.endef
+FLAST_OPEN_LEVEL		bsc	2
+
+	org	y:
+
+	.def	FLAST_ATT_LEVEL
+	.val	FLAST_ATT_LEVEL
+	.scl	2
+	.type	$4
+	.endef
+FLAST_ATT_LEVEL		bsc	1
+
+	org	y:
+
+	.def	FMSSHUT_BITS
+	.val	FMSSHUT_BITS
+	.scl	2
+	.type	$4
+	.endef
+FMSSHUT_BITS		bsc	1
+
+	org	y:
+
+	.def	FHOME_CYLE_COMPLETE
+	.val	FHOME_CYLE_COMPLETE
+	.scl	2
+	.type	$4
+	.endef
+FHOME_CYLE_COMPLETE		bsc	1
+
+	org	y:
+
+	.def	FLAST_LEVEL
+	.val	FLAST_LEVEL
+	.scl	2
+	.type	$4
+	.endef
+FLAST_LEVEL		bsc	1
+
+	org	y:
+
+	.def	FTRIGGED_STEP
+	.val	FTRIGGED_STEP
+	.scl	2
+	.type	$4
+	.endef
+FTRIGGED_STEP		bsc	1
+
+	org	y:
+
+	.def	FI
+	.val	FI
+	.scl	2
+	.type	$4
+	.endef
+FI		bsc	1
+
+	org	y:
+
+	.def	FLEVEL
+	.val	FLEVEL
+	.scl	2
+	.type	$4
+	.endef
+FLEVEL		bsc	1
+
+	org	y:
+
+	.def	FT
+	.val	FT
+	.scl	2
+	.type	$7
+	.endef
+FT		bsc	2
+
+	org	y:
+
+	.def	FDT
+	.val	FDT
+	.scl	2
+	.type	$4
+	.endef
+FDT		bsc	1
+
+	org	y:
+
+	.def	FNT
+	.val	FNT
+	.scl	2
+	.type	$7
+	.endef
+FNT		bsc	2
+
+	org	y:
+
+	.def	FLAST_NT
+	.val	FLAST_NT
+	.scl	2
+	.type	$4
+	.endef
+FLAST_NT		bsc	1
+
+	org	y:
+
+	.def	FDO_STEP
+	.val	FDO_STEP
+	.scl	2
+	.type	$4
+	.endef
+FDO_STEP		bsc	1
+
+	org	y:
+
+	.def	FBITS
+	.val	FBITS
+	.scl	2
+	.type	$4
+	.endef
+FBITS		bsc	1
+
+	org	y:
+
+	.def	FENABLED
+	.val	FENABLED
+	.scl	2
+	.type	$4
+	.endef
+FENABLED		bsc	1
+
+	org	y:
+
+	.def	FHOMED
+	.val	FHOMED
+	.scl	2
+	.type	$4
+	.endef
+FHOMED		bsc	1
+
+	org	y:
+
+	.def	FXP
+	.val	FXP
+	.scl	2
+	.type	$7
+	.endef
+FXP		bsc	2
+
+	org	y:
+
+	.def	FYP
+	.val	FYP
+	.scl	2
+	.type	$7
+	.endef
+FYP		bsc	2
+
+	org	y:
+
+	.def	FZP
+	.val	FZP
+	.scl	2
+	.type	$7
+	.endef
+FZP		bsc	2
+
+	org	y:
+
+	.def	FOX
+	.val	FOX
+	.scl	2
+	.type	$7
+	.endef
+FOX		bsc	2
+
+	org	y:
+
+	.def	FOY
+	.val	FOY
+	.scl	2
+	.type	$7
+	.endef
+FOY		bsc	2
+
+	org	y:
+
+	.def	FOZ
+	.val	FOZ
+	.scl	2
+	.type	$7
+	.endef
+FOZ		bsc	2
+
+	org	y:
+
+	.def	FDX
+	.val	FDX
+	.scl	2
+	.type	$7
+	.endef
+FDX		bsc	2
+
+	org	y:
+
+	.def	FDY
+	.val	FDY
+	.scl	2
+	.type	$7
+	.endef
+FDY		bsc	2
+
+	org	y:
+
+	.def	FDZ
+	.val	FDZ
+	.scl	2
+	.type	$7
+	.endef
+FDZ		bsc	2
+
+	org	y:
+
+	.def	FNX
+	.val	FNX
+	.scl	2
+	.type	$4
+	.endef
+FNX		bsc	1
+
+	org	y:
+
+	.def	FNY
+	.val	FNY
+	.scl	2
+	.type	$4
+	.endef
+FNY		bsc	1
+
+	org	y:
+
+	.def	FNZ
+	.val	FNZ
+	.scl	2
+	.type	$4
+	.endef
+FNZ		bsc	1
+
+	org	y:
+_LC0
+	dc	$706d6153, $7254656c, $6c736e61, $6f697461, $0000006e
+
+
+	org	y:
+
+	.def	_ForNextLimit0
+	.val	_ForNextLimit0
+	.scl	20
+	.type	$4
+	.endef
+_ForNextLimit0		bsc	1
+
+	org	y:
+
+	.def	_ForNextStep0
+	.val	_ForNextStep0
+	.scl	20
+	.type	$4
+	.endef
+_ForNextStep0		bsc	1
+

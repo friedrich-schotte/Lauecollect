@@ -1,0 +1,80 @@
+; This code waits for a pulse from the FPGA to cause a coordinated motion.
+; Steps motors by the amount in P255-258
+; Need to arm the system by setting a P variable (P250)
+; Set P250=0 to disable coordinated motions.
+; Set P250=1 to enable XYZ motion.
+; Set P250=2 to enable phi motion.
+; Set P250=3 to enable X motion.
+; Set P250=4 to enable Y motion.
+; Set P250=5 to enable Z motion.
+; Set P251 to the speed (mm/s).
+; Set P252 to the acceleration time
+; P255-258 are the step sizes for phi,x,y and z, respectively.
+; RH 1/28/15
+
+CLOSE
+END GATHER
+DELETE GATHER
+DELETE TRACE
+
+OPEN PLC 16 CLEAR
+;This waits for the FPGA trigger but only moves the motor if the Exphi code is armed
+IF(M8=1andP250!=0)
+; Set the proper motor speed and accel from the pmac code
+Q222=P251
+Q223=P252 / 2
+Q224=P252
+
+P1001=-P255
+P1007=-P256
+P1008=P257
+P1009=P258
+M0=1
+; Execute prog 16
+COMMAND "&1B16R"
+
+; This is a countdown timer. It limits number times that this part of the code will execute
+; with a single trigger pulse. This is because the code looks at the level of the 
+; trigger pulse and not the rising edge.
+; 2259 servo cycles per second. So this is about 50 ms.
+; Trigger pulse should be less than this but not shorter than the clock resolution (0.4 ms)
+; 1 ms trigger pulse works fine. 50 Ohm 4 V.
+I5111=113
+WHILE (I5111>0)
+ENDWHILE
+;M0=0
+END IF
+CLOSE
+
+OPEN PROG 16 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+INC
+LINEAR
+
+IF(P250=1)
+X(P1007)Y(P1008)Z(P1009)
+END IF
+
+IF(P250=2)
+A(P1001)
+END IF
+
+IF(P250=3)
+X(P1007)
+END IF
+
+IF(P250=4)
+Y(P1008)
+END IF
+
+IF(P250=5)
+Z(P1009)
+END IF
+M0=0
+CLOSE
+
+; ** End of Upload **

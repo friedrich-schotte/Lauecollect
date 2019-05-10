@@ -1,0 +1,11 @@
+counter_name = 'NIH:DI245.56671FE403.CH2.temperature'
+Size = wx.Size(695, 305)
+logfile = '//mx340hs/data/anfinrud_1710/Logfiles/DI-245-CH2-1.log'
+average_count = 1
+max_value = nan
+min_value = nan
+end_fraction = 1
+reject_outliers = False
+outlier_cutoff = 2.5
+show_statistics = True
+time_window = 21600

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Rayonix Detector Status
+Comment=F. Schotte, 30 Jan 2012
+Type=Application
+Terminal=Yes
+Exec=gnome-terminal -t "Rayonix Detector Status" -e "telnet con-ics-xpp-rayonix 30099"
+Icon=/usr/share/icons/gnome/32x32/apps/gnome-terminal.png

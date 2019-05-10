@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=NIH Diffractometer
+Type=Application
+Terminal=false
+Exec=csh -c "medm -x -attach -macro P=14IDB:,M1=SAMPLEX,M2=SAMPLEY,M3=SAMPLEZ,M4=SAMPLEPHI motor4x.adl"
+Comment[en_US]=F. Schotte, 4 Mar 2013 - 30 Mar 2013
+Comment=F. Schotte, 4 Mar 2013
+GenericName[en_US]=MEDM screen for X,Y,Z and Phi motors of fast diffractometer

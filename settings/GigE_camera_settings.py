@@ -1,0 +1,16 @@
+MicroscopeCamera.camera.IP_addr = 'pico14.niddk.nih.gov'
+MicroscopeCamera.ip_address = 'pico7.niddk.nih.gov:2002'
+MicroscopeCamera.mirror = True
+WideFieldCamera.camera.IP_addr = 'pico3.niddk.nih.gov'
+WideFieldCamera.ip_address = 'pico7.niddk.nih.gov:2001'
+WideFieldCamera.use_multicast = False
+Microscope.camera.IP_addr = 'pico22.niddk.nih.gov'
+Microscope.ip_address = '128.231.5.82:2003'
+Microscope.use_multicast = False
+MicrofluidicsCamera.camera.IP_addr = 'femto5.niddk.nih.gov'
+MicrofluidicsCamera.ip_address = '128.231.5.82:2004'
+MicrofluidicsCamera.use_multicast = False
+Camera.camera.IP_addr = ''
+Camera.use_multicast = True
+TestBenchCamera.ip_address = u'femto1.niddk.nih.gov:2010'
+TestBenchCamera.camera.IP_addr = 'atto1.niddk.nih.gov'

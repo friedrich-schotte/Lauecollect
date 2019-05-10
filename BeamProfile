@@ -1,0 +1,5 @@
+#!/bin/tcsh
+# Unix startup script for Time-resolved Wide-Angle X-ray scattering software
+set dir = `dirname $0`
+#set PYTHONPATH=${dir}:${PYTHONPATH}
+python $dir/BeamProfile.py

@@ -1,0 +1,13 @@
+DECLARATIONS 'Time is in integer multiples of DT
+GLOBAL N_mode AS INTEGER = 0
+GLOBAL N_repeat AS INTEGER = 3
+GLOBAL N_xtal AS INTEGER = 6
+GLOBAL XYZ() AS DOUBLE = {
+{0.8,0.8,0.8},
+{0.0,0.0,0.0},
+{0.4,0.4,0.4},
+{0.0,0.0,0.0},
+{0.2,0.2,0.2},
+{0.0,0.0,0.0}
+}
+END DECLARATIONS

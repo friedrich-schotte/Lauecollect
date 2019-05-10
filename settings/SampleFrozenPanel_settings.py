@@ -1,0 +1,2 @@
+CustomView = ['Aux. Deicing', 'Retracted', 'Diffraction Spots', 'Optical Scattering', 'Optical box dim (mm)', 'XRay detection', 'XRay aux intervention', 'XRay retract inter.', 'Optical detection', 'Optical intervention', 'Retracted time opt. [sec]', 'Threshold [spots]', 'Threshold [counts]', 'Threshold [Temp. in C]']
+view = 'Custom'

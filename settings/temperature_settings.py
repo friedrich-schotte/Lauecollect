@@ -1,0 +1,30 @@
+history_length = 300
+stabilization_RMS = 0.01
+stabilization_time = 3.0
+title = 'Temperature Configuration'
+motor_names = ['collect.temperature', 'collect.temperature_wait', 'collect.temperature_idle']
+motor_labels = ['list of temperatures', 'wait', 'Idle temp']
+widths = [360, 35, 60]
+line0.description = 'NIH:ramp-18_120_0.5_10_3'
+line1.description = 'NIH:ramp-18_50_10_0.5_3'
+line0.collect.temperature = 'ramp(low=-18,high=120,step=0.5,hold=10,repeat=3)'
+line1.collect.temperature = 'ramp(low=-18,high=50,step=0.5,hold=10,repeat=3)'
+line1.updated = '18 Oct 21:04'
+row_height = 40
+line0.updated = '18 Oct 21:04'
+description_width = 110
+nrows = 3
+line2.description = 'NIH:GB3'
+line2.updated = '18 Oct 21:07'
+line2.collect.temperature = '-14,22,70,100'
+names = ['list', 'wait', 'idle']
+line0.collect.temperature_wait = '0'
+line1.collect.temperature_wait = '0'
+line2.collect.temperature_wait = '1'
+line0.collect.temperature_idle = '22.0'
+line1.collect.temperature_idle = '22.0'
+line2.collect.temperature_idle = '22.0'
+command_row = 0
+formats = ['%s', '%g', '%g']
+temp_points = [20.0, 20.5, 21.0]
+time_points = [0.0, 5.0, 10.0]

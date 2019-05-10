@@ -1,0 +1,11 @@
+counter_name = 'I0_PIN'
+Size = wx.Size(1007, 726)
+logfile = '/net/helix/data/anfinrud_1502/Logfiles/I0_PIN-2.log'
+average_count = 1
+max_value = 11
+min_value = 0
+start_fraction = 0.401
+reject_outliers = False
+outlier_cutoff = 2.5
+show_statistics = True
+time_window = 172800

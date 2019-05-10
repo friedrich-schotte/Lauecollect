@@ -1,0 +1,35 @@
+'PLANE 1
+SCOPETRIG
+DWELL 0.005
+'Generate pulse before starting the move.
+DOUT X,1,0:1
+DOUT X,1,0:0
+RAMP MODE RATE
+RAMP RATE 19600 'corresponds to 24-mm move at 1 g 
+'MOVEABS Z -12.6 'go to starting position and generate pulse
+ABS 'Positions specified in absolute coordinates.
+
+
+PVT INIT TIME ABS
+'WAIT MODE NOWAIT 
+'BLOCKMOTION Z ON
+HALT
+PVT Z -12, 0 TIME 0.0243
+PVT Z -10.8, 0 TIME 0.0486
+PVT Z -9.6, 0 TIME 0.0729
+PVT Z -8.4, 0 TIME 0.0972
+PVT Z -7.2, 0 TIME 0.1215
+PVT Z -6.0, 0 TIME 0.1458
+'reverse direction
+PVT Z -6.6, 0 TIME 0.9234
+PVT Z -7.8, 0 TIME 0.9477
+PVT Z -9.0, 0 TIME 0.9720
+PVT Z -10.2, 0 TIME 0.9963
+PVT Z -11.4, 0 TIME 1.0206
+PVT Z -12.0, 0 TIME 1.0449
+'Generate pulse before starting the move.
+
+DOUT X,1,0:1
+DOUT X,1,0:0
+'BLOCKMOTION Z OFF
+START

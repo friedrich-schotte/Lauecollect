@@ -1,0 +1,53 @@
+STARTSYNC -1 ' -1 sets period to 500 us 
+WHILE DIN(X,1,0)=0 
+	SYNC
+WEND
+
+'SCOPETRIGPERIOD -2 '500 us period
+SCOPETRIG
+DWELL 0.003
+'Generate pulse before generating the trajectory.
+DOUT X,1,0:1
+DOUT X,1,0:0
+
+'WAIT MODE MOVEDONE
+'VELOCITY OFF
+ABS 'Positions specified in absolute coordinates.
+PVT INIT TIME ABS
+
+
+
+Z0 = 12.6 'starting Z position
+DZ = 0.6096		'slot separation
+DT = 0.01215	'Delta time
+Nslots = 41
+Nrepeats = 8
+
+Nsteps = 0
+
+HALT
+
+FOR j = 0 TO Nrepeats-1
+	FOR i = 0 TO Nslots-1	
+		IF i < 21
+			THEN Zi = Z0-2*i*DZ
+			ELSE Zi = Z0-(2*(Nslots-i)-1)*DZ
+		END IF
+		Ti1 = (2*j*Nslots+2*i+1)*DT
+		Ti2 = (2*j*Nslots+2*i+2)*DT
+		PVT Z Zi, 0 TIME Ti1
+		PVT Z Zi, 0 TIME Ti2
+		Nsteps = Nsteps + 1
+	NEXT i
+	'Generate pulse after loading each round trip.
+	DOUT X,1,0:1
+	DOUT X,1,0:0
+NEXT j
+
+'START
+
+
+DIM PrintString AS STRING(80)
+FORMAT PrintString, "%d\n", INTV:Nsteps
+PRINT PrintString
+'FAULTACK Z

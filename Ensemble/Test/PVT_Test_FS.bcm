@@ -1,0 +1,183 @@
+
+		; **** BCM file generated: Fri, Nov 28 2014, 07:23:46 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		3
+		scopetrig_cmd
+		chkdbg
+	.ln		3
+		pushc_f		$3ba3d70a
+		dwell_cmd
+		chkdbg
+	.ln		5
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		dout_cmd
+		chkdbg
+	.ln		6
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		dout_cmd
+		chkdbg
+	.ln		7
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		ramp_cmd
+		chkdbg
+	.ln		8
+		pushc_i		$00000000
+		pushc_d		$00000000 $40d32400
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		10
+		abs_cmd
+		chkdbg
+	.ln		13
+		pushc_i		$00000001
+		pushc_i		$00020004
+		spline_cmd
+		chkdbg
+	.ln		16
+		halt_cmd
+		chkdbg
+	.ln		17
+		pushc_i		$00000002
+		pushc_d		$00000000 $c0280000
+		pushc_d		$00000000 $00000000
+		pushc_d		$652bd3c3 $3f98e219
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		18
+		pushc_i		$00000002
+		pushc_d		$9999999b $c0259999
+		pushc_d		$00000000 $00000000
+		pushc_d		$652bd3c4 $3fa8e219
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		19
+		pushc_i		$00000002
+		pushc_d		$33333334 $c0233333
+		pushc_d		$00000000 $00000000
+		pushc_d		$0be0ded3 $3fb2a993
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		20
+		pushc_i		$00000002
+		pushc_d		$cccccccd $c020cccc
+		pushc_d		$00000000 $00000000
+		pushc_d		$652bd3c2 $3fb8e219
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		21
+		pushc_i		$00000002
+		pushc_d		$cccccccd $c01ccccc
+		pushc_d		$00000000 $00000000
+		pushc_d		$be76c8b5 $3fbf1a9f
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		22
+		pushc_i		$00000002
+		pushc_d		$00000000 $c0180000
+		pushc_d		$00000000 $00000000
+		pushc_d		$0be0ded3 $3fc2a993
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		24
+		pushc_i		$00000002
+		pushc_d		$66666666 $c01a6666
+		pushc_d		$00000000 $00000000
+		pushc_d		$28240b78 $3fed8c7e
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		25
+		pushc_i		$00000002
+		pushc_d		$33333333 $c01f3333
+		pushc_d		$00000000 $00000000
+		pushc_d		$f34d6a17 $3fee538e
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		26
+		pushc_i		$00000002
+		pushc_d		$00000000 $c0220000
+		pushc_d		$00000000 $00000000
+		pushc_d		$be76c8b4 $3fef1a9f
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		27
+		pushc_i		$00000002
+		pushc_d		$66666667 $c0246666
+		pushc_d		$00000000 $00000000
+		pushc_d		$89a02752 $3fefe1b0
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		28
+		pushc_i		$00000002
+		pushc_d		$cccccccd $c026cccc
+		pushc_d		$00000000 $00000000
+		pushc_d		$aa64c2f8 $3ff05460
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		29
+		pushc_i		$00000002
+		pushc_d		$00000000 $c0280000
+		pushc_d		$00000000 $00000000
+		pushc_d		$0ff97246 $3ff0b7e9
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		32
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		dout_cmd
+		chkdbg
+	.ln		33
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		dout_cmd
+		chkdbg
+	.ln		35
+		start_cmd
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\pvt_test_fs.ab
+
+
+

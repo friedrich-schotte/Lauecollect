@@ -1,0 +1,2 @@
+CustomView = ['TCP server', 'TCP port', 'Bin factor', 'Acquisition', 'Image number', 'Images to acquire', 'First frame number', 'Filename base', 'Filename suffix', 'Number field width', 'Current image', 'Trigger', 'Trigger EPICS PV', 'Trigger EPICS status', 'Trigger period']
+view = 'Custom'

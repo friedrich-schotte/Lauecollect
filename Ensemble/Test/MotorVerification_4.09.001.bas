@@ -1,0 +1,383 @@
+' -------------------------------------------------
+' ------------- MotorVerification.ab --------------
+' -------------------------------------------------
+'
+' Notes on program use:
+' 
+'   This program is designed to determine a commutation 
+'   offset for most systems, and makes these assumptions: 
+'
+'   1. The position and velocity feedback sources are the 
+'      same (VelocityFeedbackType = 0).
+'   2. The encoder counts positive in the positive motion
+'      direction. (Refer to FeedbackSetup parameter.)
+'   3. The motor is intended to be phased so that positive 
+'      MSET angle increments move the axis in the CW 
+'      direction on rotary motors (away from the cables
+'      on linear motor forcers).
+'
+'   If the first condition is not true and the Position and 
+'   Velocity feedback resolutions are different, the test of
+'   the Counts per Cycle fails because the CountsPerRev 
+'   parameter is based on the velocity feedback counts, 
+'   while this program reads the position feedback.
+'
+'   If the second condition is not true, the Direction test 
+'   fails because this verifies direction by ensuring
+'   that the encoder counts positive for positive MSETs.
+'
+'   If the third condition is not true, two motor phases are
+'   swapped. This passes all of the tests if the encoder is wired
+'   backwards and the two Hall signals associated with the
+'   swapped motor phases are also swapped; however,
+'   this can mean that limit switch signals are inverted 
+'   (that is, plus or CW motion triggers the CCW limit switch). 
+'   This, in turn, leads to incorrect behavior on limit
+'   switches. For this reason, Aerotech does not recommend
+'   this condition.
+'
+'   This program can experience problems if the commutation offset
+'   is exactly at a Hall transition point (for example, if the
+'   offset is exactly 30 degrees). 
+'
+'   In this case, one of the given  20-degree MSET locations
+'   provides the state before or after
+'   transition. Bit 8 of the ERRORSTATES variable is set. The
+'   OFFSETANGLECALC is ignored. The best course of action is to
+'   change the value of the CommutationOffset parameter to a small
+'   value (for example, five degrees), and rerun the test. Factor
+'   out the five degrees in the final commutation angle.
+'
+'   All tests are always completed, even though some tests fail.  
+'   Final results are written to global variables,
+'   which can be inspected by the debugging software.
+' 
+' -------------------------------------------------
+' ------------- RESULT INFORMATION ----------------
+' -------------------------------------------------
+' Interpretation of the results:
+'
+'   Two values of Interest: ERRORSTATES and OFFSETANGLECALC.
+'
+'   ERRORSTATES is a bit mask that indicates the tests that failed.
+'   A bit set to 1 indicates failure.
+'   Bit 0: Direction Test Failed. Encoder is counting backwards
+'          of motor positive motion.
+'   Bit 1: Counts per Cycle Test failed. CountsPerRev and 
+'          CyclesPerRev parameters set incorrectly to motor.
+'   Bit 2: Hall Alignment Test failed. Halls do not align to 
+'          Aerotech Standard to +/- 10 degrees.
+'   Bit 3: Adjusted Hall Alignment failed. Halls cannot be aligned
+'          to Aerotech standard through offset adjustment.
+'
+'   OFFSETANGLECALC is the value required for the CommutationOffset 
+'   parameter to fully null out offsets. This value is valid if  
+'   Bit 2 of ERRORSTATES is set (Hall alignment did not match  
+'   Aerotech Standard) and Bit 3 of ERRORSTATES is clear  
+'   (a valid Hall alignment is determined).
+'
+'   If Bits 2 and 3 of ERRORSTATES are set, check these two 
+'   possibilities:
+'   1) Halls are counting backwards, and no valid Hall state   
+'      is found. Swap two Hall phases and retest.
+'   2) Halls are offset by an exact Hall effect transition 
+'      angle, and invalid transition states caused an error.
+'      Add five-degree offset to CommutationOffset parameter   
+'      and retest. Subtract five degrees from resulting 
+'      output angle.
+'
+' -------------------------------------------------
+
+HEADER
+
+INCLUDE "AeroBasicInclude.basi"
+
+END HEADER
+
+DECLARATIONS
+
+GLOBAL Amps AS DOUBLE
+GLOBAL HallStates(18)AS INTEGER
+GLOBAL HallExpected(18)AS INTEGER
+GLOBAL Halls AS INTEGER
+GLOBAL Angle AS INTEGER
+GLOBAL StateCount AS INTEGER
+GLOBAL ReverseDir AS INTEGER
+GLOBAL StartPos AS DOUBLE
+GLOBAL EndPos AS DOUBLE
+GLOBAL CountsMoved AS DOUBLE
+GLOBAL CountsExpected AS DOUBLE
+GLOBAL CountThreshold AS DOUBLE
+GLOBAL EncoderCntsRev AS INTEGER
+Global EncoderCyclesRev AS INTEGER
+GLOBAL ErrorStates AS INTEGER' Bit mask of error conditions.
+GLOBAL OffsetAngleCalc AS INTEGER
+GLOBAL OffsetState AS INTEGER
+GLOBAL AdjustedOffset AS INTEGER
+GLOBAL TempAxisStat AS INTEGER
+GLOBAL ResultString AS STRING=
+"Error Status = 0x%x, Offset Angle = %d"
+GLOBAL OutputString AS STRING(96)
+
+END DECLARATIONS
+
+' -------------------------------------------------
+' -------------- MAIN PROGRAM CODE ----------------
+' -------------------------------------------------
+
+ PROGRAM 
+DIM TempLoopIndex AS INTEGER
+
+SETPARM 5: CommutationOffset, 0 
+
+' -------------------------------------------------
+' ------------ Initialize Variables ---------------
+' -------------------------------------------------
+CALL InitHallStates()
+
+TempLoopIndex=GETPARM(5:FaultMask) 
+TempLoopIndex=TempLoopIndex BAND ( -2)
+SETPARM 5: FaultMask, TempLoopIndex ' Turn off position 
+' error fault.
+
+FAULTACK 5' Clear fault status (if present).
+
+MSET 5: Amps, 0 ' Start at 0 for the first read
+DWELL 1' of position.
+
+' Read feedback to ensure that plus MSETs produce plus motion.
+StartPos=PFBK(5)
+
+' Convert the feedback value from units to counts
+ReverseDir=GETPARM(5:ReverseMotionDirection) 
+IF(ReverseDir=0)THEN
+StartPos=StartPos*GETPARM(5:CountsPerUnit) 
+ELSE
+StartPos=StartPos*GETPARM(5:CountsPerUnit) *-1
+END IF
+
+
+' -------------------------------------------------
+' ------- MSET Axis and Collect Hall States -------
+' -------------------------------------------------
+WHILE Angle<360
+MSET 5: Amps, Angle 
+DWELL 1
+Angle=Angle+20
+TempAxisStat=AXISSTATUS(5)
+HallStates(StateCount)=TempAxisStat BAND ( 469762048)
+StateCount=StateCount+1
+WEND
+
+
+MSET 5: Amps, 0 ' Go to one full electrical cycle later
+DWELL 1' (end the loop at 340 degrees).
+
+EndPos=PFBK(5)
+
+' Convert the feedback value from units to counts
+IF(ReverseDir=0)THEN
+EndPos=EndPos*GETPARM(5:CountsPerUnit) 
+ELSE
+EndPos=EndPos*GETPARM(5:CountsPerUnit) *-1
+END IF
+
+DISABLE 5
+
+' -------------------------------------------------
+' --------- TEST 1: Direction Test ----------------
+' -------------------------------------------------
+
+IF StartPos>EndPos THEN
+ErrorStates=1' Initialize Bit 0 to 1 for 
+' Direction Test failed.
+ELSE
+ErrorStates=0' Bit 0 = Direction Test passed.
+END IF
+
+
+' ------------------------------------------------
+' -------- TEST 2: Counts per Cycle Test ---------
+' ------------------------------------------------
+CountsMoved=ABS(EndPos-StartPos)
+
+IF CountsMoved>(CountsExpected+CountThreshold)
+OR CountsMoved<(CountsExpected-CountThreshold)THEN
+ErrorStates=ErrorStates BOR 2' Bit 1 = Counts per 
+' Cycle test failed.
+END IF
+
+
+' -------------------------------------------------
+' --------- TEST 3: Hall Phasing Test -------------
+' -------------------------------------------------
+FOR StateCount=0 to 17
+IF HallStates(StateCount)NE HallExpected(StateCount)THEN
+ErrorStates=ErrorStates BOR 4' Bit 2 = Hall alignment
+' failed.
+
+' NOTE: FindAngle finds only the FIRST angle with this 
+' Hall state. There are three possible choices to start.
+OffsetState=FindAngle(HallStates(StateCount))
+
+OffsetState=OffsetState-StateCount
+' This is the shift from required position.
+
+IF OffsetState<0 THEN
+OffsetState=OffsetState+18' Wrap around 0.
+END IF
+
+EXIT FOR' After offset is determined, use fine tuning.
+END IF
+NEXT StateCount
+
+
+' -------------------------------------------------
+' --------- TEST 4: Hall Phasing Refinement -------
+' -------------------------------------------------
+IF ErrorStates BAND 4 THEN
+
+' If a Hall state misalignment is found.
+' -------------------------------------------------
+' - Test the phase offset to nearest 20 degrees. --
+' -------------------------------------------------
+' NOTE: FindAngle finds only the FIRST angle with this 
+' Hall state. There are three possible choices to
+' start. Find one that aligns.
+FOR TempLoopIndex=1 TO 3
+ErrorStates=ErrorStates BAND 4294967287
+' Clear adjusted alignment fault bit.
+
+FOR StateCount=0 TO 17
+AdjustedOffset=StateCount+OffsetState
+
+IF AdjustedOffset>17 THEN' Modulo.
+AdjustedOffset=AdjustedOffset-18
+END IF
+
+IF HallStates(StateCount)NE HallExpected
+(AdjustedOffset)THEN ErrorStates=ErrorStates
+ BOR 8
+' Bit 3 = Adjusted Hall alignment failed.
+EXIT FOR' After offset is tested, use 
+' fine tuning.
+END IF
+NEXT StateCount
+
+IF(ErrorStates BAND 8)=0 THEN
+EXIT FOR
+END IF
+
+OffsetState=OffsetState+1
+NEXT TempLoopIndex
+
+' Note: OffsetState is the effective angle for an
+' MSET of 0 degrees.
+OffsetAngleCalc=360-(OffsetState*20)
+' This is the starting angle for fine tuning.
+
+OffsetAngleCalc=OffsetAngleCalc+20
+' Start stepping from 20 degrees, not 0 degrees.
+
+' -------------------------------------------------
+' -- Fine tune the phase offset calculation -------
+' -------------------------------------------------
+FOR StateCount=1 TO 40
+' Within 20 degrees, but set 20 extra.
+MSET 5: Amps, OffsetAngleCalc 
+DWELL 1
+TempAxisStat=AXISSTATUS(5)
+Halls=TempAxisStat BAND ( 469762048)
+' Read halls, mask extra bits.
+IF Halls=(402653184)THEN
+' The 30-degree transition.
+EXIT FOR
+END IF
+OffsetAngleCalc=OffsetAngleCalc+1
+NEXT StateCount
+
+' -------------------------------------------------
+' At end of this loop, OffsetAngleCalc, if correct, 
+' displays the offset angle from the last MSET.
+' -------------------------------------------------
+
+' The Hall transition is the 30 degree transition.
+OffsetAngleCalc=OffsetAngleCalc-30
+
+DISABLE 5
+END IF
+
+' -------------------------------------------------
+' At the end of this program, ErrorStates displays  
+' the errors that occurred during the tests.
+' OffsetAngleCalc displays the number required for 
+' CommutationOffset.
+' -------------------------------------------------
+FORMAT OutputString,ResultString,INTV:ErrorStates,
+INTV:OffsetAngleCalc
+PRINT OutputString
+
+END PROGRAM 
+
+
+' -------------------------------------------------
+' ------------ FIND AN OFFSET FOR A STATE ---------
+' -------------------------------------------------
+
+FUNCTION FindAngle(StateIn AS INTEGER)AS INTEGER
+DIM varX AS INTEGER
+
+For varX=0 TO 17
+IF HallExpected(varX)=StateIn THEN
+EXIT FOR
+END IF
+NEXT varX
+
+FindAngle=varX
+
+END FUNCTION
+
+
+' -------------------------------------------------
+' -------------- INITIALIZE VARIABLES -------------
+' -------------------------------------------------
+
+FUNCTION InitHallStates()
+
+HallExpected(0)=268435456' 0 degrees
+HallExpected(1)=268435456' 20 degrees
+HallExpected(2)=(402653184)' 40 degrees
+HallExpected(3)=(402653184)' 60 degrees
+HallExpected(4)=(402653184)' 80 degrees
+HallExpected(5)=134217728' 100 degrees
+HallExpected(6)=134217728' 120 degrees
+HallExpected(7)=134217728' 140 degrees
+HallExpected(8)=(201326592)' 160 degrees
+HallExpected(9)=(201326592)' 180 degrees
+HallExpected(10)=(201326592)' 200 degrees
+HallExpected(11)=67108864' 220 degrees
+HallExpected(12)=67108864' 240 degrees
+HallExpected(13)=67108864' 260 degrees
+HallExpected(14)=(335544320)' 280 degrees
+HallExpected(15)=(335544320)' 300 degrees
+HallExpected(16)=(335544320)' 320 degrees
+HallExpected(17)=268435456' 340 degrees
+
+
+' Set MSET current to 1/2 of RMS current setting for motor.
+Amps=GETPARM(5:AverageCurrentThreshold) /2
+
+
+' Initialize the variable for encoder counts per revolution.
+EncoderCntsRev=GETPARM(5:CountsPerRev) 
+EncoderCyclesRev=GETPARM(5:CyclesPerRev) 
+CountsExpected=EncoderCntsRev/EncoderCyclesRev
+CountThreshold=CountsExpected*0.050000000000000003
+' 5% tolerance for counts.
+
+
+' Initialize angle to zero.
+Angle=0' Angle counter.
+StateCount=0' State counter.
+
+END FUNCTION

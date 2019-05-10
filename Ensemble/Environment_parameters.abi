@@ -1,0 +1,16 @@
+DECLARATIONS 'Array indices-> 0:NIH, 1:APS, 2:LCLS
+'A_array(0) term: 0.470 shifts t0  by +1.00 ms
+	GLOBAL A_array() AS DOUBLE = {
+		{-0.601,0.27444,-0.06271,0.01677},
+		{-0.655,0.29254,-0.07087,0.01945},
+		{-0.500,0.27380,-0.06233,0.01667}
+		}
+'	DT_array(0) = (351.934/350.0)*0.024304558/24	'0: NIH base period  (0.0010183 based on internal oscillator for Pico23)							
+'	DT_array(1) = 0.024304558/24					'1: APS base period  (0.0010127 275th subharmonic of P0)
+'	DT_array(2) = 1.0/960
+	GLOBAL DT_array() AS DOUBLE = 
+		{0.0010182858,0.0010126899,0.0010182858}
+	GLOBAL scale_factor_array() AS DOUBLE = 
+		{1.00000378,0.9999902,1.0000000}'1.00000488
+	'{56.0,9.7,56.0}
+END DECLARATIONS

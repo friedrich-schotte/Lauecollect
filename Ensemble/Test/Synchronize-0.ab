@@ -1,0 +1,23 @@
+' ------------------------------------------------ 
+' --------------- Synchronize.ab -----------------
+' ------------------------------------------------ 
+'
+' Bit 0 of port 1 on Axis X is read every 1 ms.
+' When HIGH, a pulse is generated on bit 0.
+' After 20 ms, resume reading bit 0 every 1 ms.
+' Changing the 1 after STARTSYNC to (-1,-2)
+' changes the read period from 1 ms to (500us,250us)
+'
+DOUT X,1,0:0
+STARTSYNC -1
+WHILE 1
+	IF DIN(X,1,0) THEN
+		DOUT X,1,0:1
+		DOUT X,1,0:0
+		STARTSYNC 20
+		'Put code here (must execute in <20ms)
+		SYNC
+		STARTSYNC -1
+	SYNC
+	END IF
+WEND

@@ -1,0 +1,2 @@
+ComboBox = Beryllium
+TextCtrl = Waterr

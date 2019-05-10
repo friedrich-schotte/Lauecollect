@@ -1,0 +1,56 @@
+DIM PrintString AS STRING(80)
+DIM Scan_Mode AS INTEGER
+DIM DT_index AS INTEGER
+DIM M_index as INTEGER
+DIM M AS INTEGER
+DIM DT_array(2) AS DOUBLE 	'Period of Base frequency (in seconds)
+DIM M_array(2,1) AS INTEGER	'Multiple of base periods per step
+
+'Initialize arrays 
+DT_array(0) = (351.934/350.0)*0.024304558/24	'NIH base period (based on internal oscillator for Pico23)							
+DT_array(1) = 0.024304558/24					'APS base period (275th subharmonic of P0)
+DT_array(2) = 0.001								'LCLS base period (based on 10 Hz)
+M_array(0,0) = 24	'NIH edge finder
+M_array(0,1) = 108	'NIH data collection
+M_array(1,0) = 24	'APS edge finder
+M_array(1,1) = 108	'APS data collection
+M_array(2,0) = 100	'LCLS edge finder
+M_array(2,1) = 100	'LCLS data collection
+
+DGLOBAL(0) = 0	' Copy of unique ID; -1 finishes execution
+DGLOBAL(1) = 0	' Unique ID for set of coordinates 
+DGLOBAL(2) = 2	' Scan_Mode (0: NIH edge finder; 1: NIH data collection; 2: APS edge finder; 3: APS data collection; 4: LCLS edge finder; 5: LCLS data collection)
+DGLOBAL(3) = 45 ' Number of coordinates
+
+Scan_Mode = DGLOBAL(2)
+Npts = DGLOBAL(3)
+M_index = Scan_Mode BAND 1
+DT_index = Scan_Mode>>1
+DT = DT_array(DT_index)
+M = M_Array(DT_index,M_index)
+Buffer = CEIL(M*(Npts+2)*DT*1000)
+
+T_0 = 0
+FOR i = 0 TO DGLOBAL(3)-1	'simulate coordinates for edge-finding
+	ratio = i/15.0
+	IF ABS(FLOOR(ratio)-ratio) > 0.001 THEN
+		y = (1 - ratio + FLOOR(ratio))*0.2
+	ELSE
+		x = ratio*0.1
+		y = 0
+		z = ratio*0.1
+	END IF
+	DGLOBAL(i*4+4) = x
+	DGLOBAL(i*4+5) = y
+	DGLOBAL(i*4+6) = z	
+	DGLOBAL(i*4+7) = 0.0
+	T_0 = T_0 + M*DT
+	FORMAT PrintString, "%d,%0.3f,%0.3f,%0.3f,%0.3f,%d\r", INTV:i,DBLV:x,DBLV:y,DBLV:z,DBLV:T_0,INTV:Buffer
+	PRINT PrintString
+NEXT i
+		
+'FORMAT PrintString, "%d,%d,%d,%d\r", INTV:DT_index, INTV:M_index, INTV:Scan_Mode, INTV:M
+'PRINT PrintString
+while DGLOBAL(0) > -1
+	DWELL 100
+wend

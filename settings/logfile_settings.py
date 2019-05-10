@@ -1,0 +1,1 @@
+filename = '//mx340hs/data/anfinrud_1602/Test/test.log'

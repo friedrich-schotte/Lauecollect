@@ -1,0 +1,7 @@
+DECLARATIONS'Parameters for msShut
+ GLOBAL DT AS DOUBLE=0.0010182857999999999'PP clock tick in milliseconds (one revolution of high-speed chopper)
+ GLOBAL msShut_open AS DOUBLE=20.199999999999999'open position in degrees
+ GLOBAL msShut_step AS DOUBLE=10.4'step size in degrees
+ GLOBAL T_shift AS DOUBLE=-0.25'tweaks the time for starting motion in milliseconds
+ GLOBAL slope AS INTEGER=1'defines direction of initial motion
+END DECLARATIONS

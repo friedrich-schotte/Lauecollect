@@ -1,0 +1,152 @@
+DECLARATIONS
+
+TYPE PVT_parameters
+Zp AS SINGLE'32-bit single-precision float
+Zv AS SINGLE
+Sp AS SINGLE
+Sv AS SINGLE
+L AS INTEGER
+X AS INTEGER
+D AS INTEGER
+END TYPE
+
+GLOBAL N_steps()AS INTEGER={249,249,375,189,174,45,249,372,618}
+GLOBAL PVD(8,618)AS PVT_parameters
+
+END DECLARATIONS
+
+ PROGRAM 
+DIM PrintString AS STRING(80)
+' Initialize Zp and Sp
+FOR j=0 TO 8
+FOR i=0 TO 618
+PVD(j,i).Zp=-1' -1 is a flag to suppress PVT commands
+PVD(j,i).Sp=-1' -1 is the normal closed state (close1)
+NEXT i
+NEXT j
+
+CALL Exotic()
+
+j=4
+FOR i=0 TO N_steps(j)
+flag=PVD(j,i).Zp
+IF flag>-1THEN
+FORMAT PrintString,"%d,%d,%d,%.2f,%.2f,%.2f,%.2f\r",INTV:i,INTV:PVD(j,i).L,INTV:PVD(j,i).X,SNGV:PVD(j,i).Zp,SNGV:PVD(j,i).Zv,SNGV:PVD(j,i).Sp,SNGV:PVD(j,i).Sv
+PRINT PrintString
+END IF
+NEXT i
+
+END PROGRAM 
+
+FUNCTION Exotic()' j = 2 to 4
+'Exotic Modes: j = 2 to 4 -> [32.4,64.8,129.6] ms delay times
+'	N = [0,1,2] -> [375,189,174] steps
+
+DIM PrintString AS STRING(80)
+
+FOR j=2 TO 4
+N=j-2
+Nstroke=2^(N+2)-3
+Nperiod=3*2^(N+2)-3
+R0=Nstroke/Nperiod'(1/9),(5/21),(13/45): (# pulses before reversing/# steps per repeat)
+L_count=0
+X_count=0
+PVD(j,0).Zp=-1'Flag to suppress PVT command
+ PVD(j,1).Zp=-1
+FOR i=2 TO N_steps(j)'Find L and X and assign values for Zp, Zv, and Sp
+ R1=(i-2)/Nperiod
+R2=(i+Nstroke-2)/Nperiod
+DIFF1=R1-FLOOR(R1)'Laser trigger
+ DIFF2=R2-FLOOR(R2)'X-ray trigger
+ PVD(j,i).L=0
+PVD(j,i).X=0
+PVD(j,i).Zp=-1
+IF(DIFF1<(R0-0.001))AND(L_count<41)THEN'constrain # of laser pulses to 41
+ L_count=L_count+1
+PVD(j,i).L=L_count
+PVD(j,i).Zp=L_count
+PVD(j,i).Zv=1
+ELSEIF(DIFF2<(R0-0.001))AND(X_count<41)THEN'constrain # of X-ray pulses to 41 
+ X_count=X_count+1
+PVD(j,i).X=X_count
+PVD(j,i).Zp=X_count
+PVD(j,i).Zv=1
+PVD(j,i).Sp=0
+END IF
+NEXT i
+
+FOR i=2 to N_steps(j)
+Xm=PVD(j,i-1).X
+Xi=PVD(j,i).X
+Xp=PVD(j,i+1).X
+Li=PVD(j,i).L
+Lp=PVD(j,i+1).L
+IF Li>0 AND Lp=0 THEN' last Laser pulse in sequence
+PVD(j,i+2).Zp=PVD(j,i).Zp+1
+END IF
+IF Xi>0 AND Xm=0 THEN' first Xray pulse in sequence
+PVD(j,i-2).Zp=PVD(j,i).Zp-1
+END IF
+IF Xi>0 AND Xp=0 THEN' last Xray pulse in sequence
+IF N=0 THEN
+PVD(j,i+2).Zp=PVD(j,i+1).Zp+0.6875
+PVD(j,i+2).Zv=0.5625
+slot=PVD(j,i).Zp
+IF CEIL(slot/2)=FLOOR(slot/2)THEN' if even						
+PVD(j,i-2).Sp=-1
+PVD(j,i+1).Sp=0.84375
+PVD(j,i+2).Sp=1
+PVD(j,i+3).Sp=1
+PVD(j,i).Sv=1
+PVD(j,i+1).Sv=0.5625
+ELSE' if odd
+PVD(j,i-2).Sp=1
+PVD(j,i+1).Sp=-0.84375
+PVD(j,i+2).Sp=-1
+PVD(j,i+3).Sp=-1
+PVD(j,i).Sv=-1
+PVD(j,i+1).Sv=-0.5625
+END IF
+ELSE
+PVD(j,i+1).Sp=-0.5
+PVD(j,i+1).Sv=-1
+END IF
+END IF
+
+Ll=PVD(j,i).L
+IF Ll=41 THEN
+IF N=1 THEN
+PVD(j,i+2).Zp=42
+PVD(j,i+1).Zp=41.6875
+PVD(j,i+1).Zv=0.5625
+ELSE
+PVD(j,N_steps(j)-2).Zp=42
+END IF
+END IF
+Xi=PVD(j,i).X
+IF Xi=41 THEN
+PVD(j,i+2).Zp=PVD(j,i).Zp+1
+IF N=0 THEN
+PVD(j,N_steps(j)-1).Zp=44
+PVD(j,i+1).Zv=0
+END IF
+END IF
+NEXT i
+
+IF N=0 THEN
+' First move Sp from -1 to 1 in 3 steps (without transmitting xray pulse)
+PVD(j,2).Sp=0.48148148148148145
+PVD(j,3).Sp=1
+PVD(j,4).Sp=1
+PVD(j,2).Sv=0.66666666666666663
+PVD(j,3).Zp=1.84375
+PVD(j,3).Zv=0.5625
+
+' Assign appropriate Z velocity for last close 
+PVD(j,N_steps(j)-3).Zv=0
+END IF
+
+PVD(j,N_steps(j)-1).Zp=42' Ensure last position is at slot 42
+NEXT j
+
+END FUNCTION

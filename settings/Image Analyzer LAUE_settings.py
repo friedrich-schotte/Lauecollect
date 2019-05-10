@@ -1,0 +1,1 @@
+camera name = 'Widefield camera'

@@ -1,0 +1,1 @@
+freezing threshhold = 0.1

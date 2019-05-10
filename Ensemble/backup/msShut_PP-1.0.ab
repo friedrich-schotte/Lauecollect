@@ -1,0 +1,203 @@
+' msShut_PP.ab
+'	Anfinrud 2019.02.27
+'	This program operates the ms shutter in two modes: pulsed or gated.
+'	When the trigger pulse is 2 ms in duration, it operates in pulsed mode.
+'	When the trigger pulse is longer than 2 ms, it operates in gated mode.
+'	In either mode, the ms shutter fully transmits a pulse arriving 12 ms 
+'	after the rising edge; in gating mode, it fully transmits a pulse 
+'	arriving 12 ms after the falling edge.
+'
+'	Motion is phased by a 1-kHz clock.
+'	Four clock ticks are required to determine the mode and calculate T_offset. 
+'	PVT commands commence two clock ticks after a START.
+'
+'	Program Control parameters:
+'		IGLOBAL(0): setting to 0 initiates orderly exit of this program
+'		IGLOBAL(1): setting to 1 Triggers Digital Oscilloscope
+'		IGLOBAL(2): setting to 1 resets statistics and prints data from 
+'					1000 trigger pulses. When trigger pulses come too quickly,
+'					the print command commandeers too much CPU time, and 
+'					timing errors occur. To characterize the pulse mode without 
+'					errors, employ Stepping-96 or Flythru-96 modes.
+'
+HEADER
+	INCLUDE "msShut_parameters.abi"
+END HEADER
+
+DECLARATIONS
+	GLOBAL PrintString AS STRING(96) 'max # characters for PRINT is 96	
+	GLOBAL N_trigger AS INTEGER
+	GLOBAL N_delay AS INTEGER
+	GLOBAL N_outlier AS INTEGER
+	GLOBAL N_loop AS INTEGER
+	GLOBAL Pos_error AS DOUBLE
+	GLOBAL Volt0 AS DOUBLE
+	GLOBAL Volt1 AS DOUBLE
+	GLOBAL Volt2 AS DOUBLE
+	GLOBAL T_offset AS DOUBLE	
+END DECLARATIONS
+
+PROGRAM	
+	'Initialize Global program control parameters
+	IGLOBAL(0) = 1 'enable loop
+	IGLOBAL(1) = 1 'trigger Digital Oscilloscope
+	IGLOBAL(2) = 1 'reset max/min statistics
+	
+	'Initialize count integers
+	N_trigger = 0
+	N_outlier = 0
+	N_Print = 10
+	
+	'Move shutter to close position and set slope to +1.
+	ABS 'Positions specified in absolute coordinates
+	WAIT MODE MOVEDONE
+	ENABLE msShut_ext
+	HOME msShut_ext
+	msShut_pos = msShut_open - slope*msShut_step
+	MOVEABS msShut_ext msShut_pos F10000
+	
+	'Set up scope parameters
+	SCOPEBUFFER 1000 'record 1000 points
+	SCOPETRIGPERIOD -4	' -4 (-2) corresponds to 4 (2) kHz
+
+	'set up PVT command in incremental mode
+	PVT INIT TIME INC 
+	VELOCITY ON
+	HALT
+	
+	'Enter control loop
+	WHILE IGLOBAL(0) > 0  'enter IGLOBAL(0) = 0 to exit outer loop
+		N_loop = 0
+		STARTSYNC 1	'set SYNCH interval to 1 ms
+		Volt0 = AIN(msShut_ext,0) 'capture voltage before starting inner loop 
+		Volt1 = Volt0
+		DOUT msShut_ext, 0,4 'marks time of start
+		WHILE (Volt1 < 0.55) OR (Volt1 > 2.85)
+			SYNC
+			Volt1 = AIN(msShut_ext,0) 'capture voltage within loop
+			N_loop = N_loop + 1
+		WEND
+		DOUT msShut_ext, 0,3 'marks time of trigger pulse
+		HALT
+		IF IGLOBAL(1) = 1 THEN 'if TRUE, trigger digital scope once
+			SCOPETRIG
+			IGLOBAL(1) = 0
+		END IF
+		SYNC '1ms
+		SYNC '2ms
+		SYNC '3ms
+		Volt2 = AIN(msShut_ext,0) 'capture voltage 3 ms after trigger 
+		DOUT msShut_ext, 0,2 'marks time when volt2 is captured
+		
+		'Determine mode and parameters for PVT trajectory
+		IF (Volt0 < 1.6) AND (Volt2 < 1.6) THEN	'trigger mode rising edge
+			T_offset =   0.0443*Volt1^3
+						-0.1750*Volt1^2
+						+0.6463*Volt1
+						-T_shift 'adding 0.25 starts motion 0.25 ms earlier
+			msShut_pos = msShut_open + slope*msShut_step
+			midpoint = msShut_open
+			Ti = 2*(12*DT - (7.0 + T_offset)/1000.0) 'seconds
+			'12*DT is the time after trigger to pass through midpoint
+			'5+2=7 is the time at which the PVT command starts (2 ticks deadtime)
+			Vmax = slope*1.5*(2*msShut_step)/(Ti*1000) 'deg/ms
+			T_delta = 11.0 + T_offset - 12000*DT 'milliseconds
+			'the number 11.0 corresponds to the number of SYNC commands (5+6=11)
+			N_delay = 6 
+			SYNC '4ms
+			SYNC '5ms
+		ELSEIF (Volt0 < 1.6) AND (Volt2 > 1.6) THEN 'gating mode rising edge
+			T_offset =   0.0404*Volt1^3
+						-0.15207*Volt1^2
+						+0.60603*Volt1
+						-T_shift 'adding 0.25 starts motion 0.25 ms earlier
+			msShut_pos = msShut_open
+			midpoint = msShut_open - 0.5*slope*msShut_step
+			Ti = 2*(11*DT - (7.0 + T_offset)/1000.0) 'seconds
+			'11*DT is the time after trigger to pass through midpoint
+			'5+2=7 is the time at which the PVT command starts (2 ticks deadtime)
+			Vmax = slope*1.5*msShut_step/(Ti*1000) 'deg/ms
+			T_delta = 10.0 + T_offset - 11000*DT 'milliseconds
+			'the number 10.0 corresponds to the number of SYNC commands (5+5=10)
+			N_delay = 5
+			SYNC '4ms
+			SYNC '5ms
+		ELSE 'gating mode falling edge
+			T_offset =  -0.04343*Volt1^3
+						+0.26564*Volt1^2
+						-0.95661*Volt1
+						+1.95027
+						-T_shift 'adding 0.25 starts motion 0.25 ms earlier
+			msShut_pos = msShut_open + slope*msShut_step
+			midpoint = msShut_open + 0.5*slope*msShut_step
+			Ti = 2*(13*DT - (9.0 + T_offset)/1000.0) 'seconds
+			'13*DT is the time after trigger to pass through midpoint
+			'7+2=9 is the time at which the PVT command starts (2 ticks deadtime)
+			Vmax = slope*1.5*msShut_step/(Ti*1000) 'deg/ms
+			T_delta = 12.0 + T_offset - 13000*DT 'milliseconds
+			'the number 12.0 corresponds to the number of SYNC commands (5+7=12)
+			N_delay = 5
+			SYNC '4ms
+			SYNC '5ms
+			SYNC '6ms
+			SYNC '7ms
+		END IF
+		
+		'PVT move
+		PVT msShut_ext msShut_pos,0 DOUT msShut_ext, 0,0 TIME Ti 'mark PVT starting time
+		START 'Start occurs after 2 ms dead time.
+		DOUT msShut_ext, 0,1 'mark time of START command
+		
+		'For diagnostic purposes, estimate Pos_error at midpoint of trajectory
+		FOR j = 1 TO N_delay SYNC NEXT j 'delay till midpoint of trajectory
+		DOUT msShut_ext, 0,1 'marks time at trajectory mid-point
+		Pos_error = PCMD(msShut_ext) - midpoint - Vmax*T_delta
+		slope = -1*slope 'reverse direction for next move
+		
+		IF IGLOBAL(2) = 1 THEN 'reset max/min statistics
+			V1_min = 3
+			V1_max = 0
+			N_loop_min = 100
+			N_trigger = 0
+			N_outlier = 0
+			IGLOBAL(2) = 0
+			CALL Print_Log()
+		ELSE
+			IF N_loop < N_loop_min THEN 
+				N_loop_min = N_loop 
+			END IF
+			IF Volt1 > V1_max THEN
+				V1_max = Volt1
+			END IF
+			IF Volt1 < V1_min THEN
+				V1_min = Volt1
+			END IF
+			IF (Pos_error < -0.5) OR (Pos_error > 0.5) THEN 
+				N_outlier = N_outlier + 1
+				CALL Print_Log()
+			ELSEIF N_trigger < N_Print THEN
+				CALL Print_Log()
+			END IF
+			
+		END IF
+		N_trigger = N_trigger + 1
+	WEND
+END PROGRAM
+
+FUNCTION Print_Log()
+	FORMAT PrintString, "%d,%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f\r",
+		INTV:N_outlier,
+		INTV:N_trigger,
+		INTV:N_loop,
+		DBLV:Volt0,
+		DBLV:Volt1,
+		DBLV:Volt2,
+		DBLV:T_offset,
+		DBLV:Pos_error
+	IF N_trigger = 0 THEN
+		PrintString = "N_outlier, N_trigger, N_loop, Volt0, Volt1, Volt2, T_offset, Pos_error\r"
+		PRINT PrintString
+	ELSE
+		PRINT PrintString
+	END IF
+END FUNCTION

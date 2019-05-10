@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Timing System command line
+Comment=F. Schotte, 30 Jan 2012
+Type=Application
+Terminal=Yes
+Exec=gnome-terminal -t "Timing System Command Line" -e "'/reg/neh/home/schotte/Software/Lauecollect/launcher/Linux/Timing System command line.sh'"
+Icon=/usr/share/icons/gnome/32x32/apps/gnome-terminal.png

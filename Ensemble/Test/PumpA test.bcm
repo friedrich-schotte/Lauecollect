@@ -1,0 +1,50 @@
+
+		; **** BCM file generated: Thu, Dec 11 2014, 11:33:48 AM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		3
+		pushc_i		$00000000
+		pushc_i		$00000004
+		pushc_d		$00000000 $41290640
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		4
+		pushc_i		$000003e8
+		startsync_cmd
+		chkdbg
+	.ln		5
+L0
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L1
+		chkdbg
+	.ln		6
+		pushc_i		$00000004
+		pushc_d		$00000000 $40468000
+		pushc_d		$00000000 $40928000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000001
+		index_cmd
+		chkdbg
+	.ln		7
+		sync_cmd
+		bra		L0
+L1
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\pumpa test.ab
+
+
+

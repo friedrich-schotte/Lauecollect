@@ -1,0 +1,11 @@
+phi_motor_name = 'Phi'
+phi_scale = 1.0
+rotation_center_x = 0.0
+rotation_center_y = 0.0
+x_motor_name = 'GonX'
+x_scale = -1.0
+xy_rotating = True
+y_motor_name = 'GonY'
+y_scale = 1.0
+z_motor_name = 'GonZ'
+z_scale = -1.0

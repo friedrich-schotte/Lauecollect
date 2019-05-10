@@ -1,0 +1,58 @@
+PROGRAM
+	'Freeze_Intervention.ab sequentially moves Y by +DY then X by +DX to extract the capillary 
+	'from the cooling stream of the temperature controller. Once extracted, it sets 
+	'IGLOBAL(3) = 1 to trigger 90-deg rotation of the peristaltic pump. Once this motion is 
+	'complete, IGLOBAL(3) is set to 0, and the capillary returns to its original position.
+    'Hint for the EPICS IOC which program is currently running
+	'(UserString0 if in task 1, UserString1 if in auxiliary task)
+	SETPARM UserString1,"Freeze_Intervention.ab"
+	
+	ABS
+	'SCOPEBUFFER 1200
+	'SCOPETRIGPERIOD 1	' -4 (-2) corresponds to 4 (2) kHz
+	'SCOPETRIG
+	
+	'Control parameters
+	DX = 3	'incremental move in X [mm]
+	DY = 11	'incremental move in Y [mm]
+	N_strokes = 8
+	Wait_Time_before = 0	'wait time before flushing sample [s]
+	Wait_Time_after = 0
+	
+	RAMP MODE RATE
+	RAMP RATE Y 5000
+	RAMP RATE X 500
+	WAIT MODE MOVEDONE
+	
+	IGLOBAL(3) = N_strokes
+	
+	WHILE VCMD(Z) < 250 
+		DWELL 0.001
+	WEND
+
+	WHILE VCMD(Z) > 0 
+		DWELL 0.001
+	WEND
+	
+	MOVEINC Y DY YF 200	'raise Y first
+	MOVEINC X DX XF 200
+	DWELL Wait_Time_before
+	
+	
+	WHILE IGLOBAL(3) > 0 'Set IGLOBAL(3) = 0 to exit loop
+		DWELL 0.1
+		'IGLOBAL(3) = 0 'This line mimics what PVT_Fly-thru does.
+	WEND
+	DWELL Wait_Time_after	'After flushing, wait time before reinsertion
+	'IGLOBAL(3) = 1
+	WHILE VCMD(Z) < 250 
+		DWELL 0.001
+	WEND
+
+	WHILE VCMD(Z) > 0 
+		DWELL 0.001
+	WEND
+	MOVEINC X -1*DX	'return X first
+	MOVEINC Y -1*DY	'lower Y last
+	
+END PROGRAM

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Microscope Camera
+Type=Application
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh MicroscopeCamera.py
+Comment=F. Schotte, 30 Jan 2012
+Icon=/reg/neh/home/schotte/Software/Lauecollect/icons/camera.png

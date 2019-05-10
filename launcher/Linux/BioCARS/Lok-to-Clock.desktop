@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Lok-to-Clock
+Type=Application
+Terminal=false
+Exec=/net/id14b4/home/useridb/NIH/Software/LokToClockPanel.py
+Comment=F. Schotte, 26 Jun 2013
+Icon=/usr/share/icons/Bluecurve/48x48/mimetypes/gnome-mime-application-x-python.png
+GenericName[en_US]=

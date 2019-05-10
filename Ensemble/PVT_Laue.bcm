@@ -1,0 +1,513 @@
+
+		; **** BCM file generated: Wed, Apr 25 2018, 04:29:54 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		26
+		pusha		FDT
+		pushc_d		$84ad3770 $3f509787
+		store_d
+		chkdbg
+	.ln		27
+		pusha		FSCALE_FACTOR
+		pushc_d		$72aa4188 $3fefffeb
+		store_d
+		chkdbg
+	.ln		28
+		pusha		FDT
+		pushv_d		FDT
+		pushv_d		FSCALE_FACTOR
+		mpy_d
+		store_d
+		chkdbg
+	.ln		30
+		abs_cmd
+		chkdbg
+	.ln		31
+		pushc_i		$00000001
+		plane_cmd
+		chkdbg
+	.ln		32
+		pusha		FXPOS
+		pushc_i		$00000000
+		pfbk_cmd
+		store_d
+		chkdbg
+	.ln		33
+		pusha		FYPOS
+		pushc_i		$00000001
+		pfbk_cmd
+		store_d
+		chkdbg
+	.ln		34
+		pusha		FZPOS
+		pushc_i		$00000002
+		pfbk_cmd
+		store_d
+		chkdbg
+	.ln		36
+		pushc_i		$00000001
+		pushc_i		$00020004
+		spline_cmd
+		chkdbg
+	.ln		37
+		pushc_i		$00000001
+		velocity_cmd
+		chkdbg
+	.ln		38
+		halt_cmd
+		chkdbg
+	.ln		39
+		pusha		FTI
+		pushc_d		$d2f1a9fc $3f50624d
+		store_d
+		chkdbg
+	.ln		41
+		pushc_i		$00000000
+		pushv_d		FXPOS
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushv_d		FYPOS
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000002
+		pushv_d		FZPOS
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020301
+		spline_cmd
+		chkdbg
+	.ln		43
+L0
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		pushc_i		$00000000
+		teq_i
+		brcf		L1
+		chkdbg
+	.ln		44
+		pushc_f		$3983126f
+		dwell_cmd
+		bra		L0
+L1
+		chkdbg
+	.ln		46
+		start_cmd
+		chkdbg
+	.ln		48
+		pushc_i		$000004b0
+		scopebuffer_cmd
+		chkdbg
+	.ln		49
+		pushc_i		$00000001
+		scopetrigperiod_cmd
+		chkdbg
+	.ln		52
+		scopetrig_cmd
+		chkdbg
+	.ln		52
+		pusha		FJ
+		pushc_d		$00000000 $00000000
+		store_d
+		pusha		_ForNextLimit0
+		pushv_i		FN_REPEAT
+		cnvt_id
+		store_d
+		pusha		_ForNextStep0
+		pushc_d		$00000000 $3ff00000
+		store_d
+		bra		L4
+L2
+		pushv_d		FJ
+		pushv_d		_ForNextLimit0
+		pushv_d		_ForNextStep0
+		tfor_d
+		brcf		L3
+L4
+		chkdbg
+	.ln		53
+		pusha		FI
+		pushc_d		$00000000 $3ff00000
+		store_d
+		pusha		_ForNextLimit1
+		pushv_i		FN_XTAL
+		cnvt_id
+		pushc_d		$00000000 $3ff00000
+		sub_d
+		store_d
+		pusha		_ForNextStep1
+		pushc_d		$00000000 $3ff00000
+		store_d
+		bra		L7
+L5
+		pushv_d		FI
+		pushv_d		_ForNextLimit1
+		pushv_d		_ForNextStep1
+		tfor_d
+		brcf		L6
+L7
+		chkdbg
+	.ln		54
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40380000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		55
+		pusha		FXI
+		pushv_d		FI
+		cnvt_di
+		pushc_i		$00000005
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000003
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pusha		FXYZ
+		garyia_2
+		load_d
+		store_d
+		chkdbg
+	.ln		56
+		pusha		FYI
+		pushv_d		FI
+		cnvt_di
+		pushc_i		$00000005
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000003
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pusha		FXYZ
+		garyia_2
+		load_d
+		store_d
+		chkdbg
+	.ln		57
+		pusha		FZI
+		pushv_d		FI
+		cnvt_di
+		pushc_i		$00000005
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pusha		FXYZ
+		garyia_2
+		load_d
+		store_d
+		chkdbg
+	.ln		59
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushv_d		FYI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000002
+		pushv_d		FZI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020301
+		spline_cmd
+		chkdbg
+	.ln		60
+		pusha		FTI
+		pushv_d		FTI
+		pushv_i		FN_PERIOD
+		cnvt_id
+		pushc_d		$00000000 $40380000
+		sub_d
+		pushc_d		$00000000 $40280000
+		sub_d
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		62
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushv_d		FYI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000002
+		pushv_d		FZI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020301
+		spline_cmd
+		chkdbg
+	.ln		63
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40280000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		70
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushv_d		FYI
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000002
+		pushv_d		FZI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020301
+		spline_cmd
+		pusha		FI
+		pushv_d		FI
+		pushv_d		_ForNextStep1
+		add_d
+		store_d
+		bra		L5
+L6
+		pusha		FJ
+		pushv_d		FJ
+		pushv_d		_ForNextStep0
+		add_d
+		store_d
+		bra		L2
+L3
+		chkdbg
+	.ln		74
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40520000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		76
+		pushc_i		$00000000
+		pushv_d		FXPOS
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushv_d		FYPOS
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000002
+		pushv_d		FZPOS
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020301
+		spline_cmd
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\pvt_laue.ab
+	.file		1,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\pvt_laue_parameters.abi
+
+
+	org	y:
+
+	.def	FN_MODE
+	.val	FN_MODE
+	.scl	2
+	.type	$4
+	.endef
+FN_MODE
+	dc	$00000000
+
+	org	y:
+
+	.def	FN_PERIOD
+	.val	FN_PERIOD
+	.scl	2
+	.type	$4
+	.endef
+FN_PERIOD
+	dc	$0000006c
+
+	org	y:
+
+	.def	FN_REPEAT
+	.val	FN_REPEAT
+	.scl	2
+	.type	$4
+	.endef
+FN_REPEAT
+	dc	$00000008
+
+	org	y:
+
+	.def	FN_XTAL
+	.val	FN_XTAL
+	.scl	2
+	.type	$4
+	.endef
+FN_XTAL
+	dc	$00000005
+
+	org	y:
+
+	.def	FXYZ
+	.val	FXYZ
+	.scl	2
+	.dim	5
+	.strt	0
+	.size	30
+	.dim	3
+	.strt	0
+	.size	6
+	.type	$f7
+	.endef
+FXYZ
+	ds	7
+	dc	$3fe00000, $00000000, $3fe00000, $00000000, $3fe00000, $9999999b, $3fb99999, $9999999b, $3fb99999, $9999999b
+	dc	$3fb99999, $9999999a, $3fd99999, $9999999a, $3fd99999, $9999999a, $3fd99999, $9999999a, $3fc99999, $9999999a
+	dc	$3fc99999, $9999999a, $3fc99999
+
+	org	y:
+
+	.def	FDT
+	.val	FDT
+	.scl	2
+	.type	$7
+	.endef
+FDT		bsc	2
+
+	org	y:
+
+	.def	FSCALE_FACTOR
+	.val	FSCALE_FACTOR
+	.scl	2
+	.type	$7
+	.endef
+FSCALE_FACTOR		bsc	2
+
+	org	y:
+
+	.def	FXPOS
+	.val	FXPOS
+	.scl	2
+	.type	$7
+	.endef
+FXPOS		bsc	2
+
+	org	y:
+
+	.def	FYPOS
+	.val	FYPOS
+	.scl	2
+	.type	$7
+	.endef
+FYPOS		bsc	2
+
+	org	y:
+
+	.def	FZPOS
+	.val	FZPOS
+	.scl	2
+	.type	$7
+	.endef
+FZPOS		bsc	2
+
+	org	y:
+
+	.def	FTI
+	.val	FTI
+	.scl	2
+	.type	$7
+	.endef
+FTI		bsc	2
+
+	org	y:
+
+	.def	FJ
+	.val	FJ
+	.scl	2
+	.type	$7
+	.endef
+FJ		bsc	2
+
+	org	y:
+
+	.def	FI
+	.val	FI
+	.scl	2
+	.type	$7
+	.endef
+FI		bsc	2
+
+	org	y:
+
+	.def	FXI
+	.val	FXI
+	.scl	2
+	.type	$7
+	.endef
+FXI		bsc	2
+
+	org	y:
+
+	.def	FYI
+	.val	FYI
+	.scl	2
+	.type	$7
+	.endef
+FYI		bsc	2
+
+	org	y:
+
+	.def	FZI
+	.val	FZI
+	.scl	2
+	.type	$7
+	.endef
+FZI		bsc	2
+
+
+	org	y:
+
+	.def	_ForNextLimit0
+	.val	_ForNextLimit0
+	.scl	20
+	.type	$7
+	.endef
+_ForNextLimit0		bsc	2
+
+	org	y:
+
+	.def	_ForNextStep0
+	.val	_ForNextStep0
+	.scl	20
+	.type	$7
+	.endef
+_ForNextStep0		bsc	2
+
+	org	y:
+
+	.def	_ForNextLimit1
+	.val	_ForNextLimit1
+	.scl	20
+	.type	$7
+	.endef
+_ForNextLimit1		bsc	2
+
+	org	y:
+
+	.def	_ForNextStep1
+	.val	_ForNextStep1
+	.scl	20
+	.type	$7
+	.endef
+_ForNextStep1		bsc	2
+

@@ -1,0 +1,239 @@
+
+		; **** BCM file generated: Mon, Feb 26 2018, 07:41:41 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		2
+		abs_cmd
+		chkdbg
+	.ln		3
+		pushc_i		$00000001
+		pushc_i		$00020004
+		spline_cmd
+		chkdbg
+	.ln		4
+		pushc_i		$00000001
+		velocity_cmd
+		chkdbg
+	.ln		5
+		halt_cmd
+		chkdbg
+	.ln		6
+		pushc_i		$000004b0
+		scopebuffer_cmd
+		chkdbg
+	.ln		7
+		pushc_i		$fffffffe
+		scopetrigperiod_cmd
+		chkdbg
+	.ln		10
+		scopetrig_cmd
+		chkdbg
+	.ln		10
+		pusha		FDT
+		pushc_d		$bc6a7efa $3f989374
+		store_d
+		chkdbg
+	.ln		11
+		pusha		FDX
+		pushc_d		$00000000 $3fe00000
+		store_d
+		chkdbg
+	.ln		12
+		pusha		FTI
+		pushc_d		$d2f1a9fc $3f50624d
+		store_d
+		chkdbg
+	.ln		14
+		pusha		FTI
+		pushv_d		FTI
+		pushv_d		FDT
+		add_d
+		store_d
+		chkdbg
+	.ln		15
+		pusha		FXI
+		pushv_d		FXI
+		pushv_d		FDX
+		add_d
+		store_d
+		chkdbg
+	.ln		16
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		17
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40080000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		18
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		19
+		pusha		FTI
+		pushv_d		FTI
+		pushv_d		FDT
+		add_d
+		store_d
+		chkdbg
+	.ln		20
+		pusha		FXI
+		pushv_d		FXI
+		pushv_d		FDX
+		add_d
+		store_d
+		chkdbg
+	.ln		21
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		22
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40080000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		23
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		24
+		pusha		FTI
+		pushv_d		FTI
+		pushv_d		FDT
+		add_d
+		store_d
+		chkdbg
+	.ln		25
+		pusha		FXI
+		pushv_d		FXI
+		pushv_d		FDX
+		add_d
+		store_d
+		chkdbg
+	.ln		26
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		27
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40080000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		28
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		29
+		pusha		FTI
+		pushv_d		FTI
+		pushc_d		$00000000 $40100000
+		pushv_d		FDT
+		mpy_d
+		add_d
+		store_d
+		chkdbg
+	.ln		30
+		pusha		FXI
+		pushv_d		FXI
+		pushc_d		$00000000 $40080000
+		pushv_d		FDX
+		mpy_d
+		sub_d
+		store_d
+		chkdbg
+	.ln		31
+		pushc_i		$00000000
+		pushv_d		FXI
+		pushc_d		$00000000 $00000000
+		pushv_d		FTI
+		pushc_i		$00020101
+		spline_cmd
+		chkdbg
+	.ln		33
+		start_cmd
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\id14b4\useridb\nih\software\ensemble\testx_performance.ab
+
+
+	org	y:
+
+	.def	FDT
+	.val	FDT
+	.scl	2
+	.type	$7
+	.endef
+FDT		bsc	2
+
+	org	y:
+
+	.def	FDX
+	.val	FDX
+	.scl	2
+	.type	$7
+	.endef
+FDX		bsc	2
+
+	org	y:
+
+	.def	FTI
+	.val	FTI
+	.scl	2
+	.type	$7
+	.endef
+FTI		bsc	2
+
+	org	y:
+
+	.def	FXI
+	.val	FXI
+	.scl	2
+	.type	$7
+	.endef
+FXI		bsc	2
+
+

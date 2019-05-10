@@ -1,0 +1,22 @@
+PROGRAM
+	'Insert.ab  moves X by - DX and then Y by -DY to insert the capillary 
+	'into the cooling stream of the temperature controller.
+    'When this program launches, UserString1 becomes "Insert.ab"
+	'
+	'(UserString0 for task 1; UserString1 for auxiliary task)
+	SETPARM UserString1,"Insert.ab"
+	
+	'Control parameters
+	DX = 3	'incremental move in X [mm]
+	DY = 11	'incremental move in Y [mm]
+
+	ABS
+	RAMP MODE RATE
+	RAMP RATE Y 5000
+	RAMP RATE X 500
+	WAIT MODE MOVEDONE
+	
+	MOVEINC X -1*DX	XF 200 'return X first
+	MOVEINC Y -1*DY	YF 200 'lower Y last
+	
+END PROGRAM

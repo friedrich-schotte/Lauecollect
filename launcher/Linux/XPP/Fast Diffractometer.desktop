@@ -1,0 +1,8 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Encoding=UTF-8
+Name=Fast Diffractometer
+Type=Application
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh FastDiffractometerPanel.py
+Comment=F. Schotte, 4 Mar 2013
+Icon=/usr/share/icons/gnome/32x32/mimetypes/gnome-mime-text-x-python.png

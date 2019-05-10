@@ -1,0 +1,187 @@
+' This program is to tranlate the sample for a WAXS experiment
+' synchronously to an exteranl trigger signal.
+' The maximum trigger needed rate is 82 Hz, the translation step 150 um.
+' The tranlations is trigger by a rising edge at the digital input 0.
+
+' Friedrich Schotte, NIH, 30 Sep 2008 - 18 Apr 2013
+
+HEADER
+  INCLUDE "StringLibHeader.abi"
+  DEFINE UNIT 1.0 'position unit in mutiples of of mm (if um use 0.001)
+  ' Global integer register numbers.
+  DEFINE TRIGGER_ENABLED 0
+  DEFINE AUTO_RETURN 1 'automatically return to start at end of travel
+  DEFINE AUTO_REVERSE 2 'automatically return to start at end of travel
+  DEFINE TIMER_ENABLED 3 'Move stage on a timer?
+  DEFINE TRIGGER_COUNT 4 'number of trigger events detected
+  DEFINE STEP_COUNT 5 'number of triggered steps operations
+  ' Global double register numbers.
+  DEFINE STEPSIZE 0 'increment for triggered motion (mm)
+  DEFINE START_POS 1 'turning point for triggered motion (mm)
+  DEFINE END_POS 2 'turning point for triggered motion (mm)
+  DEFINE SPEED 3 'top speed in mm/s
+  DEFINE STEP_ACCELERATION 4 'for triggered operation in mm/s2
+  DEFINE ACCELERATION 5 'for return stroke in mm/s2
+  DEFINE LOW_LIMIT 6 'limit switch trigger point (mm)
+  DEFINE HIGH_LIMIT 7 'limit switch trigger point (mm)
+  DEFINE TIMER_PERIOD 8 'timer period in ms  
+  ' Global string registers
+  DEFINE PROGRAM_NAME 0
+  DEFINE VERSION 1
+END HEADER
+
+DECLARATIONS
+  GLOBAL timer_period AS DOUBLE 'timer period on ms  
+END DECLARATIONS
+
+PROGRAM
+  DIM last_level AS INTEGER 'digital input state
+  DIM trigged_step AS INTEGER 'Was last move done on external trigger?
+  DIM direct as INTEGER = 1 'direction of next move 1 = forward, -1 = backward
+  DIM current_pos as DOUBLE
+  DIM level AS INTEGER 'digital input state
+  DIM bits AS INTEGER 'status bits
+  DIM HL AS INTEGER, LL AS INTEGER, moving AS INTEGER  'high limit, low limit
+  DIM t AS INTEGER 'time in milliseconds
+  DIM do_step AS INTEGER 'Start motion?
+  DIM stepsize AS DOUBLE 'increment for triggered motion (mm)
+  'Initialize global variables
+  SGLOBAL(PROGRAM_NAME) = "SampleTranslation"
+  SGLOBAL(VERSION) = "3.6"
+  DGLOBAL(STEPSIZE) = 0.48292/UNIT 'increment for triggered motion (mm) 
+  DGLOBAL(START_POS) = -11.160/UNIT 'turning point for triggered motion (mm)
+  DGLOBAL(END_POS) = 12.503/UNIT 'turning point for triggered motion (mm)
+  IGLOBAL(AUTO_RETURN) = 1 'automatically return to start at end of travel
+  IGLOBAL(AUTO_REVERSE) = 0 'automatically reverse direction at end of travel
+  IGLOBAL(TRIGGER_ENABLED) = 1 'move stage on external trigger
+  IGLOBAL(TIMER_ENABLED) = 0 'move stage on a timer  
+  DGLOBAL(TIMER_PERIOD) = 24.0 'timer period in ms  
+  DGLOBAL(SPEED) = 200/UNIT 'top speed in units/s
+  DGLOBAL(LOW_LIMIT) = -13.000/UNIT 'limit switch trigger point
+  DGLOBAL(HIGH_LIMIT) = 13.000/UNIT 'limit switch trigger point
+  DGLOBAL(STEP_ACCELERATION) = 14000.000/UNIT 'for triggered operation in units/s2
+  DGLOBAL(ACCELERATION) = DGLOBAL(STEP_ACCELERATION) 'for non-triggered motion in um/s2 (0.25 s for full stroke)
+  IGLOBAL(TRIGGER_COUNT) = 0 'number of trigger events detected
+  IGLOBAL(STEP_COUNT) = 0 'number of triggered steps operations
+
+  ' With and incremental encoder, after power on, in order for the controller
+  ' to know the absolute angle of the motor it needs to find the "reference" mark 
+  ' of the encoder. The HOME command rotates the motor until the the marker input
+  ' level goes high, then stops there and resets the encoder accumulator count to
+  ' zero.
+  ' The program check first if a home run has already been performed, and does
+  ' it only if it has not been done before.
+  DIM HOMED AS INTEGER 
+  bits = AXISSTATUS(Z)
+  HOMED = (bits >> 1) BAND 1
+  IF NOT HOMED THEN
+    WAIT MODE MOVEDONE 'After a motion command, wait for it to complete.
+    FAULTACK Z 'Make sure fault state is cleared.
+    ENABLE Z 'Turn the drive on.
+    HOME Z 'Find the home switch and set encoder count to 0.
+	DISABLE Z 'Turn the drive off.
+    WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+  END IF
+
+  PLANE 0 'Needs to match plane status
+  ABS ' Move LINEAR moves absolute moves.
+  WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+  RAMP MODE Z RATE 'The acceation ramp is determind by the RAMP RATE parameter (default)
+  SCURVE 0 'Set ramp portion of velocity profile to fully linear.
+
+  FAULTACK Z 'Make sure any fault state is cleared.
+
+  ' Go to the starting position using the normal acceleration rate.
+  'ENABLE Z 'turn the drive on
+  'RAMP RATE DGLOBAL(ACCELERATION)
+  'LINEAR Z DGLOBAL(END_POS) F DGLOBAL(SPEED) ' Start at positive end of stroke.
+  
+  ' Read digital inputs (on AUX I/O connector)
+  last_level = DIN(X,1,0)
+  triggered_step = 0 'Was last move done on external trigger?
+
+  WHILE 1
+    stepsize = DGLOBAL(STEPSIZE)
+	do_step = 0 
+    IF IGLOBAL(TRIGGER_ENABLED) THEN
+      ' Read digital inputs (on AUX I/O connector)
+      level = DIN(X,1,0)
+      DOUT X,1,level ' Timing marker for debugging
+	  IF level = 1 AND last_level = 0 THEN
+		do_step = 1
+	  END IF 
+	  IF do_step THEN IGLOBAL(TRIGGER_COUNT) = (IGLOBAL(TRIGGER_COUNT)+1) END IF
+	  last_level = level
+	END IF
+    IF IGLOBAL(TIMER_ENABLED) THEN
+	  t = TIMER()
+	  IF t >= DGLOBAL(TIMER_PERIOD) THEN do_step = 1 END IF
+	  IF do_step THEN CLEARTIMER END IF
+	END IF
+    ' On the rising edge of input 1, operated the stage momentarily advancing
+    ' one step forward or backward.
+    IF do_step THEN
+	  bits = PLANESTATUS(0)
+	  if bits <> 0 THEN
+	    moving = 1
+	  ELSE
+	    moving = 0
+	  END IF
+	  ' Ignore trigger if still busy performing the last motion,
+	  ' unless the last motion was externally triggered.
+	  IF NOT moving OR triggered_step THEN
+	    current_pos = PCMD(Z)
+	    IF DGLOBAL(END_POS) > DGLOBAL(START_POS) THEN HP = DGLOBAL(END_POS) ELSE HP = DGLOBAL(START_POS) END IF
+	    IF DGLOBAL(END_POS) > DGLOBAL(START_POS) THEN LP = DGLOBAL(START_POS) ELSE LP = DGLOBAL(END_POS) END IF
+        HL = (bits >> 22) BAND 1
+        LL = (bits >> 23) BAND 1
+        IF AXISFAULT(Z) <> 0 THEN
+          FAULTACK Z
+        END IF
+        ENABLE Z 'turn the drive on
+	    ' Optionally, return to start at end of travel.
+	    IF IGLOBAL(AUTO_RETURN) THEN
+          IF stepsize>0 AND current_pos+stepsize > HP+1 OR HL THEN
+		    acceleration = DGLOBAL(ACCELERATION)
+            RAMP RATE acceleration
+            LINEAR Z LP F DGLOBAL(SPEED) ' D position in um, F in um/s
+		    triggered_step = 0
+            IGLOBAL(STEP_COUNT) = IGLOBAL(STEP_COUNT)+1
+          ELSEIF stepsize<0 AND current_pos+stepsize < LP-1 OR LL THEN
+		    acceleration = DGLOBAL(ACCELERATION)
+            RAMP RATE acceleration
+            MOVEABS Z HP ZF DGLOBAL(SPEED) ' D position in um, F in um/s
+		    triggered_step = 0
+            IGLOBAL(STEP_COUNT) = IGLOBAL(STEP_COUNT)+1
+          ELSE
+		    acceleration = DGLOBAL(ACCELERATION)
+		    RAMP RATE acceleration
+			LINEAR Z current_pos+stepsize F DGLOBAL(SPEED) ' D position in um, F in um/s
+		    triggered_step = 1
+            IGLOBAL(STEP_COUNT) = IGLOBAL(STEP_COUNT)+1
+		  END IF
+	    ' Optionally, reverse direction at end of travel.
+	    ELSEIF IGLOBAL(AUTO_REVERSE) THEN
+          IF current_pos+stepsize > HP OR HL THEN
+            stepsize = -1*ABS(stepsize)
+          ELSEIF current_pos+stepsize < LP OR LL THEN
+            stepsize = ABS(stepsize)
+          END IF
+		  acceleration = DGLOBAL(STEP_ACCELERATION)
+          RAMP RATE acceleration 
+		  LINEAR Z current_pos+stepsize F DGLOBAL(SPEED) ' D position in um, F in um/s
+		  triggered_step = 1
+          IGLOBAL(STEP_COUNT) = IGLOBAL(STEP_COUNT)+1
+	    ' Respect soft and hard limits when running on external trigger.
+	    ELSEIF (stepsize>0 AND current_pos+stepsize <= HP AND NOT HL) OR 
+	      (stepsize<0 AND current_pos+stepsize >= LP AND NOT LL) THEN
+		  acceleration = DGLOBAL(STEP_ACCELERATION)
+          RAMP RATE acceleration 
+          LINEAR Z current_pos+stepsize F DGLOBAL(SPEED) ' D position in um, F in um/s
+		  triggered_step = 1
+          IGLOBAL(STEP_COUNT) = IGLOBAL(STEP_COUNT)+1
+	    END IF
+      END IF
+    END IF
+  WEND
+END PROGRAM

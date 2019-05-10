@@ -1,0 +1,1 @@
+title = 'Wide-Field camera [advanced] (60 deg)'

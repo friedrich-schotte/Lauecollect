@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=LJ1216 Data Directory
+Comment=F. Schotte Feb 1, 2016
+Exec=nautilus /reg/neh/operator/xppopr/experiments/xppj1216/Data
+Icon=/usr/share/icons/gnome/32x32/places/stock_folder.png
+Type=Application

@@ -1,0 +1,46 @@
+PROGRAM
+
+	PLANE 1
+	RECONCILE X Z 
+	ABS 'Positions specified in absolute coordinates
+	WAIT MODE MOVEDONE
+	Zstart = 12
+	MOVEABS Z Zstart F10
+	
+	Ti = 0.001
+	DZ = -0.5
+	DT = 0.001
+	ZV = DZ/(48*DT)
+	Zi = Zstart
+	
+	SCOPEBUFFER 1200
+	SCOPETRIGPERIOD 1	' -4 (-2) corresponds to 4 (2) kHz
+	SCOPETRIG
+	
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	PVT Z Zi,0 TIME Ti
+	
+	WHILE IGLOBAL(0) > -1 'enter IGLOBAL(0) = -1 to exit loop
+		Ti = Ti + 8*DT
+		Zi = Zi + DZ
+		PVT Z Zi,ZV TIME Ti
+		Ti = Ti + 44*48*DT
+		Zi = Zi + 44*DZ
+		PVT Z Zi,ZV TIME Ti
+		Ti = Ti + 8*DT
+		Zi = Zi + DZ
+		PVT Z Zi,0 TIME Ti
+		Ti = Ti + 72*DT
+		Zi = Zi - 46*DZ
+		PVT Z Zi,0 TIME Ti
+		IGLOBAL(3)= 0
+	WEND
+	
+	Ti = Ti + 1
+	PVT Z 0,0 TIME Ti
+	'START
+	IGLOBAL(0) = 0
+	
+END PROGRAM

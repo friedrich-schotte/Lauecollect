@@ -1,0 +1,3684 @@
+
+		; **** BCM file generated: Sat, Oct 27 2018, 10:55:52 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		38
+		pusha		FTIMED_OPEN
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		39
+		pusha		FTRIGGER_ENABLED
+		pushc_i		$00000001
+		store_i
+		chkdbg
+	.ln		40
+		pusha		FOPEN_CLOSE_ENABLED
+		pushc_i		$00000001
+		store_i
+		chkdbg
+	.ln		41
+		pusha		FPULSE_COUNT
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		49
+		pushc_i		$000003ff
+		pushc_i		$00000091
+		pushc_i		$00000004
+		pshgpa		_LC112
+		setparm_cmd
+		chkdbg
+	.ln		56
+		pushc_i		$00000006
+		pushc_i		$00000048
+		pushc_d		$00000000 $41412a88
+		setparm_cmd
+		chkdbg
+	.ln		59
+		pusha		FCLOSED_POS
+		pushc_d		$b851eb85 $3ff3851e
+		store_d
+		chkdbg
+	.ln		60
+		pusha		FOPEN_POS
+		pushc_d		$47ae147b $4023fae1
+		store_d
+		chkdbg
+	.ln		62
+		pusha		FCLOSED_POS2
+		pushc_d		$5c28f5c3 $4032c28f
+		store_d
+		chkdbg
+	.ln		65
+		pusha		FPULSED_SPEED
+		pushc_d		$00000000 $409dd000
+		store_d
+		chkdbg
+	.ln		66
+		pusha		FPULSED_ACC_RAMP
+		pushc_d		$00000000 $40120000
+		store_d
+		chkdbg
+	.ln		71
+		pusha		FDT
+		pushc_d		$d2f1a9fc $3f80624d
+		store_d
+		chkdbg
+	.ln		72
+		pusha		FOPEN_CLOSE_SPEED
+		pushc_d		$00000000 $40000000
+		pushv_d		FOPEN_POS
+		pushv_d		FCLOSED_POS
+		sub_d
+		mpy_d
+		pushv_d		FDT
+		div_d
+		store_d
+		chkdbg
+	.ln		73
+		pusha		FOPEN_CLOSE_ACC_RAMP
+		pushv_d		FOPEN_POS
+		pushv_d		FCLOSED_POS
+		sub_d
+		pushc_d		$00000000 $40000000
+		div_d
+		store_d
+		chkdbg
+	.ln		75
+		pushc_i		$00000006
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		76
+		pushc_i		$00000006
+		pushc_i		$00000001
+		enable_cmd
+		chkdbg
+	.ln		85
+		pusha		FBITS
+		pushc_i		$00000006
+		axisstatus_cmd
+		store_i
+		chkdbg
+	.ln		86
+		pusha		FHOME_CYLE_COMPLETE
+		pushv_i		FBITS
+		pushc_i		$00000001
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		store_i
+		chkdbg
+	.ln		87
+		pushv_i		FHOME_CYLE_COMPLETE
+		pushc_i		$00000000
+		teq_i
+		brcf		L80
+		chkdbg
+	.ln		88
+		pushc_i		$00000006
+		pushc_i		$00000001
+		home_cmd
+L80
+		chkdbg
+	.ln		95
+		pushc_i		$00000000
+		waitmode_cmd
+		chkdbg
+	.ln		96
+		abs_cmd
+		chkdbg
+	.ln		97
+		pushc_i		$00000002
+		pushc_i		$00000000
+		pushc_i		$00000001
+		ramp_cmd
+		chkdbg
+	.ln		99
+		pusha		FLAST_LEVEL1
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		cnvt_id
+		store_d
+		chkdbg
+	.ln		102
+L81
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L82
+		chkdbg
+	.ln		104
+		pusha		FLEVEL0
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		cnvt_id
+		store_d
+		chkdbg
+	.ln		105
+		pusha		FLEVEL1
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		cnvt_id
+		store_d
+		chkdbg
+	.ln		106
+		pushv_d		FLEVEL1
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		pushv_d		FLAST_LEVEL1
+		pushc_d		$00000000 $00000000
+		teq_d
+		tand_d
+		cnvt_di
+		brcf		L84
+		chkdbg
+	.ln		107
+		pusha		FRISING_EDGE1
+		pushc_i		$00000001
+		store_i
+		bra		L83
+L84
+		chkdbg
+	.ln		109
+		pusha		FRISING_EDGE1
+		pushc_i		$00000000
+		store_i
+L83
+		chkdbg
+	.ln		112
+		pushv_i		FTRIGGER_ENABLED
+		brcf		L86
+		chkdbg
+	.ln		113
+		pushv_i		FTIMED_OPEN
+		tnot_i
+		brcf		L88
+		chkdbg
+	.ln		119
+		pushv_d		FLEVEL0
+		pushc_d		$00000000 $00000000
+		teq_d
+		pushv_d		FLEVEL1
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		tand_d
+		pushv_d		FLAST_LEVEL1
+		pushc_d		$00000000 $00000000
+		teq_d
+		tand_d
+		cnvt_di
+		brcf		L90
+		chkdbg
+	.ln		125
+		pusha		FOPENED
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		126
+		pushc_i		$00000002
+		pushv_d		FPULSED_ACC_RAMP
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		127
+		pusha		FCURRENT_POS
+		pushc_i		$00000006
+		pcmd_cmd
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		128
+		pushv_i		FCURRENT_POS
+		pushv_d		FOPEN_POS
+		cnvt_di
+		tlt_i
+		brcf		L92
+		chkdbg
+	.ln		129
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS2
+		pushv_d		FPULSED_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		chkdbg
+	.ln		131
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		dout_cmd
+		bra		L91
+L92
+		chkdbg
+	.ln		133
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS
+		pushv_d		FPULSED_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		chkdbg
+	.ln		135
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		dout_cmd
+L91
+		chkdbg
+	.ln		137
+		pusha		FCLOSED
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		138
+		pusha		FPULSE_COUNT
+		pushv_i		FPULSE_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+L90
+L88
+		chkdbg
+	.ln		141
+		pushv_i		FTIMED_OPEN
+		brcf		L94
+		chkdbg
+	.ln		142
+		pushv_d		FLEVEL0
+		pushc_d		$00000000 $00000000
+		teq_d
+		pushv_d		FLEVEL1
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		tand_d
+		pushv_d		FLAST_LEVEL1
+		pushc_d		$00000000 $00000000
+		teq_d
+		tand_d
+		cnvt_di
+		brcf		L96
+		chkdbg
+	.ln		144
+		pusha		FOPENED
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		145
+		pusha		FOPEN_TIMED
+		pushc_i		$00000001
+		store_i
+		chkdbg
+	.ln		146
+		pushc_i		$00000002
+		pushv_d		FOPEN_CLOSE_ACC_RAMP
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		147
+		pushc_i		$00000006
+		pushv_d		FOPEN_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		chkdbg
+	.ln		148
+		pushc_i		$00000006
+		pushc_i		$00000001
+		waitmovedone_cmd
+		chkdbg
+	.ln		149
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		dout_cmd
+L96
+		chkdbg
+	.ln		151
+		pusha		FTIME_OPENED
+		timer_emb
+		cnvt_di
+		pushv_i		FOPENED
+		sub_i
+		store_i
+		chkdbg
+	.ln		152
+		pushv_i		FOPEN_TIMED
+		pushv_i		FTIME_OPENED
+		pushv_i		FOPENING_TIME
+		tge_i
+		tand_i
+		brcf		L98
+		chkdbg
+	.ln		154
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		chkdbg
+	.ln		155
+		pushc_i		$00000006
+		pushc_i		$00000001
+		waitmovedone_cmd
+		chkdbg
+	.ln		156
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		dout_cmd
+		chkdbg
+	.ln		157
+		pusha		FOPEN_TIMED
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		158
+		pusha		FOPEN_TIME
+		pushc_d		$00000000 $00000000
+		store_d
+		chkdbg
+	.ln		159
+		pusha		FCLOSED
+		timer_emb
+		cnvt_di
+		store_i
+L98
+L94
+L86
+		chkdbg
+	.ln		164
+		pushv_i		FOPEN_CLOSE_ENABLED
+		brcf		L100
+		chkdbg
+	.ln		165
+		pushv_d		FLEVEL0
+		pushc_d		$00000000 $00000000
+		teq_d
+		pushv_d		FLEVEL1
+		pushv_d		FLAST_LEVEL1
+		teq_d
+		tand_d
+		pushv_i		FOPEN_TIMED
+		cnvt_id
+		tnot_d
+		tand_d
+		cnvt_di
+		brcf		L102
+		chkdbg
+	.ln		168
+		pusha		FCURRENT_POS
+		pushc_i		$00000006
+		pcmd_cmd
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		169
+		pusha		FTIME_OPENED
+		timer_emb
+		cnvt_di
+		pushv_i		FOPENED
+		sub_i
+		store_i
+		chkdbg
+	.ln		170
+		pushv_i		FCURRENT_POS
+		pushv_d		FCLOSED_POS
+		cnvt_di
+		teq_i
+		pushv_i		FCURRENT_POS
+		pushv_d		FCLOSED_POS2
+		cnvt_di
+		teq_i
+		tor_i
+		tnot_i
+		pushv_i		FTIME_OPENED
+		pushc_i		$00000064
+		tgt_i
+		tand_i
+		brcf		L104
+		chkdbg
+	.ln		172
+		pusha		FCLOSED
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		173
+		pushc_i		$00000002
+		pushv_d		FOPEN_CLOSE_ACC_RAMP
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		175
+		pushv_i		FCURRENT_POS
+		pushv_d		FOPEN_POS
+		cnvt_di
+		tle_i
+		brcf		L106
+		chkdbg
+	.ln		176
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		bra		L105
+L106
+		chkdbg
+	.ln		178
+		pushc_i		$00000006
+		pushv_d		FCLOSED_POS2
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+L105
+		chkdbg
+	.ln		180
+		pushc_i		$00000006
+		pushc_i		$00000001
+		waitmovedone_cmd
+		chkdbg
+	.ln		181
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		dout_cmd
+L104
+L102
+		chkdbg
+	.ln		184
+		pushv_d		FLEVEL0
+		pushc_d		$00000000 $3ff00000
+		teq_d
+		cnvt_di
+		brcf		L108
+		chkdbg
+	.ln		186
+		pusha		FCURRENT_POS
+		pushc_i		$00000006
+		pcmd_cmd
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		187
+		pushv_i		FCURRENT_POS
+		pushv_d		FOPEN_POS
+		cnvt_di
+		tne_i
+		brcf		L110
+		chkdbg
+	.ln		188
+		pusha		FOPENED
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		189
+		pushc_i		$00000002
+		pushv_d		FOPEN_CLOSE_ACC_RAMP
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		190
+		pushc_i		$00000006
+		pushv_d		FOPEN_POS
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		linear_cmd
+		chkdbg
+	.ln		191
+		pushc_i		$00000006
+		pushc_i		$00000001
+		waitmovedone_cmd
+		chkdbg
+	.ln		192
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		dout_cmd
+L110
+L108
+L100
+		chkdbg
+	.ln		197
+		pusha		FLAST_LEVEL1
+		pushv_d		FLEVEL1
+		store_d
+		bra		L81
+L82
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\id14b4\useridb\nih\software\ensemble\ms-shutter.ab
+	.file		1,c:\program files (x86)\aerotech\ensemble\aerobasic\include\stringlibheader.abi
+	.def	FHANDLE_ETHERNET
+	.val	FHANDLE_ETHERNET
+	.scl	2
+	.type	$21
+	.endef
+FHANDLE_ETHERNET
+	.bf		224
+	.bb		224
+	.def	FRECEIVED
+	.val	-181
+	.scl	1
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+	.def	FREPLY
+	.val	-160
+	.scl	1
+	.dim	65
+	.strt	0
+	.size	65
+	.type	$3c
+	.endef
+	.def	FPARAMETER
+	.val	-95
+	.scl	1
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+	.def	FNBYTES
+	.val	-74
+	.scl	1
+	.type	$4
+	.endef
+	.def	FN
+	.val	-73
+	.scl	1
+	.type	$4
+	.endef
+	.def	FN_OFFSET
+	.val	-72
+	.scl	1
+	.type	$4
+	.endef
+	.def	FSTR
+	.val	-71
+	.scl	1
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+	.def	FPOS
+	.val	-50
+	.scl	1
+	.type	$7
+	.endef
+	.def	FBITS
+	.val	-48
+	.scl	1
+	.type	$4
+	.endef
+	.def	FVALUE
+	.val	-47
+	.scl	1
+	.type	$7
+	.endef
+	.def	FSTATE
+	.val	-45
+	.scl	1
+	.type	$4
+	.endef
+	.def	FTIME_OPENED
+	.val	-44
+	.scl	1
+	.type	$4
+	.endef
+	.def	FGO_TO_
+	.val	-43
+	.scl	1
+	.dim	2
+	.strt	0
+	.size	2
+	.type	$3c
+	.endef
+	.def	FOPEN_POSITION_
+	.val	-41
+	.scl	1
+	.dim	4
+	.strt	0
+	.size	4
+	.type	$3c
+	.endef
+	.def	FCLOSED_POSITION_
+	.val	-37
+	.scl	1
+	.dim	5
+	.strt	0
+	.size	5
+	.type	$3c
+	.endef
+	.def	FALTERNATE_CLOSED_POSITION_
+	.val	-32
+	.scl	1
+	.dim	7
+	.strt	0
+	.size	7
+	.type	$3c
+	.endef
+	.def	FTOP_SPEED_
+	.val	-25
+	.scl	1
+	.dim	3
+	.strt	0
+	.size	3
+	.type	$3c
+	.endef
+	.def	FSET_THE_OPENING_TIME_TO_
+	.val	-22
+	.scl	1
+	.dim	7
+	.strt	0
+	.size	7
+	.type	$3c
+	.endef
+	.def	FIN_PULSED_OPEN_MODE_USE_THE_SPEED_
+	.val	-15
+	.scl	1
+	.dim	9
+	.strt	0
+	.size	9
+	.type	$3c
+	.endef
+	.def	FSET_THE_PULSE_COUNT_TO_
+	.val	-6
+	.scl	1
+	.dim	6
+	.strt	0
+	.size	6
+	.type	$3c
+	.endef
+		rcrdfp
+		pushfp
+		pushc_i		$ffffff4b
+		add_i
+		pushc_i		$00000000
+		lstore_i
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pushc_i		$00000000
+		lstore_i
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pushc_i		$00000000
+		lstore_i
+		pushfp
+		pushc_i		$ffffffb9
+		add_i
+		pushc_i		$00000000
+		lstore_i
+		pushc_i		$00000002
+		pushfp
+		pushc_i		$ffffffd5
+		add_i
+		pshlpa
+		pushc_i		$00000002
+		pusha		_LC0
+		pshrgpa
+		imstore_s
+		pushc_i		$00000004
+		pushfp
+		pushc_i		$ffffffd7
+		add_i
+		pshlpa
+		pushc_i		$00000004
+		pusha		_LC1
+		pshrgpa
+		imstore_s
+		pushc_i		$00000005
+		pushfp
+		pushc_i		$ffffffdb
+		add_i
+		pshlpa
+		pushc_i		$00000005
+		pusha		_LC2
+		pshrgpa
+		imstore_s
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffe0
+		add_i
+		pshlpa
+		pushc_i		$00000007
+		pusha		_LC3
+		pshrgpa
+		imstore_s
+		pushc_i		$00000003
+		pushfp
+		pushc_i		$ffffffe7
+		add_i
+		pshlpa
+		pushc_i		$00000003
+		pusha		_LC4
+		pshrgpa
+		imstore_s
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffea
+		add_i
+		pshlpa
+		pushc_i		$00000007
+		pusha		_LC5
+		pshrgpa
+		imstore_s
+		pushc_i		$00000009
+		pushfp
+		pushc_i		$fffffff1
+		add_i
+		pshlpa
+		pushc_i		$00000009
+		pusha		_LC6
+		pshrgpa
+		imstore_s
+		pushc_i		$00000006
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pshlpa
+		pushc_i		$00000006
+		pusha		_LC7
+		pshrgpa
+		imstore_s
+		chkdbg
+	.ln		224
+		pushfp
+		pushc_i		$ffffffb6
+		add_i
+		pushc_i		$00000002
+		readcomcount_cmd
+		lstore_i
+		chkdbg
+	.ln		226
+		pushfp
+		pushc_i		$ffffffb6
+		add_i
+		lload_i
+		pushc_i		$00000000
+		tgt_i
+		brcf		L1
+		chkdbg
+	.ln		227
+		pushc_i		$00000002
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffff4b
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb6
+		add_i
+		lload_i
+		readcom_cmd
+		chkdbg
+	.ln		228
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffff4b
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FCONCATSTRTOSTR
+		pop			$00000001
+		chkdbg
+	.ln		230
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		231
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000000
+		tgt_i
+		brcf		L3
+		chkdbg
+	.ln		232
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		mload_c
+		pushc_i		$0000000a
+		teq_i
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		mload_c
+		pushc_i		$0000000d
+		teq_i
+		tor_i
+		brcf		L5
+		chkdbg
+	.ln		233
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		pushc_i		$00000000
+		mstore_c
+		chkdbg
+	.ln		235
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		236
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000000
+		tgt_i
+		brcf		L7
+		chkdbg
+	.ln		237
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		mload_c
+		pushc_i		$0000000a
+		teq_i
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		mload_c
+		pushc_i		$0000000d
+		teq_i
+		tor_i
+		brcf		L9
+		chkdbg
+	.ln		238
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		pushc_i		$00000000
+		mstore_c
+L9
+L7
+		chkdbg
+	.ln		241
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FTOUPPERSTR
+		chkdbg
+	.ln		242
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		243
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000000
+		tgt_i
+		brcf		L11
+		chkdbg
+	.ln		244
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		mload_c
+		pushc_i		$0000002e
+		teq_i
+		brcf		L13
+		chkdbg
+	.ln		245
+		pushfp
+		pushc_i		$ffffffb7
+		add_i
+		lload_i
+		pushc_i		$00000001
+		sub_i
+		pushc_i		$00000015
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pusha		FCOMMAND
+		garysia_1
+		pshrgcpa
+		pushc_i		$00000000
+		mstore_c
+L13
+L11
+		chkdbg
+	.ln		249
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000003
+		pshgpa		_LC8
+		teq_s
+		brcf		L15
+		chkdbg
+	.ln		250
+		pushv_i		FTIMED_OPEN
+		brcf		L17
+		chkdbg
+	.ln		251
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC9
+		writecom_cmd
+		bra		L16
+L17
+		chkdbg
+	.ln		253
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC10
+		writecom_cmd
+L16
+		bra		L14
+L15
+		chkdbg
+	.ln		255
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC11
+		teq_s
+		brcf		L18
+		chkdbg
+	.ln		256
+		pusha		FTIMED_OPEN
+		pushc_i		$00000001
+		store_i
+		bra		L14
+L18
+		chkdbg
+	.ln		257
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC12
+		teq_s
+		brcf		L19
+		chkdbg
+	.ln		258
+		pusha		FTIMED_OPEN
+		pushc_i		$00000000
+		store_i
+		bra		L14
+L19
+		chkdbg
+	.ln		259
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC13
+		teq_s
+		brcf		L20
+		chkdbg
+	.ln		260
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000008
+		pshgpa		_LC14
+		pushv_i		FOPENING_TIME
+		cnvt_id
+		pushc_d		$d2f1a9fc $3f50624d
+		mpy_d
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		261
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L20
+		chkdbg
+	.ln		262
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffea
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L21
+		chkdbg
+	.ln		263
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffea
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		264
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		265
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		pushc_d		$00000000 $408f4000
+		mpy_d
+		lstore_d
+		chkdbg
+	.ln		266
+		pusha		FOPENING_TIME
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		lload_d
+		cnvt_di
+		store_i
+		bra		L14
+L21
+		chkdbg
+	.ln		267
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000008
+		pshgpa		_LC15
+		teq_s
+		brcf		L22
+		chkdbg
+	.ln		268
+		pushv_i		FCLOSED
+		pushv_i		FOPENED
+		tge_i
+		brcf		L24
+		chkdbg
+	.ln		269
+		pushfp
+		pushc_i		$ffffffd4
+		add_i
+		pushv_i		FCLOSED
+		pushv_i		FOPENED
+		sub_i
+		lstore_i
+		bra		L23
+L24
+		chkdbg
+	.ln		270
+		pushv_i		FOPENED
+		pushc_i		$00000000
+		tne_i
+		brcf		L25
+		chkdbg
+	.ln		271
+		pushfp
+		pushc_i		$ffffffd4
+		add_i
+		timer_emb
+		cnvt_di
+		pushv_i		FOPENED
+		sub_i
+		lstore_i
+		bra		L23
+L25
+		chkdbg
+	.ln		273
+		pushfp
+		pushc_i		$ffffffd4
+		add_i
+		pushc_i		$00000000
+		lstore_i
+L23
+		chkdbg
+	.ln		275
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000009
+		pshgpa		_LC16
+		pushfp
+		pushc_i		$ffffffd4
+		add_i
+		lload_i
+		cnvt_id
+		pushc_d		$d2f1a9fc $3f50624d
+		mpy_d
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		277
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L22
+		chkdbg
+	.ln		278
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC17
+		teq_s
+		brcf		L26
+		chkdbg
+	.ln		279
+		pushfp
+		pushc_i		$ffffffd3
+		add_i
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		lstore_i
+		chkdbg
+	.ln		280
+		pushfp
+		pushc_i		$ffffffd3
+		add_i
+		lload_i
+		pushc_i		$00000000
+		teq_i
+		brcf		L28
+		chkdbg
+	.ln		281
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC18
+		writecom_cmd
+		bra		L27
+L28
+		chkdbg
+	.ln		283
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC19
+		writecom_cmd
+L27
+		bra		L14
+L26
+		chkdbg
+	.ln		285
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC20
+		teq_s
+		brcf		L29
+		chkdbg
+	.ln		286
+		pushfp
+		pushc_i		$ffffffd3
+		add_i
+		pushc_i		$00000006
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		din_cmd
+		lstore_i
+		chkdbg
+	.ln		287
+		pushfp
+		pushc_i		$ffffffd3
+		add_i
+		lload_i
+		pushc_i		$00000000
+		teq_i
+		brcf		L31
+		chkdbg
+	.ln		288
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC21
+		writecom_cmd
+		bra		L30
+L31
+		chkdbg
+	.ln		290
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC22
+		writecom_cmd
+L30
+		bra		L14
+L29
+		chkdbg
+	.ln		292
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC23
+		teq_s
+		brcf		L32
+		chkdbg
+	.ln		293
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		pushc_i		$00000006
+		pfbk_cmd
+		lstore_d
+		chkdbg
+	.ln		294
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000008
+		pshgpa		_LC24
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		lload_d
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		295
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L32
+		chkdbg
+	.ln		296
+		pushc_i		$00000002
+		pushfp
+		pushc_i		$ffffffd5
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L33
+		chkdbg
+	.ln		297
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000002
+		pushfp
+		pushc_i		$ffffffd5
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		298
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		299
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		lstore_d
+		chkdbg
+	.ln		300
+		pushc_i		$00000006
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		301
+		pushc_i		$00000006
+		pushc_i		$00000001
+		enable_cmd
+		chkdbg
+	.ln		302
+		pushc_i		$00000000
+		waitmode_cmd
+		chkdbg
+	.ln		303
+		pushc_i		$00000006
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		lload_d
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		bra		L14
+L33
+		chkdbg
+	.ln		304
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000002
+		pshgpa		_LC25
+		teq_s
+		brcf		L34
+		chkdbg
+	.ln		305
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		pushc_i		$00000006
+		axisstatus_cmd
+		lstore_i
+		chkdbg
+	.ln		306
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		lload_i
+		pushc_i		$00000003
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		brcf		L36
+		chkdbg
+	.ln		307
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pshgpa		_LC26
+		writecom_cmd
+		bra		L35
+L36
+		chkdbg
+	.ln		309
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC27
+		writecom_cmd
+L35
+		bra		L14
+L34
+		chkdbg
+	.ln		311
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC28
+		teq_s
+		brcf		L37
+		chkdbg
+	.ln		312
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		pushc_i		$00000006
+		pfbk_cmd
+		lstore_d
+		chkdbg
+	.ln		313
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000007
+		pshgpa		_LC29
+		pushv_d		FOPEN_POS
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		314
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L37
+		chkdbg
+	.ln		315
+		pushc_i		$00000004
+		pushfp
+		pushc_i		$ffffffd7
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L38
+		chkdbg
+	.ln		316
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000004
+		pushfp
+		pushc_i		$ffffffd7
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		317
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		318
+		pusha		FOPEN_POS
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		store_d
+		bra		L14
+L38
+		chkdbg
+	.ln		319
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC30
+		teq_s
+		brcf		L39
+		chkdbg
+	.ln		320
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		pushc_i		$00000006
+		pfbk_cmd
+		lstore_d
+		chkdbg
+	.ln		321
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000007
+		pshgpa		_LC31
+		pushv_d		FCLOSED_POS
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		322
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L39
+		chkdbg
+	.ln		323
+		pushc_i		$00000005
+		pushfp
+		pushc_i		$ffffffdb
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L40
+		chkdbg
+	.ln		324
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000005
+		pushfp
+		pushc_i		$ffffffdb
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		325
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		326
+		pusha		FCLOSED_POS
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		store_d
+		bra		L14
+L40
+		chkdbg
+	.ln		327
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC32
+		teq_s
+		brcf		L41
+		chkdbg
+	.ln		328
+		pushfp
+		pushc_i		$ffffffce
+		add_i
+		pushc_i		$00000006
+		pfbk_cmd
+		lstore_d
+		chkdbg
+	.ln		329
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$0000000a
+		pshgpa		_LC33
+		pushv_d		FCLOSED_POS2
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		331
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L41
+		chkdbg
+	.ln		332
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffe0
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L42
+		chkdbg
+	.ln		333
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000007
+		pushfp
+		pushc_i		$ffffffe0
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		334
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		335
+		pusha		FCLOSED_POS2
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		store_d
+		bra		L14
+L42
+		chkdbg
+	.ln		336
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC34
+		teq_s
+		brcf		L43
+		chkdbg
+	.ln		337
+		pushv_i		FTRIGGER_ENABLED
+		brcf		L45
+		chkdbg
+	.ln		338
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC35
+		writecom_cmd
+		bra		L44
+L45
+		chkdbg
+	.ln		340
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC36
+		writecom_cmd
+L44
+		bra		L14
+L43
+		chkdbg
+	.ln		342
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC37
+		teq_s
+		brcf		L46
+		chkdbg
+	.ln		343
+		pusha		FTRIGGER_ENABLED
+		pushc_i		$00000001
+		store_i
+		bra		L14
+L46
+		chkdbg
+	.ln		344
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC38
+		teq_s
+		brcf		L47
+		chkdbg
+	.ln		345
+		pusha		FTRIGGER_ENABLED
+		pushc_i		$00000000
+		store_i
+		bra		L14
+L47
+		chkdbg
+	.ln		346
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000008
+		pshgpa		_LC39
+		teq_s
+		brcf		L48
+		chkdbg
+	.ln		347
+		pushv_i		FOPEN_CLOSE_ENABLED
+		brcf		L50
+		chkdbg
+	.ln		348
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC40
+		writecom_cmd
+		bra		L49
+L50
+		chkdbg
+	.ln		350
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC41
+		writecom_cmd
+L49
+		bra		L14
+L48
+		chkdbg
+	.ln		352
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000006
+		pshgpa		_LC42
+		teq_s
+		brcf		L51
+		chkdbg
+	.ln		353
+		pusha		FOPEN_CLOSE_ENABLED
+		pushc_i		$00000001
+		store_i
+		bra		L14
+L51
+		chkdbg
+	.ln		354
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC43
+		teq_s
+		brcf		L52
+		chkdbg
+	.ln		355
+		pusha		FOPEN_CLOSE_ENABLED
+		pushc_i		$00000000
+		store_i
+		bra		L14
+L52
+		chkdbg
+	.ln		356
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC44
+		teq_s
+		brcf		L53
+		chkdbg
+	.ln		358
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		pushc_i		$00000006
+		axisstatus_cmd
+		lstore_i
+		chkdbg
+	.ln		359
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		lload_i
+		pushc_i		$00000001
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		brcf		L55
+		chkdbg
+	.ln		360
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC45
+		writecom_cmd
+		bra		L54
+L55
+		chkdbg
+	.ln		362
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC46
+		writecom_cmd
+L54
+		bra		L14
+L53
+		chkdbg
+	.ln		364
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC47
+		teq_s
+		brcf		L56
+		chkdbg
+	.ln		371
+		pushc_i		$00000006
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		372
+		pushc_i		$00000006
+		pushc_i		$00000001
+		enable_cmd
+		chkdbg
+	.ln		373
+		pushc_i		$00000006
+		pushc_i		$00000001
+		home_cmd
+		bra		L14
+L56
+		chkdbg
+	.ln		374
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC48
+		teq_s
+		brcf		L57
+		chkdbg
+	.ln		375
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		pushc_i		$00000006
+		axisstatus_cmd
+		lstore_i
+		chkdbg
+	.ln		376
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		lload_i
+		pushc_i		$00000016
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		brcf		L59
+		chkdbg
+	.ln		377
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC49
+		writecom_cmd
+		bra		L58
+L59
+		chkdbg
+	.ln		379
+		pushc_i		$00000002
+		pushc_i		$00000009
+		pshgpa		_LC50
+		writecom_cmd
+L58
+		bra		L14
+L57
+		chkdbg
+	.ln		381
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC51
+		teq_s
+		brcf		L60
+		chkdbg
+	.ln		382
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		pushc_i		$00000006
+		axisstatus_cmd
+		lstore_i
+		chkdbg
+	.ln		383
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		lload_i
+		pushc_i		$00000017
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		brcf		L62
+		chkdbg
+	.ln		384
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC52
+		writecom_cmd
+		bra		L61
+L62
+		chkdbg
+	.ln		386
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC53
+		writecom_cmd
+L61
+		bra		L14
+L60
+		chkdbg
+	.ln		388
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000006
+		pshgpa		_LC54
+		teq_s
+		brcf		L63
+		chkdbg
+	.ln		389
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		pushc_i		$00000006
+		axisstatus_cmd
+		lstore_i
+		chkdbg
+	.ln		390
+		pushfp
+		pushc_i		$ffffffd0
+		add_i
+		lload_i
+		pushc_i		$00000000
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		brcf		L65
+		chkdbg
+	.ln		391
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC55
+		writecom_cmd
+		bra		L64
+L65
+		chkdbg
+	.ln		393
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC56
+		writecom_cmd
+L64
+		bra		L14
+L63
+		chkdbg
+	.ln		395
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC57
+		teq_s
+		brcf		L66
+		chkdbg
+	.ln		396
+		pushc_i		$00000006
+		pushc_i		$00000001
+		disable_cmd
+		bra		L14
+L66
+		chkdbg
+	.ln		397
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC58
+		teq_s
+		brcf		L67
+		chkdbg
+	.ln		398
+		pushc_i		$00000006
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		399
+		pushc_i		$00000006
+		pushc_i		$00000001
+		enable_cmd
+		bra		L14
+L67
+		chkdbg
+	.ln		400
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000003
+		pshgpa		_LC59
+		teq_s
+		brcf		L68
+		chkdbg
+	.ln		401
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000006
+		pshgpa		_LC60
+		pushv_d		FOPEN_CLOSE_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		402
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L68
+		chkdbg
+	.ln		403
+		pushc_i		$00000003
+		pushfp
+		pushc_i		$ffffffe7
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L69
+		chkdbg
+	.ln		404
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000003
+		pushfp
+		pushc_i		$ffffffe7
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		405
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		406
+		pusha		FOPEN_CLOSE_SPEED
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		store_d
+		bra		L14
+L69
+		chkdbg
+	.ln		407
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000007
+		pshgpa		_LC61
+		teq_s
+		brcf		L70
+		chkdbg
+	.ln		408
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$0000000b
+		pshgpa		_LC62
+		pushv_d		FPULSED_SPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		410
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L70
+		chkdbg
+	.ln		411
+		pushc_i		$00000009
+		pushfp
+		pushc_i		$fffffff1
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L71
+		chkdbg
+	.ln		412
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000009
+		pushfp
+		pushc_i		$fffffff1
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		413
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		414
+		pusha		FPULSED_SPEED
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cdbl_emb
+		store_d
+		bra		L14
+L71
+		chkdbg
+	.ln		415
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000002
+		pshgpa		_LC63
+		teq_s
+		brcf		L72
+		chkdbg
+	.ln		416
+		pusha		FTRIGGER_ENABLED
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		417
+		pushc_i		$00000006
+		pushc_i		$00000001
+		abort_cmd
+		bra		L14
+L72
+		chkdbg
+	.ln		418
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000003
+		pshgpa		_LC64
+		teq_s
+		brcf		L73
+		chkdbg
+	.ln		419
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		timer_emb
+		pushc_d		$d2f1a9fc $3f50624d
+		mpy_d
+		lstore_d
+		chkdbg
+	.ln		420
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000004
+		pshgpa		_LC65
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		lload_d
+		pushc_i		$00000002
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		421
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L73
+		chkdbg
+	.ln		422
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000004
+		pshgpa		_LC66
+		teq_s
+		brcf		L74
+		chkdbg
+	.ln		423
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		pushc_i		$00000005
+		pshgpa		_LC67
+		pushv_i		FPULSE_COUNT
+		pushc_i		$00000000
+		pushc_i		$00000001
+		format_emb
+		chkdbg
+	.ln		424
+		pushc_i		$00000002
+		pushc_i		$00000041
+		pushfp
+		pushc_i		$ffffff60
+		add_i
+		pshlpa
+		writecom_cmd
+		bra		L14
+L74
+		chkdbg
+	.ln		425
+		pushc_i		$00000006
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pshlpa
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FFINDSTRINSTR
+		pushc_i		$00000000
+		teq_i
+		brcf		L75
+		chkdbg
+	.ln		426
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		pushc_i		$00000006
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pshlpa
+		len_emb
+		lstore_i
+		chkdbg
+	.ln		427
+		pushc_i		$00000015
+		pshgpa		FCOMMAND
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		len_emb
+		pushfp
+		pushc_i		$ffffffb8
+		add_i
+		lload_i
+		sub_i
+		dclspc		%LIB *
+		callp		%LIB StringLibrary.lco@FEXTRACTSTRFROMSTR
+		pop			$00000001
+		chkdbg
+	.ln		428
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		pushc_i		$00000015
+		pushfp
+		pushc_i		$ffffffa1
+		add_i
+		pshlpa
+		cint_emb
+		cnvt_id
+		lstore_d
+		chkdbg
+	.ln		429
+		pusha		FPULSE_COUNT
+		pushfp
+		pushc_i		$ffffffd1
+		add_i
+		lload_d
+		cnvt_di
+		store_i
+		bra		L14
+L75
+		chkdbg
+	.ln		430
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000005
+		pshgpa		_LC68
+		teq_s
+		brcf		L76
+		chkdbg
+	.ln		431
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC69
+		writecom_cmd
+		chkdbg
+	.ln		432
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pusha		FVERSION
+		pshrgpa
+		writecom_cmd
+		chkdbg
+	.ln		433
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pshgpa		_LC70
+		writecom_cmd
+		bra		L14
+L76
+		chkdbg
+	.ln		434
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000001
+		pshgpa		_LC71
+		teq_s
+		brcf		L77
+		chkdbg
+	.ln		437
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC72
+		writecom_cmd
+		chkdbg
+	.ln		438
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC73
+		writecom_cmd
+		chkdbg
+	.ln		439
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC74
+		writecom_cmd
+		chkdbg
+	.ln		440
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC75
+		writecom_cmd
+		chkdbg
+	.ln		441
+		pushc_i		$00000002
+		pushc_i		$00000009
+		pshgpa		_LC76
+		writecom_cmd
+		chkdbg
+	.ln		442
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC77
+		writecom_cmd
+		chkdbg
+	.ln		443
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC78
+		writecom_cmd
+		chkdbg
+	.ln		444
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC79
+		writecom_cmd
+		chkdbg
+	.ln		445
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC80
+		writecom_cmd
+		chkdbg
+	.ln		446
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC81
+		writecom_cmd
+		chkdbg
+	.ln		447
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pshgpa		_LC82
+		writecom_cmd
+		chkdbg
+	.ln		448
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC83
+		writecom_cmd
+		chkdbg
+	.ln		449
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC84
+		writecom_cmd
+		chkdbg
+	.ln		450
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC85
+		writecom_cmd
+		chkdbg
+	.ln		451
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC86
+		writecom_cmd
+		chkdbg
+	.ln		452
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC87
+		writecom_cmd
+		chkdbg
+	.ln		453
+		pushc_i		$00000002
+		pushc_i		$00000009
+		pshgpa		_LC88
+		writecom_cmd
+		chkdbg
+	.ln		454
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC89
+		writecom_cmd
+		chkdbg
+	.ln		455
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC90
+		writecom_cmd
+		chkdbg
+	.ln		456
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC91
+		writecom_cmd
+		chkdbg
+	.ln		457
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC92
+		writecom_cmd
+		chkdbg
+	.ln		458
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC93
+		writecom_cmd
+		chkdbg
+	.ln		459
+		pushc_i		$00000002
+		pushc_i		$00000008
+		pshgpa		_LC94
+		writecom_cmd
+		chkdbg
+	.ln		460
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC95
+		writecom_cmd
+		chkdbg
+	.ln		461
+		pushc_i		$00000002
+		pushc_i		$00000006
+		pshgpa		_LC96
+		writecom_cmd
+		chkdbg
+	.ln		462
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC97
+		writecom_cmd
+		chkdbg
+	.ln		463
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC98
+		writecom_cmd
+		chkdbg
+	.ln		464
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pshgpa		_LC99
+		writecom_cmd
+		chkdbg
+	.ln		465
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC100
+		writecom_cmd
+		chkdbg
+	.ln		466
+		pushc_i		$00000002
+		pushc_i		$00000007
+		pshgpa		_LC101
+		writecom_cmd
+		chkdbg
+	.ln		467
+		pushc_i		$00000002
+		pushc_i		$0000000b
+		pshgpa		_LC102
+		writecom_cmd
+		chkdbg
+	.ln		468
+		pushc_i		$00000002
+		pushc_i		$00000002
+		pshgpa		_LC103
+		writecom_cmd
+		chkdbg
+	.ln		469
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pshgpa		_LC104
+		writecom_cmd
+		chkdbg
+	.ln		470
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pshgpa		_LC105
+		writecom_cmd
+		chkdbg
+	.ln		471
+		pushc_i		$00000002
+		pushc_i		$00000009
+		pshgpa		_LC106
+		writecom_cmd
+		chkdbg
+	.ln		472
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC107
+		writecom_cmd
+		chkdbg
+	.ln		473
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pshgpa		_LC108
+		writecom_cmd
+		bra		L14
+L77
+		chkdbg
+	.ln		474
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000001
+		pshgpa		_LC109
+		tne_s
+		brcf		L78
+		chkdbg
+	.ln		475
+		pushc_i		$00000002
+		pushc_i		$00000003
+		pshgpa		_LC110
+		writecom_cmd
+		chkdbg
+	.ln		476
+		pushc_i		$00000002
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		writecom_cmd
+		chkdbg
+	.ln		477
+		pushc_i		$00000002
+		pushc_i		$00000005
+		pshgpa		_LC111
+		writecom_cmd
+L78
+L14
+		chkdbg
+	.ln		480
+		pushc_i		$00000015
+		pusha		FCOMMAND
+		pshrgpa
+		pushc_i		$00000001
+		pshgpa		_LC109
+		imstore_s
+L5
+L3
+L1
+	.eb		484
+	.ef		484
+		rtn		$00000000		$000000b5
+	.def	*
+	.val	0
+	.scl	-1
+	.type	$0
+	.endef
+
+
+	org	y:
+
+	.def	FVERSION
+	.val	FVERSION
+	.scl	2
+	.dim	1
+	.strt	0
+	.size	1
+	.type	$3c
+	.endef
+FVERSION
+	dc	$00312e33
+
+	org	y:
+
+	.def	FOPEN_POS
+	.val	FOPEN_POS
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_POS		bsc	2
+
+	org	y:
+
+	.def	FCLOSED_POS
+	.val	FCLOSED_POS
+	.scl	2
+	.type	$7
+	.endef
+FCLOSED_POS		bsc	2
+
+	org	y:
+
+	.def	FCLOSED_POS2
+	.val	FCLOSED_POS2
+	.scl	2
+	.type	$7
+	.endef
+FCLOSED_POS2		bsc	2
+
+	org	y:
+
+	.def	FOPEN_CLOSE_SPEED
+	.val	FOPEN_CLOSE_SPEED
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_CLOSE_SPEED		bsc	2
+
+	org	y:
+
+	.def	FPULSED_SPEED
+	.val	FPULSED_SPEED
+	.scl	2
+	.type	$7
+	.endef
+FPULSED_SPEED		bsc	2
+
+	org	y:
+
+	.def	FOPEN_CLOSE_ACC_RAMP
+	.val	FOPEN_CLOSE_ACC_RAMP
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_CLOSE_ACC_RAMP		bsc	2
+
+	org	y:
+
+	.def	FPULSED_ACC_RAMP
+	.val	FPULSED_ACC_RAMP
+	.scl	2
+	.type	$7
+	.endef
+FPULSED_ACC_RAMP		bsc	2
+
+	org	y:
+
+	.def	FTIMED_OPEN
+	.val	FTIMED_OPEN
+	.scl	2
+	.type	$4
+	.endef
+FTIMED_OPEN		bsc	1
+
+	org	y:
+
+	.def	FOPENING_TIME
+	.val	FOPENING_TIME
+	.scl	2
+	.type	$4
+	.endef
+FOPENING_TIME		bsc	1
+
+	org	y:
+
+	.def	FTRIGGER_ENABLED
+	.val	FTRIGGER_ENABLED
+	.scl	2
+	.type	$4
+	.endef
+FTRIGGER_ENABLED		bsc	1
+
+	org	y:
+
+	.def	FOPEN_CLOSE_ENABLED
+	.val	FOPEN_CLOSE_ENABLED
+	.scl	2
+	.type	$4
+	.endef
+FOPEN_CLOSE_ENABLED		bsc	1
+
+	org	y:
+
+	.def	FCOMMAND
+	.val	FCOMMAND
+	.scl	2
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+FCOMMAND		bsc	21
+
+	org	y:
+
+	.def	FOPENED
+	.val	FOPENED
+	.scl	2
+	.type	$4
+	.endef
+FOPENED		bsc	1
+
+	org	y:
+
+	.def	FCLOSED
+	.val	FCLOSED
+	.scl	2
+	.type	$4
+	.endef
+FCLOSED		bsc	1
+
+	org	y:
+
+	.def	FTIME_OPENED
+	.val	FTIME_OPENED
+	.scl	2
+	.type	$4
+	.endef
+FTIME_OPENED		bsc	1
+
+	org	y:
+
+	.def	FOPEN_TIMED
+	.val	FOPEN_TIMED
+	.scl	2
+	.type	$4
+	.endef
+FOPEN_TIMED		bsc	1
+
+	org	y:
+
+	.def	FPULSE_COUNT
+	.val	FPULSE_COUNT
+	.scl	2
+	.type	$4
+	.endef
+FPULSE_COUNT		bsc	1
+
+	org	y:
+
+	.def	FBITS
+	.val	FBITS
+	.scl	2
+	.type	$4
+	.endef
+FBITS		bsc	1
+
+	org	y:
+
+	.def	FHOME_CYLE_COMPLETE
+	.val	FHOME_CYLE_COMPLETE
+	.scl	2
+	.type	$4
+	.endef
+FHOME_CYLE_COMPLETE		bsc	1
+
+	org	y:
+
+	.def	FCURRENT_POS
+	.val	FCURRENT_POS
+	.scl	2
+	.type	$4
+	.endef
+FCURRENT_POS		bsc	1
+
+	org	y:
+
+	.def	FDT
+	.val	FDT
+	.scl	2
+	.type	$7
+	.endef
+FDT		bsc	2
+
+	org	y:
+
+	.def	FLEVEL0
+	.val	FLEVEL0
+	.scl	2
+	.type	$7
+	.endef
+FLEVEL0		bsc	2
+
+	org	y:
+
+	.def	FLEVEL1
+	.val	FLEVEL1
+	.scl	2
+	.type	$7
+	.endef
+FLEVEL1		bsc	2
+
+	org	y:
+
+	.def	FLAST_LEVEL1
+	.val	FLAST_LEVEL1
+	.scl	2
+	.type	$7
+	.endef
+FLAST_LEVEL1		bsc	2
+
+	org	y:
+
+	.def	FRISING_EDGE1
+	.val	FRISING_EDGE1
+	.scl	2
+	.type	$4
+	.endef
+FRISING_EDGE1		bsc	1
+
+	org	y:
+
+	.def	FMSG
+	.val	FMSG
+	.scl	2
+	.dim	21
+	.strt	0
+	.size	21
+	.type	$3c
+	.endef
+FMSG		bsc	21
+
+	org	y:
+
+	.def	FOPEN_TIME
+	.val	FOPEN_TIME
+	.scl	2
+	.type	$7
+	.endef
+FOPEN_TIME		bsc	2
+
+	org	y:
+_LC0
+	dc	$54204f47, $0000204f
+
+	org	y:
+_LC1
+	dc	$4e45504f, $534f5020, $4f495449, $0000204e
+
+	org	y:
+_LC2
+	dc	$534f4c43, $50204445, $5449534f, $204e4f49, $00000000
+
+	org	y:
+_LC3
+	dc	$45544c41, $54414e52, $4c432045, $4445534f, $534f5020, $4f495449, $0000204e
+
+	org	y:
+_LC4
+	dc	$20504f54, $45455053, $00002044
+
+	org	y:
+_LC5
+	dc	$20544553, $20454854, $4e45504f, $20474e49, $454d4954, $204f5420, $00000000
+
+	org	y:
+_LC6
+	dc	$50204e49, $45534c55, $504f2044, $4d204e45, $2045444f, $20455355, $20454854, $45455053, $00002044
+
+	org	y:
+_LC7
+	dc	$20544553, $20454854, $534c5550, $4f432045, $20544e55, $00204f54
+
+	org	y:
+_LC91
+	dc	$61736944, $20656c62, $67697274, $2e726567, $0000000a
+
+	org	y:
+_LC80
+	dc	$72727543, $20746e65, $69736f70, $6e6f6974, $00000a3f
+
+	org	y:
+_LC92
+	dc	$74207349, $73206568, $65676174, $6c616320, $61726269, $3f646574, $0000000a
+
+	org	y:
+_LC81
+	dc	$74206f47, $763c206f, $65756c61, $000a2e3e
+
+	org	y:
+_LC70
+	dc	$00000a2e
+
+	org	y:
+_LC93
+	dc	$696c6143, $74617262, $68742065, $74732065, $2e656761, $0000000a
+
+	org	y:
+_LC82
+	dc	$69766f4d, $0a3f676e, $00000000
+
+	org	y:
+_LC71
+	dc	$0000003f
+
+	org	y:
+_LC60
+	dc	$20706f54, $65657073, $73692064, $20672520, $2f676564, $000a2e73
+
+	org	y:
+_LC94
+	dc	$74207349, $73206568, $65676174, $20746120, $68676968, $6d696c20, $0a3f7469, $00000000
+
+	org	y:
+_LC83
+	dc	$6e65704f, $736f7020, $6f697469, $000a3f6e
+
+	org	y:
+_LC72
+	dc	$656d6954, $706f2064, $0a3f6e65, $00000000
+
+	org	y:
+_LC61
+	dc	$45455053, $4e492044, $4c555020, $20444553, $4e45504f, $444f4d20, $00003f45
+
+	org	y:
+_LC50
+	dc	$20656854, $67617473, $73692065, $746f6e20, $20746120, $68676968, $6d696c20, $0a2e7469, $00000000
+
+	org	y:
+_LC95
+	dc	$74207349, $73206568, $65676174, $20746120, $20776f6c, $696d696c, $000a3f74
+
+	org	y:
+_LC84
+	dc	$6e65704f, $736f7020, $6f697469, $763c206e, $65756c61, $000a2e3e
+
+	org	y:
+_LC73
+	dc	$62616e45, $7420656c, $64656d69, $65706f20, $000a2e6e
+
+	org	y:
+_LC62
+	dc	$70206e49, $65736c75, $706f2064, $6d206e65, $2065646f, $20656874, $65657073, $73692064, $20672520, $2f676564
+	dc	$000a2e73
+
+	org	y:
+_LC51
+	dc	$54205349, $53204548, $45474154, $20544120, $20574f4c, $494d494c, $00003f54
+
+	org	y:
+_LC40
+	dc	$6e65704f, $6f6c632f, $69206573, $7475706e, $20736920, $62616e65, $2e64656c, $0000000a
+
+	org	y:
+_LC96
+	dc	$74207349, $64206568, $65766972, $616e6520, $64656c62, $00000a3f
+
+	org	y:
+_LC85
+	dc	$736f6c43, $70206465, $7469736f, $3f6e6f69, $0000000a
+
+	org	y:
+_LC74
+	dc	$61736944, $20656c62, $656d6974, $706f2064, $0a2e6e65, $00000000
+
+	org	y:
+_LC63
+	dc	$504f5453, $00000000
+
+	org	y:
+_LC52
+	dc	$20656854, $67617473, $73692065, $20746120, $20776f6c, $696d696c, $000a2e74
+
+	org	y:
+_LC41
+	dc	$6e65704f, $6f6c632f, $69206573, $7475706e, $20736920, $61736964, $64656c62, $00000a2e
+
+	org	y:
+_LC30
+	dc	$534f4c43, $50204445, $5449534f, $3f4e4f49, $00000000
+
+	org	y:
+_LC110
+	dc	$6d6d6f43, $20646e61, $00000027
+
+	org	y:
+_LC97
+	dc	$61736944, $20656c62, $76697264, $000a2e65
+
+	org	y:
+_LC86
+	dc	$736f6c43, $70206465, $7469736f, $206e6f69, $6c61763c, $2e3e6575, $0000000a
+
+	org	y:
+_LC75
+	dc	$6e65704f, $20676e69, $656d6974, $00000a3f
+
+	org	y:
+_LC64
+	dc	$54205055, $3f454d49, $00000000
+
+	org	y:
+_LC53
+	dc	$20656854, $67617473, $73692065, $746f6e20, $20746120, $20776f6c, $696d696c, $000a2e74
+
+	org	y:
+_LC42
+	dc	$42414e45, $4f20454c, $2f4e4550, $534f4c43, $4e492045, $00545550
+
+	org	y:
+_LC31
+	dc	$736f6c43, $70206465, $7469736f, $206e6f69, $25207369, $65642067, $000a2e67
+
+	org	y:
+_LC20
+	dc	$534c5550, $4f204445, $204e4550, $55504e49, $00003f54
+
+	org	y:
+_LC111
+	dc	$6f6e2027, $6e752074, $73726564, $646f6f74, $0000000a
+
+	org	y:
+_LC100
+	dc	$20706f54, $65657073, $763c2064, $65756c61, $000a2e3e
+
+	org	y:
+_LC98
+	dc	$62616e45, $6420656c, $65766972, $00000a2e
+
+	org	y:
+_LC87
+	dc	$65746c41, $74616e72, $6c632065, $6465736f, $736f7020, $6f697469, $000a3f6e
+
+	org	y:
+_LC76
+	dc	$20746553, $20656874, $6e65706f, $20676e69, $656d6974, $206f7420, $6c61763c, $2e3e6575, $0000000a
+
+	org	y:
+_LC65
+	dc	$74207055, $20656d69, $73206725, $00000a2e
+
+	org	y:
+_LC54
+	dc	$54205349, $44204548, $45564952, $414e4520, $44454c42, $0000003f
+
+	org	y:
+_LC43
+	dc	$41534944, $20454c42, $4e45504f, $4f4c432f, $49204553, $5455504e, $00000000
+
+	org	y:
+_LC32
+	dc	$45544c41, $54414e52, $4c432045, $4445534f, $534f5020, $4f495449, $00003f4e
+
+	org	y:
+_LC21
+	dc	$736c7550, $6f206465, $206e6570, $75706e69, $73692074, $776f6c20, $00000a2e
+
+	org	y:
+_LC10
+	dc	$656d6954, $706f2064, $69206e65, $69642073, $6c626173, $0a2e6465, $00000000
+
+	org	y:
+_LC112
+	dc	$732d736d, $74747568, $612e7265, $00000062
+
+	org	y:
+_LC101
+	dc	$65657053, $6e692064, $6c757020, $20646573, $6e65706f, $646f6d20, $000a3f65
+
+	org	y:
+_LC99
+	dc	$20706f54, $65657073, $000a3f64
+
+	org	y:
+_LC88
+	dc	$65746c41, $74616e72, $6c632065, $6465736f, $736f7020, $6f697469, $763c206e, $65756c61, $000a2e3e
+
+	org	y:
+_LC77
+	dc	$20776f48, $676e6f6c, $73617720, $65687420, $75687320, $72657474, $65706f20, $000a3f6e
+
+	org	y:
+_LC66
+	dc	$534c5550, $4f432045, $3f544e55, $00000000
+
+	org	y:
+_LC55
+	dc	$20656854, $76697264, $73692065, $616e6520, $64656c62, $00000a2e
+
+	org	y:
+_LC44
+	dc	$54205349, $53204548, $45474154, $4c414320, $41524249, $3f444554, $00000000
+
+	org	y:
+_LC33
+	dc	$65746c41, $74616e72, $6c632065, $6465736f, $736f7020, $6f697469, $7369206e, $20672520, $2e676564, $0000000a
+
+	org	y:
+_LC22
+	dc	$736c7550, $6f206465, $206e6570, $75706e69, $73692074, $67696820, $000a2e68
+
+	org	y:
+_LC11
+	dc	$42414e45, $5420454c, $44454d49, $45504f20, $0000004e
+
+	org	y:
+_LC102
+	dc	$70206e49, $65736c75, $706f2064, $6d206e65, $2065646f, $20657375, $20656874, $65657073, $763c2064, $65756c61
+	dc	$000a2e3e
+
+	org	y:
+_LC89
+	dc	$74207349, $67676972, $65207265, $6c62616e, $0a3f6465, $00000000
+
+	org	y:
+_LC78
+	dc	$6e65704f, $6f6c632f, $69206573, $7475706e, $00000a3f
+
+	org	y:
+_LC67
+	dc	$736c7550, $6f632065, $20746e75, $25207369, $000a2e64
+
+	org	y:
+_LC56
+	dc	$20656854, $76697264, $73692065, $73696420, $656c6261, $000a2e64
+
+	org	y:
+_LC45
+	dc	$20656854, $67617473, $73692065, $6c616320, $61726269, $2e646574, $0000000a
+
+	org	y:
+_LC34
+	dc	$54205349, $47474952, $45205245, $4c42414e, $003f4445
+
+	org	y:
+_LC23
+	dc	$52525543, $20544e45, $49534f50, $4e4f4954, $0000003f
+
+	org	y:
+_LC12
+	dc	$41534944, $20454c42, $454d4954, $504f2044, $00004e45
+
+	org	y:
+_LC103
+	dc	$706f7453, $00000a2e
+
+	org	y:
+_LC79
+	dc	$736c7550, $6f206465, $206e6570, $75706e69, $000a3f74
+
+	org	y:
+_LC68
+	dc	$54464f53, $45524157, $52455620, $4e4f4953, $0000003f
+
+	org	y:
+_LC57
+	dc	$41534944, $20454c42, $56495244, $00000045
+
+	org	y:
+_LC46
+	dc	$20656854, $67617473, $73692065, $746f6e20, $6c616320, $61726269, $2e646574, $0000000a
+
+	org	y:
+_LC35
+	dc	$67697254, $20726567, $65207369, $6c62616e, $0a2e6465, $00000000
+
+	org	y:
+_LC24
+	dc	$72727543, $20746e65, $69736f70, $6e6f6974, $20736920, $64206725, $0a2e6765, $00000000
+
+	org	y:
+_LC13
+	dc	$4e45504f, $20474e49, $454d4954, $0000003f
+
+	org	y:
+_LC104
+	dc	$74207055, $3f656d69, $0000000a
+
+	org	y:
+_LC69
+	dc	$74666f53, $65726177, $72657620, $6e6f6973, $20736920, $00000000
+
+	org	y:
+_LC58
+	dc	$42414e45, $4420454c, $45564952, $00000000
+
+	org	y:
+_LC47
+	dc	$494c4143, $54415242, $48542045, $54532045, $00454741
+
+	org	y:
+_LC36
+	dc	$67697254, $20726567, $64207369, $62617369, $2e64656c, $0000000a
+
+	org	y:
+_LC25
+	dc	$49564f4d, $003f474e
+
+	org	y:
+_LC14
+	dc	$20656854, $6e65706f, $20676e69, $656d6974, $20736920, $66332e25, $0a2e7320, $00000000
+
+	org	y:
+_LC105
+	dc	$736c7550, $6f432065, $3f746e75, $0000000a
+
+	org	y:
+_LC59
+	dc	$20504f54, $45455053, $00003f44
+
+	org	y:
+_LC48
+	dc	$54205349, $53204548, $45474154, $20544120, $48474948, $4d494c20, $003f5449
+
+	org	y:
+_LC37
+	dc	$42414e45, $5420454c, $47474952, $00005245
+
+	org	y:
+_LC26
+	dc	$69766f4d, $0a2e676e, $00000000
+
+	org	y:
+_LC15
+	dc	$20574f48, $474e4f4c, $53415720, $45485420, $55485320, $52455454, $45504f20, $00003f4e
+
+	org	y:
+_LC106
+	dc	$20746553, $20656874, $736c7570, $6f632065, $20746e75, $3c206f74, $756c6176, $0a2e3e65, $00000000
+
+	org	y:
+_LC49
+	dc	$20656854, $67617473, $73692065, $20746120, $68676968, $6d696c20, $0a2e7469, $00000000
+
+	org	y:
+_LC38
+	dc	$41534944, $20454c42, $47495254, $00524547
+
+	org	y:
+_LC27
+	dc	$20746f4e, $69766f6d, $0a2e676e, $00000000
+
+	org	y:
+_LC16
+	dc	$20656854, $74756873, $20726574, $20736177, $6e65706f, $726f6620, $332e2520, $2e732066, $0000000a
+
+	org	y:
+_LC107
+	dc	$74666f53, $65726177, $72657620, $6e6f6973, $00000a3f
+
+	org	y:
+_LC39
+	dc	$4f205349, $2f4e4550, $534f4c43, $4e492045, $20545550, $42414e45, $3f44454c, $00000000
+
+	org	y:
+_LC28
+	dc	$4e45504f, $534f5020, $4f495449, $00003f4e
+
+	org	y:
+_LC17
+	dc	$4e45504f, $4f4c432f, $49204553, $5455504e, $0000003f
+
+	org	y:
+_LC8
+	dc	$454d4954, $504f2044, $003f4e45
+
+	org	y:
+_LC108
+	dc	$00000a3f
+
+	org	y:
+_LC29
+	dc	$6e65704f, $736f7020, $6f697469, $7369206e, $20672520, $2e676564, $0000000a
+
+	org	y:
+_LC18
+	dc	$6e65704f, $6f6c632f, $69206573, $7475706e, $20736920, $2e776f6c, $0000000a
+
+	org	y:
+_LC9
+	dc	$656d6954, $706f2064, $69206e65, $6e652073, $656c6261, $000a2e64
+
+	org	y:
+_LC109
+	dc	$00000000
+
+	org	y:
+_LC90
+	dc	$62616e45, $7420656c, $67676972, $0a2e7265, $00000000
+
+	org	y:
+_LC19
+	dc	$6e65704f, $6f6c632f, $69206573, $7475706e, $20736920, $68676968, $00000a2e
+
+

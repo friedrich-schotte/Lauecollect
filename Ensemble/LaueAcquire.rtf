@@ -1,0 +1,96 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\margl1440\margr1440\vieww16280\viewh11700\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs22 \cf2 \expnd0\expndtw0\kerning0
+'LaueAcquire uses PVT commands to translate the sample cell from \
+'crystal to crystal. It opens the millisecond shutter at intervals of 108*DT, \
+'where DT is the time for 1 revolution of the high-speed chopper. The first x-ray pulse\
+'in the sequence arrives 48*DT after the rising edge of the Ensemble \
+'trigger. The coordinates for the crystals are written to \cf2 Center_of_Mass_Coordinates.abi.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 	'Center_of_Mass_Coordinates.abi contains Mode, N_period, Number of crystals, and XYZ coordinates\
+	'Mode\
+	'N_period	'integer multiple of DT defines period between x-ray pulses\
+	'N_repeat\
+	'N_xtal\
+	'XYZ(3,N_xtal) 'XYZ coordinates of crystals (center of mass)\cf2 \
+'\
+'Usage: enter NR, NC, and DZ in "RasterScan_parameters.abi"\
+\
+\
+HEADER\
+	INCLUDE "Center_of_Mass_Coordinates.abi" \
+END HEADER\
+\
+PROGRAM\
+	DIM ROW AS INTEGER, COL AS INTEGER, SGN AS INTEGER\
+	'NR = 3\
+	'NC = 5\
+	'DZ = 0.025\
+	pi = 3.1415926\
+	msShut_close1 = -0.3\
+	msShut_open = 9.7\
+	msShut_close2 = 19.7	\
+	DT = 0.024304558/24	\
+	DX = DZ*SIN(pi/6)	'pi/6 radians = 30 deg\
+	DY = DZ*COS(pi/6)\
+	ZV = DZ/(24*DT)\
+\
+	XPOS = PFBK(X)\
+	YPOS = PFBK(Y)\
+	ZPOS = PFBK(Z)\
+	SPOS = PFBK(msShut_ext)\
+\
+	SCOPEBUFFER 500\
+	SCOPETRIGPERIOD 1	' -4 (-2) corresponds to 4 (2) kHz\
+	\
+	PLANE 1\
+	PVT INIT TIME ABS\
+	VELOCITY ON\
+	HALT\
+	\
+	'Move to starting position\
+	Ti = 0.0001\
+	PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti\
+	Ti = Ti + (48-6)*DT\
+\
+	\
+	'Wait for trigger\
+	WHILE DIN(X,1,0)=0 'wait for next low-to-high transition.\
+		DWELL 0.00025\
+	WEND\
+	\
+	SCOPETRIG\
+	START\
+	\
+	SGN = 1\
+	FOR ROW = -(NR-1)/2 TO (NR-1)/2\
+		Xi = XPOS + ROW*DX\
+		Yi = YPOS - ROW*DY\
+		ZV = SGN*ZV\
+		FOR COL = -(NC-1)/2 TO (NC-1)/2\
+			Ti = Ti -6*DT\
+			Zi = ZPOS + SGN*(COL-1/4)*DZ\
+			PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti\
+			Ti = Ti + 12*DT\
+			Zi = ZPOS + SGN*(COL+1/4)*DZ\
+			IF SPOS < msShut_open THEN\
+				SPOS = msShut_close2\
+			ELSE\
+				SPOS = msShut_close1\
+			END IF\
+			PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti\
+		NEXT COL\
+		SGN = -1*SGN\
+	NEXT ROW\
+	'reposition ms shutter to its starting position.\
+	Ti = Ti + 54*DT\
+	PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti\
+\
+END PROGRAM}

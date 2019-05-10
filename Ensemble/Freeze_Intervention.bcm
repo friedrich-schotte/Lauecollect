@@ -1,0 +1,156 @@
+
+		; **** BCM file generated: Fri, Mar 15 2019, 07:47:40 AM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		9
+		pushc_i		$000003ff
+		pushc_i		$00000092
+		pushc_i		$00000006
+		pshgpa		_LC0
+		setparm_cmd
+		chkdbg
+	.ln		11
+		abs_cmd
+		chkdbg
+	.ln		17
+		pusha		FDX
+		pushc_d		$00000000 $40080000
+		store_d
+		chkdbg
+	.ln		18
+		pusha		FDY
+		pushc_d		$00000000 $40260000
+		store_d
+		chkdbg
+	.ln		20
+		pusha		FWAIT_TIME
+		pushc_d		$00000000 $40240000
+		store_d
+		chkdbg
+	.ln		22
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		ramp_cmd
+		chkdbg
+	.ln		23
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_d		$00000000 $40b38800
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		24
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_d		$00000000 $407f4000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		25
+		pushc_i		$00000001
+		waitmode_cmd
+		chkdbg
+	.ln		27
+		pushc_i		$00000001
+		pushv_d		FDY
+		pushc_d		$00000000 $40690000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000001
+		index_cmd
+		chkdbg
+	.ln		28
+		pushc_i		$00000000
+		pushv_d		FDX
+		pushc_d		$00000000 $40690000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000001
+		index_cmd
+		chkdbg
+	.ln		29
+		pushv_d		FWAIT_TIME
+		cnvt_df
+		dwell_cmd
+		chkdbg
+	.ln		31
+		pushc_i		$00000000
+		pushc_d		$00000000 $bff00000
+		pushv_d		FDX
+		mpy_d
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000001
+		index_cmd
+		chkdbg
+	.ln		32
+		pushc_i		$00000001
+		pushc_d		$00000000 $bff00000
+		pushv_d		FDY
+		mpy_d
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000001
+		index_cmd
+		chkdbg
+	.ln		34
+		pushc_i		$000003ff
+		pushc_i		$00000092
+		pushc_i		$00000001
+		pshgpa		_LC1
+		setparm_cmd
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\freeze_intervention.ab
+
+
+	org	y:
+
+	.def	FDX
+	.val	FDX
+	.scl	2
+	.type	$7
+	.endef
+FDX		bsc	2
+
+	org	y:
+
+	.def	FDY
+	.val	FDY
+	.scl	2
+	.type	$7
+	.endef
+FDY		bsc	2
+
+	org	y:
+
+	.def	FWAIT_TIME
+	.val	FWAIT_TIME
+	.scl	2
+	.type	$7
+	.endef
+FWAIT_TIME		bsc	2
+
+	org	y:
+_LC0
+	dc	$65657246, $495f657a, $7265746e, $746e6576, $2e6e6f69, $00006261
+
+	org	y:
+_LC1
+	dc	$00000000
+
+

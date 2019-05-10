@@ -1,0 +1,124 @@
+'RasterScan uses PVT commands to translate the sample cell within a 
+'plane normal to the microscope camera, with Z being the fast axis.
+'It opens the millisecond shutter at intervals of 24*DT, where DT is the
+'time for 1 revolution of the high-speed chopper. The first x-ray pulse
+'in the sequence arrives 12*DT after the rising edge of the Ensemble 
+'trigger. After the scan, the stage returns to its starting position.
+'
+'Usage: enter NR, NC, and DZ in "RasterScan_parameters.abi"
+'DZ is the step size in mm. The number of rows (NR) and number of 
+'columns (NC) should be odd.
+'
+'The starting and ending positions in Z are offset to allow the stage to
+'accelerate to constant velocity.
+
+HEADER
+	INCLUDE "RasterScan_parameters.abi" 
+END HEADER
+
+PROGRAM
+	DIM ROW AS INTEGER, COL AS INTEGER
+	'NR = 3
+	'NC = 5
+	'DZ = 0.025
+	pi = 3.1415926
+	msShut_close1 = -0.3
+	msShut_open = 9.7
+	msShut_close2 = 19.7	
+	DT = 0.024304558/24	
+	DX = DZ*SIN(pi/6)	'pi/6 radians = 30 deg
+	DY = DZ*COS(pi/6)
+	XV = DX/(6*DT)
+	YV = -1*DY/(6*DT)
+
+	XPOS = PFBK(X)
+	YPOS = PFBK(Y)
+	ZPOS = PFBK(Z)
+	SPOS = PFBK(msShut_ext)
+
+	SCOPEBUFFER 500
+	SCOPETRIGPERIOD 1	' -4 (-2) corresponds to 4 (2) kHz
+	
+	PLANE 1
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	
+	'Move to starting position
+	Ti = 0.0001
+	PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti
+	Ti = Ti + 24*DT
+	Xi = XPOS - DX*(NR-1)/2
+	Yi = YPOS + DY*(NR-1)/2
+	Zi = ZPOS - DZ*((NC-1)/2+1/8)
+	PVT X Xi,0 Y Yi,0 Z Zi,0 msShut_ext SPOS,0 TIME Ti
+	
+	'Wait for trigger
+	WHILE DIN(X,1,0)=0 'wait for next low-to-high transition.
+		DWELL 0.00025
+	WEND
+	
+	SCOPETRIG
+	START
+	
+	FOR ROW = 0 TO (NR-1)
+		'start scan
+		IF (2*FLOOR(ROW/2)) = ROW THEN
+			SGN = 1	'even
+		ELSE
+			SGN = -1 'odd			
+		END IF
+		Ti = Ti + 6*DT	
+		Zi = Zi + SGN*DZ/8	
+		ZV = SGN*DZ/(24*DT)
+		IF ROW > 0 THEN
+			Xi = Xi + DX/2
+			Yi = Yi - DY/2
+		END IF
+		PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+		'transmit x-ray pulses during scan
+		FOR COL = 1 TO (NC-1)			
+			IF SPOS < msShut_open THEN
+				SPOS = msShut_close2
+			ELSE
+				SPOS = msShut_close1
+			END IF
+			Ti = Ti + 12*DT
+			Zi = Zi + SGN*DZ/2
+			PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+			Ti = Ti + 12*DT
+			Zi = Zi + SGN*DZ/2
+			PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+		NEXT COL
+		'finish scan
+		IF SPOS < msShut_open THEN
+			SPOS = msShut_close2
+		ELSE
+			SPOS = msShut_close1
+		END IF
+		Ti = Ti + 12*DT
+		Zi = Zi + SGN*DZ/2
+		PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+		Ti = Ti + 6*DT
+		Zi = Zi + SGN*DZ/8		
+		IF ROW = (NR-1) THEN
+			PVT X Xi,0 Y Yi,0 Z Zi,0 msShut_ext SPOS,0 TIME Ti			
+		ELSE
+			Xi = Xi + DX/2
+			Yi = Yi - DY/2
+			PVT X Xi,XV Y Yi,YV Z Zi,0 msShut_ext SPOS,0 TIME Ti
+		END IF		
+	NEXT ROW
+	'reposition ms shutter to its starting position.
+	Ti = Ti + 54*DT
+	PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti
+	'Ti = Ti + 12*DT
+	'IF SPOS < msShut_open THEN
+	'	SPOS = msShut_close2
+	'ELSE
+	'	SPOS = msShut_close1
+	'END IF
+	'PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti
+
+END PROGRAM			
+			

@@ -1,0 +1,34 @@
+PROGRAM
+	ABS
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	SCOPEBUFFER 600
+	SCOPETRIGPERIOD -4	' -4 (-2) corresponds to 4 (2) kHz
+	SCOPETRIG
+	
+	DT = 0.012
+	DZ = 0.5
+	Ti = 0.001
+	
+	Ti = Ti + DT
+	Zi = Zi + DZ
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + DT
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + DT
+	Zi = Zi + DZ
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + DT
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + DT
+	Zi = Zi + DZ
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + DT
+	PVT Z Zi,0 TIME Ti
+	Ti = Ti + 4*DT
+	Zi = Zi -3*DZ
+	PVT Z Zi,0 TIME Ti
+	
+	START
+END PROGRAM

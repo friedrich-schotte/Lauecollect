@@ -1,0 +1,2 @@
+CustomView = ['X-ray Scope Trigger', 'Ns Laser Q-Switch Trigger', 'Ns Laser Flash Lamp Trigger', 'Laser Scope Trigger', 'Heatload Chopper Phase', 'Heatload Chop. Act. Phase', 'High-Speed Chopper Phase', 'X-ray Shutter Delay', 'X-ray Shutter Pulse Length']
+view = 'Custom'

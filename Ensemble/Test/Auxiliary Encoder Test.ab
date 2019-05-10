@@ -1,0 +1,11 @@
+DIM PrintString AS STRING(80)
+startsync 1000
+WHILE 1
+SYNC
+A = EXTPOS(X)
+'DWELL 1
+SYNC
+B = EXTPOS(X)
+FORMAT PrintString, "%d\n", INTV:(B-A)
+PRINT PrintString
+WEND

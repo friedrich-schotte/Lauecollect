@@ -1,0 +1,403 @@
+' This program operates the millisecond shutter in a mode
+' where is opens and closed depending on the voltage level of input 0
+' and operates in pulse mode triggered by input 1.
+
+' Friedrich Schotte, APS, 18 Oct 2008 - 25 Sep 2013 
+
+' When the level of input 0 is TTL high the shutter is always in open position.
+' When level at input 0 is TTL low the motor toggles between to closed positions
+' if a TTL rising edge on input 1 is detected.
+' When the level on input 0 is high the input 1 is ignored.
+
+HEADER
+  INCLUDE "StringLibHeader.abi"
+  DEFINE Ethernet 2  'COM channel 2 = Ethernet Socket 1
+  'The parameter InetSock1Flags needs to be 0x1 (TCP server)
+  'The port number is given by the parameter InetSock1Port (default: 8000)
+END HEADER
+
+DECLARATIONS
+  GLOBAL Version AS STRING = "1.1"
+  GLOBAL open_pos,closed_pos,attenuated_pos
+  GLOBAL open_close_speed,pulsed_speed AS DOUBLE 
+  GLOBAL res AS DOUBLE 
+  GLOBAL timed_open AS INTEGER
+  GLOBAL opening_time as INTEGER
+  GLOBAL trigger_enabled AS INTEGER 
+  GLOBAL open_close_enabled AS INTEGER 'pulse the shutter on external trigger
+  GLOBAL Command AS STRING 'command buffer needed by Handle_Ethernet()
+  GLOBAL opened AS INTEGER 'last time at which shutter openend in ms
+  GLOBAL closed AS INTEGER 'last time at which shutter closed in ms
+  GLOBAL time_opened AS INTEGER ' time since the shutter openend in ms
+  GLOBAL open_timed AS INTEGER 'is the shutter currently open by a timer?
+  GLOBAL pulse_count AS INTEGER 'number of pulsed operations
+END DECLARATIONS
+
+PROGRAM
+  'Initialize global variables
+  res = 360.0/8000 ' encoder resolution in degrees per step
+  timed_open = 0 ' mode: 1 = after a trigger open for a certain duration
+  trigger_enabled = 1 'pulse the shutter on external trigger
+  open_close_enabled = 1 'open close digital input enabled
+  pulse_count = 0 'number of pulsed operations
+  
+  DIM bits AS INTEGER ' axis status bits
+  DIM home_cyle_complete AS INTEGER ' axis status bits
+  DIM steps_per_deg AS DOUBLE
+  DIM current_pos AS INTEGER
+  DIM level0,level1 AS INTEGER ' digital input states
+  DIM msg AS STRING
+ 
+  steps_per_deg = 1/res
+  SETPARM AccelDecelRate, 500000 ' in deg/s2
+  attenuated_pos = 44.0
+  closed_pos = 44.0+6.0 ' normal closed position in open/close mode in steps
+  open_pos = 44.0+6.0+6.0 ' in steps
+  ' alternating closed position used only in pulsed mode in steps
+
+  ' Timing for pulsed open mode
+  pulsed_speed = 7200 ' top speed in deg/s
+
+  ' Timing for open/close mode
+  open_close_speed = 7200 ' top speed in deg/s
+
+  FAULTACK ' Make sure fault state is cleared
+  ENABLE ' turn the drive on
+
+  ' With and incremental encoder, after power on, in order for the controller
+  ' to know the absolute angle of the motor it needs to find the "reference" mark 
+  ' of the encoder. The HOME command rotates the motor until the the marker input
+  ' level0 goes high, then stops there and resets the encoder accumulator count to
+  ' zero.
+  ' The program check first if a home run has already been performed, and does
+  ' it only if it has not been done before.
+  bits = AXISSTATUS()
+  home_cyle_complete = (bits >> 1) BAND 1
+  IF home_cyle_complete = 0 THEN
+    HOME
+  END IF
+
+  'If this is an Autorun program, you must provide time for the Ethernet code to start.
+  'DWELL 5 
+  OPENCOM Ethernet
+
+  WAIT MODE NOWAIT ' Set wait mode to no wait.
+  ABS ' use absolute positioning mode in LINEAR command
+  RAMP MODE DIST ' Set acceleration/deceleration mode to distance based.
+
+  ' Start the loop for repetitive motion.
+  WHILE 1
+    ' Read digital inputs (on AUX I/O connector)
+    level0 = DIN(0,4) 'Open/Close input (0 = closed, 1 = open)
+    level1 = DIN(0,5) 'Pulsed open trigger input (rising edge)
+	
+	'Then shutter is normally close (input 0 and input 1 low)
+	'It opens fully when input 0 is high.
+	'It transmitts an attenuated beam, when input 1 is high.
+	'(Input 0 = high overrides input 1 = high)
+	
+    IF open_close_enabled THEN
+	  current_pos = PCMD()
+      IF level0 = 1 THEN
+	    IF current_pos != open_pos THEN
+          LINEAR D open_pos F open_close_speed ' D position in counts, F speed in counts/s
+	    END IF
+      ELSEIF level1 = 1 THEN
+	    IF current_pos != attenuated_pos THEN
+          LINEAR D attenuated_pos F open_close_speed ' D position in counts, F speed in counts/s
+	    END IF
+      ELSE
+	    IF current_pos != closed_pos THEN
+          LINEAR D closed_pos F open_close_speed ' D position in counts, F speed in counts/s
+	    END IF
+      END IF
+	END IF
+
+	CALL Handle_Ethernet()
+  WEND
+END PROGRAM
+
+'This procedure performs procedure performs the TCP/IP server communications
+'with a remote client.
+'Overhead for calling this procedure: 166 us
+
+FUNCTION Handle_Ethernet()
+  DIM received AS STRING(80),reply AS STRING(256),parameter AS STRING
+  DIM nbytes AS INTEGER, n AS INTEGER, offset AS INTEGER
+  DIM str AS STRING, pos AS DOUBLE, bits AS INTEGER
+  DIM value AS DOUBLE, state AS INTEGER
+  DIM time_opened AS INTEGER ' time since the shutter openend in ms
+  ' These variables are defined because FindStrInStr does not accept 
+  ' a string constant as parameter.
+  DIM GO_TO_ AS STRING = "GO TO "
+  DIM OPEN_POSITION_ AS STRING = "OPEN POSITION "
+  DIM CLOSED_POSITION_ AS STRING = "CLOSED POSITION "
+  DIM ALTERNATE_CLOSED_POSITION_ AS STRING = "ALTERNATE CLOSED POSITION "
+  DIM TOP_SPEED_ AS STRING = "TOP SPEED "
+  DIM SET_THE_OPENING_TIME_TO_ AS STRING = "SET THE OPENING TIME TO "
+  DIM IN_PULSED_OPEN_MODE_USE_THE_SPEED_ AS STRING =
+    "IN PULSED OPEN MODE USE THE SPEED "
+  DIM SET_THE_PULSE_COUNT_TO_ AS STRING = "SET THE PULSE COUNT TO "
+	
+  nbytes = READCOMCOUNT(Ethernet) 'Wait until data is received.
+
+  IF nbytes > 0 THEN
+    READCOM Ethernet, received, nbytes
+    CALL ConcatStrToStr(Command,received,Command)
+	
+    n = LEN(Command)
+    IF n > 0 THEN
+	  IF Command(n-1) = "\n" OR Command(n-1) = "\r" THEN
+	  	Command(n-1) = 0 'Remove trailing newline or carriage return.
+		'Remove any additional trailing newline or carriage return.
+		n = LEN(Command)
+		IF n > 0 THEN
+		  IF Command(n-1) = "\n" OR Command(n-1) = "\r" THEN
+		    Command(n-1) = 0
+		  END IF
+		END IF
+	  	CALL ToUpperStr (Command) 'Convert everything to upper case
+		n = LEN(Command)
+		IF n > 0 THEN 'Remove trailing period.
+		  IF Command(n-1) = "." THEN
+			Command(n-1) = 0
+		  END IF
+		END IF
+		
+        IF Command = "TIMED OPEN?" THEN
+          IF timed_open THEN
+            WRITECOM Ethernet,"Timed open is enabled.\n"
+          ELSE
+            WRITECOM Ethernet,"Timed open is disabled.\n"
+		  END IF
+		ELSEIF Command = "ENABLE TIMED OPEN" THEN
+          timed_open = 1
+		ELSEIF Command = "DISABLE TIMED OPEN" THEN
+          timed_open = 0
+		ELSEIF Command = "OPENING TIME?" THEN
+          FORMAT reply,"The opening time is %.3f s.\n",DBLV:(opening_time*0.001)
+          WRITECOM Ethernet,reply
+		ELSEIF FindStrInStr(SET_THE_OPENING_TIME_TO_,Command) = 0 THEN
+		  offset = LEN(SET_THE_OPENING_TIME_TO_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+		  value = CDBL(parameter)*1000.0
+          opening_time = value
+		ELSEIF Command = "HOW LONG WAS THE SHUTTER OPEN?" THEN
+		  IF closed >= opened THEN
+		    time_opened = closed - opened
+		  ELSEIF opened != 0 THEN
+		    time_opened = TIMER() - opened
+		  ELSE
+		    time_opened = 0
+		  END IF
+          FORMAT reply,"The shutter was open for %.3f s.\n",
+		    DBLV:(time_opened*0.001)
+          WRITECOM Ethernet,reply
+        ELSEIF Command = "OPEN/CLOSE INPUT?" THEN
+		  state = DIN(0,0) 'Open/Close input (0 = closed, 1 = open)
+          IF STATE = 0 THEN 
+		    WRITECOM Ethernet,"Open/close input is low.\n"
+		  ELSE
+		    WRITECOM Ethernet,"Open/close input is high.\n"
+		  END IF
+        ELSEIF Command = "PULSED OPEN INPUT?" THEN
+          state = DIN(0,1) 'Pulsed open trigger input (rising edge)
+          IF STATE = 0 THEN 
+		    WRITECOM Ethernet,"Pulsed open input is low.\n"
+		  ELSE
+		    WRITECOM Ethernet,"Pulsed open input is high.\n"
+		  END IF
+        ELSEIF Command = "CURRENT POSITION?" THEN
+		  pos = PFBK()
+          FORMAT reply,"Current position is %g deg.\n",DBLV:res*pos
+          WRITECOM Ethernet,reply
+        ELSEIF FindStrInStr(GO_TO_,Command) = 0 THEN
+		  offset = LEN(GO_TO_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          pos = CDBL(parameter)/res
+          FAULTACK 'Clear fault status (if present).
+          ENABLE 'Turn on drive (if off).
+          WAIT MODE NOWAIT
+          MOVEABS D pos F open_close_speed
+        ELSEIF Command = "MOVING?" THEN
+          bits = AXISSTATUS()
+          IF (bits >> 3) BAND 1 THEN
+          	WRITECOM Ethernet,"Moving.\n"
+          ELSE
+	        WRITECOM Ethernet,"Not moving.\n"
+          END IF
+        ELSEIF Command = "OPEN POSITION?" THEN
+		  pos = PFBK()
+          FORMAT reply,"Open position is %g deg.\n",DBLV:res*open_pos
+          WRITECOM Ethernet,reply
+        ELSEIF FindStrInStr(OPEN_POSITION_,Command) = 0 THEN
+		  offset = LEN(OPEN_POSITION_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          open_pos = CDBL(parameter)/res
+        ELSEIF Command = "CLOSED POSITION?" THEN
+		  pos = PFBK()
+          FORMAT reply,"Closed position is %g deg.\n",DBLV:res*closed_pos
+          WRITECOM Ethernet,reply
+        ELSEIF FindStrInStr(CLOSED_POSITION_,Command) = 0 THEN
+		  offset = LEN(CLOSED_POSITION_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          closed_pos = CDBL(parameter)/res
+        ELSEIF Command = "ALTERNATE CLOSED POSITION?" THEN
+		  pos = PFBK()
+          FORMAT reply,"Alternate closed position is %g deg.\n",
+		    DBLV:res*attenuated_pos
+          WRITECOM Ethernet,reply
+        ELSEIF FindStrInStr(ALTERNATE_CLOSED_POSITION_,Command) = 0 THEN
+		  offset = LEN(ALTERNATE_CLOSED_POSITION_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          attenuated_pos = CDBL(parameter)/res
+		ELSEIF Command = "IS TRIGGER ENABLED?" THEN
+          IF trigger_enabled THEN
+            WRITECOM Ethernet,"Trigger is enabled.\n"
+          ELSE
+            WRITECOM Ethernet,"Trigger is disabled.\n"
+		  END IF
+		ELSEIF Command = "ENABLE TRIGGER" THEN
+          trigger_enabled = 1
+		ELSEIF Command = "DISABLE TRIGGER" THEN
+          trigger_enabled = 0
+		ELSEIF Command = "IS OPEN/CLOSE INPUT ENABLED?" THEN
+          IF open_close_enabled THEN
+            WRITECOM Ethernet,"Open/close input is enabled.\n"
+          ELSE
+            WRITECOM Ethernet,"Open/close input is disabled.\n"
+		  END IF
+		ELSEIF Command = "ENABLE OPEN/CLOSE INPUT" THEN
+          open_close_enabled = 1
+		ELSEIF Command = "DISABLE OPEN/CLOSE INPUT" THEN
+          open_close_enabled = 0
+        ELSEIF Command = "IS THE STAGE CALIBRATED?" THEN
+          'Check if a home run has already been performed.
+          bits = AXISSTATUS()
+          IF (bits >> 1) BAND 1 THEN
+	        WRITECOM Ethernet,"The stage is calibrated.\n"
+          ELSE
+	        WRITECOM Ethernet,"The stage is not calibrated.\n"
+          END IF
+        ELSEIF Command = "CALIBRATE THE STAGE" THEN
+          'This drives the stage to the home switch coming from 
+          'the low limit (as specified by the parameter HomeType
+          '= 0x1) and sets the encoder count to 0 at the point the 
+          'home switch is triggered. 
+		  'The HOME command will block execution unit completed.
+          'WAIT MODE NOWAIT does not effect the HOME command.
+          FAULTACK 'Clear fault status (if present).
+          ENABLE 'turn on drive (if off)
+		  HOME
+        ELSEIF Command = "IS THE STAGE AT HIGH LIMIT?" THEN
+          bits = AXISSTATUS()
+          IF (bits >> 22) BAND 1 THEN
+          	WRITECOM Ethernet,"The stage is at high limit.\n"
+          ELSE
+	        WRITECOM Ethernet,"The stage is not at high limit.\n"
+          END IF
+        ELSEIF Command = "IS THE STAGE AT LOW LIMIT?" THEN
+          bits = AXISSTATUS()
+          IF (bits >> 23) BAND 1 THEN
+          	WRITECOM Ethernet,"The stage is at low limit.\n"
+          ELSE
+	        WRITECOM Ethernet,"The stage is not at low limit.\n"
+          END IF
+		ELSEIF Command = "IS THE DRIVE ENABLED?" THEN
+          bits = AXISSTATUS()
+          IF (bits >> 0) BAND 1 THEN
+          	WRITECOM Ethernet,"The drive is enabled.\n"
+          ELSE
+	        WRITECOM Ethernet,"The drive is disabled.\n"
+          END IF
+		ELSEIF Command = "DISABLE DRIVE" THEN
+          DISABLE
+		ELSEIF Command = "ENABLE DRIVE" THEN
+		  FAULTACK 'Clear fault status (if present).
+          ENABLE
+		ELSEIF Command = "TOP SPEED?" THEN
+          FORMAT reply,"Top speed is %g deg/s.\n",DBLV:open_close_speed*res
+          WRITECOM Ethernet,reply
+		ELSEIF FindStrInStr(TOP_SPEED_,Command) = 0 THEN
+		  offset = LEN(TOP_SPEED_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          open_close_speed = CDBL(parameter)/res
+		ELSEIF Command = "SPEED IN PULSED OPEN MODE?" THEN
+          FORMAT reply,"In pulsed open mode the speed is %g deg/s.\n",
+		    DBLV:pulsed_speed*res
+          WRITECOM Ethernet,reply
+		ELSEIF FindStrInStr(IN_PULSED_OPEN_MODE_USE_THE_SPEED_,Command) = 0 THEN
+		  offset = LEN(IN_PULSED_OPEN_MODE_USE_THE_SPEED_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+          pulsed_speed = CDBL(parameter)/res
+		ELSEIF Command = "STOP" THEN
+		  trigger_enabled = 0
+		  ABORT
+		ELSEIF Command = "UP TIME?" THEN
+		  value = TIMER()*0.001
+          FORMAT reply,"Up time %g s.\n",DBLV:value
+          WRITECOM Ethernet,reply
+		ELSEIF Command = "PULSE COUNT?" THEN
+          FORMAT reply,"Pulse count is %d.\n",INTV:pulse_count
+          WRITECOM Ethernet,reply
+		ELSEIF FindStrInStr(SET_THE_PULSE_COUNT_TO_,Command) = 0 THEN
+		  offset = LEN(SET_THE_PULSE_COUNT_TO_)
+          CALL ExtractStrFromStr(Command,parameter,offset,LEN(Command)-offset)
+		  value = CINT(parameter)
+          pulse_count = value
+		ELSEIF Command = "SOFTWARE VERSION?" THEN
+          WRITECOM Ethernet,"Software version is "
+		  WRITECOM Ethernet,Version
+		  WRITECOM Ethernet,".\n"
+        ELSEIF Command = "?" THEN 'Return a list of commands.
+		  'The maximum number of bytes that in a string seems to be 256.
+		  'Thus, several WRITECOM calls are needed to send back the complete list.
+          WRITECOM Ethernet,"Timed open?\n"
+          WRITECOM Ethernet,"Enable timed open.\n"
+          WRITECOM Ethernet,"Disable timed open.\n"
+          WRITECOM Ethernet,"Opening time?\n"
+          WRITECOM Ethernet,"Set the opening time to <value>.\n"
+          WRITECOM Ethernet,"How long was the shutter open?\n"
+          WRITECOM Ethernet,"Open/close input?\n"
+          WRITECOM Ethernet,"Pulsed open input?\n"
+          WRITECOM Ethernet,"Current position?\n"
+          WRITECOM Ethernet,"Go to <value>.\n"
+          WRITECOM Ethernet,"Moving?\n"
+          WRITECOM Ethernet,"Open position?\n"
+          WRITECOM Ethernet,"Open position <value>.\n"
+          WRITECOM Ethernet,"Closed position?\n"
+          WRITECOM Ethernet,"Closed position <value>.\n"
+          WRITECOM Ethernet,"Alternate closed position?\n"
+          WRITECOM Ethernet,"Alternate closed position <value>.\n"
+          WRITECOM Ethernet,"Is trigger enabled?\n"
+          WRITECOM Ethernet,"Enable trigger.\n"
+          WRITECOM Ethernet,"Disable trigger.\n"
+          WRITECOM Ethernet,"Is the stage calibrated?\n"
+          WRITECOM Ethernet,"Calibrate the stage.\n"
+          WRITECOM Ethernet,"Is the stage at high limit?\n"
+          WRITECOM Ethernet,"Is the stage at low limit?\n"
+          WRITECOM Ethernet,"Is the drive enabled?\n"
+          WRITECOM Ethernet,"Disable drive.\n"
+          WRITECOM Ethernet,"Enable drive.\n"
+          WRITECOM Ethernet,"Top speed?\n"
+          WRITECOM Ethernet,"Top speed <value>.\n"
+          WRITECOM Ethernet,"Speed in pulsed open mode?\n"
+          WRITECOM Ethernet,"In pulsed open mode use the speed <value>.\n"
+          WRITECOM Ethernet,"Stop.\n"
+          WRITECOM Ethernet,"Up time?\n"
+          WRITECOM Ethernet,"Pulse Count?\n"
+          WRITECOM Ethernet,"Set the pulse count to <value>.\n"
+          WRITECOM Ethernet,"Software version?\n"
+          WRITECOM Ethernet,"?\n"
+		ELSEIF Command != "" THEN
+          WRITECOM Ethernet,"Command '"
+		  WRITECOM Ethernet,Command
+		  WRITECOM Ethernet,"' not understood\n"
+		END IF
+		
+		Command = "" 'Reset command buffer after command is processed.
+      END IF       
+    END IF
+  END IF
+END FUNCTION
+

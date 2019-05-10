@@ -1,0 +1,103 @@
+DECLARATIONS
+GLOBAL Version AS STRING="2.4"
+GLOBAL res AS DOUBLE'encoder resolution in mm
+ GLOBAL stepsize AS DOUBLE'increment for triggered motion (um)
+ GLOBAL start_pos AS DOUBLE'turning point for triggered motion (um)
+ GLOBAL end_pos AS DOUBLE'turning point for triggered motion (um)
+ GLOBAL auto_return AS INTEGER'automatically return to start at end of travel
+ GLOBAL auto_reverse AS INTEGER'automatically reverse direction at end of travel
+ GLOBAL speed AS DOUBLE'top speed in um/s
+ GLOBAL step_acceleration AS DOUBLE'for triggered operation in um/s2
+ GLOBAL acceleration AS DOUBLE'for non-triggered motion in um/s2
+ GLOBAL low_limit AS DOUBLE'limit switch trigger point (um)
+ GLOBAL high_limit AS DOUBLE'limit switch trigger point (um)
+ GLOBAL trigger_enabled AS INTEGER'move stage on external trigger
+ GLOBAL timer_enabled AS INTEGER'move stage on a timer  
+ GLOBAL timer_period AS DOUBLE'timer period on ms  
+ GLOBAL last_level AS INTEGER'digital input state
+ GLOBAL trigger_count AS INTEGER'number of trigger events detected
+ GLOBAL step_count AS INTEGER'number of triggered steps operations
+ GLOBAL trigged_step AS INTEGER'Was last move done on external trigger?
+END DECLARATIONS
+
+ PROGRAM
+'Initialize global variables
+ stepsize=500'increment for triggered motion (um)
+ start_pos=-12250'turning point for triggered motion (um)
+ end_pos=12250'turning point for triggered motion (um)
+ trigger_enabled=0'move stage on external trigger
+ timer_enabled=1'move stage on a timer  
+ timer_period=24'timer period in ms  
+ speed=200000'top speed in um/s
+ step_acceleration=14000000'for triggered operation in um/s2
+ acceleration=step_acceleration'for non-triggered motion in um/s2 (0.25 s for full stroke)
+ trigger_count=0'number of trigger events detected
+ step_count=0'number of triggered steps operations
+ triggered_step=0'Was last move done on external trigger?
+
+DIM current_pos as DOUBLE
+DIM level AS INTEGER'digital input state
+ DIM bits AS INTEGER'status bits
+ DIM HL AS INTEGER,LL AS INTEGER,moving AS INTEGER'high limit, low limit
+
+WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+RAMP MODE RATE 'The acceation ramp is determind by the RAMP RATE parameter (default)
+
+FAULTACK 2'Make sure any fault state is cleared.
+
+' Read digital inputs (on AUX I/O connector)
+last_level=DIN:2::( 1,0)
+WHILE 1
+do_step=0
+IF trigger_enabled THEN
+' Read digital inputs (on AUX I/O connector)
+level=DIN:2::( 1,0)
+IF level=1 AND last_level=0 THEN do_step=1 END IF
+IF do_step THEN trigger_count=trigger_count+1 END IF
+last_level=level
+END IF
+IF timer_enabled THEN
+t=TIMER()
+IF t>=timer_period THEN do_step=1 END IF
+IF do_step THEN CLEARTIMER END IF
+END IF
+
+' Operate the stage momentarily advancing one step.
+IF do_step THEN
+bits=AXISSTATUS(2)
+moving=(bits >> 3) BAND 1
+' Ignore trigger if still busy performing the last motion,
+' unless the last motion was externally triggered.
+IF NOT moving or triggered_step THEN
+trigger_count=trigger_count+1
+current_pos=PCMD(2)
+IF end_pos>start_pos THEN HP=end_pos ELSE HP=start_pos END IF
+IF end_pos>start_pos THEN LP=start_pos ELSE LP=end_pos END IF
+HL=(bits >> 22) BAND 1
+LL=(bits >> 23) BAND 1
+
+IF NOT moving THEN
+FAULTACK 2'Make sure any fault state is cleared.
+END IF
+ENABLE 2'turn the drive on
+
+IF stepsize>0 AND current_pos+stepsize>HP+1 OR HL THEN
+RAMP RATE 2:acceleration 
+MOVEABS 2:LP:speed ' D position in um, F in um/s
+triggered_step=0
+step_count=step_count+1
+ELSEIF stepsize<0 AND current_pos+stepsize<LP-1 OR LL THEN
+RAMP RATE 2:acceleration 
+MOVEABS 2:HP:speed ' D position in um, F in um/s
+triggered_step=0
+step_count=step_count+1
+ELSE
+RAMP RATE 2:step_acceleration 
+MOVEABS 2:current_pos+stepsize:speed ' D position in um, F in um/s
+triggered_step=1
+step_count=step_count+1
+END IF
+END IF
+END IF
+WEND
+END PROGRAM

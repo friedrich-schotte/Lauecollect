@@ -1,0 +1,1360 @@
+
+		; **** BCM file generated: Thu, Feb 14 2013, 06:43:50 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		27
+		pusha		FSTEPSIZE
+		pushc_d		$00000000 $407f4000
+		store_d
+		chkdbg
+	.ln		28
+		pusha		FSTART_POS
+		pushc_d		$00000000 $c0c7ed00
+		store_d
+		chkdbg
+	.ln		29
+		pusha		FEND_POS
+		pushc_d		$00000000 $40c7ed00
+		store_d
+		chkdbg
+	.ln		30
+		pusha		FTRIGGER_ENABLED
+		pushc_i		$00000001
+		store_i
+		chkdbg
+	.ln		31
+		pusha		FTIMER_ENABLED
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		32
+		pusha		FTIMER_PERIOD
+		pushc_i		$00000018
+		store_i
+		chkdbg
+	.ln		33
+		pusha		FSPEED
+		pushc_d		$00000000 $41086a00
+		store_d
+		chkdbg
+	.ln		34
+		pusha		FSTEP_ACCELERATION
+		pushc_d		$00000000 $416312d0
+		store_d
+		chkdbg
+	.ln		35
+		pusha		FACCELERATION
+		pushv_d		FSTEP_ACCELERATION
+		store_d
+		chkdbg
+	.ln		36
+		pusha		FTRIGGER_COUNT
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		37
+		pusha		FSTEP_COUNT
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		38
+		pusha		FTRIGGERED_STEP
+		pushc_d		$00000000 $00000000
+		store_d
+		chkdbg
+	.ln		39
+		pusha		FLAST_TIMER
+		pushc_i		$00000000
+		store_i
+		chkdbg
+	.ln		40
+		pusha		FTARGET_POSITION
+		pushc_i		$00000002
+		pcmd_cmd
+		store_d
+		chkdbg
+	.ln		47
+		pushc_i		$00000000
+		waitmode_cmd
+		chkdbg
+	.ln		48
+		pushc_i		$00000000
+		pushc_i		$00000000
+		pushc_i		$00000001
+		ramp_cmd
+		chkdbg
+	.ln		50
+		pushc_i		$00000003
+		getmode_cmd
+		pushc_d		$00000000 $00000000
+		teq_d
+		cnvt_di
+		brcf		L14
+L14
+		chkdbg
+	.ln		53
+		pushc_i		$00000002
+		pushc_i		$00000001
+		faultack_cmd
+		chkdbg
+	.ln		56
+		pusha		FLAST_LEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		57
+L15
+		pushc_d		$00000000 $3ff00000
+		cnvt_di
+		brcf		L16
+		chkdbg
+	.ln		58
+		pusha		FDO_STEP
+		pushc_d		$00000000 $00000000
+		store_d
+		chkdbg
+	.ln		59
+		pushv_i		FTRIGGER_ENABLED
+		brcf		L18
+		chkdbg
+	.ln		61
+		pusha		FLEVEL
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000002
+		din_cmd
+		store_i
+		chkdbg
+	.ln		62
+		pushv_i		FLEVEL
+		pushc_i		$00000001
+		teq_i
+		pushv_i		FLAST_LEVEL
+		pushc_i		$00000000
+		teq_i
+		tand_i
+		brcf		L20
+		chkdbg
+	.ln		62
+		pusha		FDO_STEP
+		pushc_d		$00000000 $3ff00000
+		store_d
+L20
+		chkdbg
+	.ln		63
+		pushv_d		FDO_STEP
+		cnvt_di
+		brcf		L22
+		chkdbg
+	.ln		63
+		pusha		FTRIGGER_COUNT
+		pushv_i		FTRIGGER_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+L22
+		chkdbg
+	.ln		64
+		pusha		FLAST_LEVEL
+		pushv_i		FLEVEL
+		store_i
+L18
+		chkdbg
+	.ln		66
+		pushv_i		FTIMER_ENABLED
+		brcf		L24
+		chkdbg
+	.ln		67
+		pusha		FT
+		timer_emb
+		cnvt_di
+		store_i
+		chkdbg
+	.ln		68
+		pusha		FT1
+		pushv_i		FT
+		pushv_i		FT
+		pushv_i		FTIMER_PERIOD
+		div_i
+		pushv_i		FTIMER_PERIOD
+		mpy_i
+		sub_i
+		store_i
+		chkdbg
+	.ln		69
+		pushc_d		$00000000 $00000000
+		pushv_i		FT1
+		cnvt_id
+		tle_d
+		pushv_i		FT1
+		cnvt_id
+		pushc_d		$00000000 $3ff00000
+		tlt_d
+		tand_d
+		pushv_i		FT
+		cnvt_id
+		pushv_i		FLAST_TIMER
+		cnvt_id
+		tne_d
+		tand_d
+		cnvt_di
+		brcf		L26
+		chkdbg
+	.ln		70
+		pusha		FDO_STEP
+		pushc_d		$00000000 $3ff00000
+		store_d
+		chkdbg
+	.ln		71
+		pusha		FLAST_TIMER
+		pushv_i		FT
+		store_i
+L26
+L24
+		chkdbg
+	.ln		76
+		pushv_d		FDO_STEP
+		cnvt_di
+		brcf		L28
+		chkdbg
+	.ln		78
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000001
+		dout_cmd
+		chkdbg
+	.ln		80
+		pusha		FBITS
+		pushc_i		$00000002
+		axisstatus_cmd
+		store_i
+		chkdbg
+	.ln		81
+		pusha		FMOVING
+		pushv_i		FBITS
+		pushc_i		$00000003
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		store_i
+		chkdbg
+	.ln		84
+		pushv_i		FMOVING
+		tnot_i
+		pushv_d		FTRIGGERED_STEP
+		cnvt_di
+		tor_i
+		brcf		L30
+		chkdbg
+	.ln		85
+		pusha		FTRIGGER_COUNT
+		pushv_i		FTRIGGER_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+		chkdbg
+	.ln		86
+		pushv_d		FEND_POS
+		pushv_d		FSTART_POS
+		tgt_d
+		cnvt_di
+		brcf		L32
+		chkdbg
+	.ln		86
+		pusha		FHP
+		pushv_d		FEND_POS
+		store_d
+		bra		L31
+L32
+		chkdbg
+	.ln		86
+		pusha		FHP
+		pushv_d		FSTART_POS
+		store_d
+L31
+		chkdbg
+	.ln		87
+		pushv_d		FEND_POS
+		pushv_d		FSTART_POS
+		tgt_d
+		cnvt_di
+		brcf		L34
+		chkdbg
+	.ln		87
+		pusha		FLP
+		pushv_d		FSTART_POS
+		store_d
+		bra		L33
+L34
+		chkdbg
+	.ln		87
+		pusha		FLP
+		pushv_d		FEND_POS
+		store_d
+L33
+		chkdbg
+	.ln		88
+		pusha		FHL
+		pushv_i		FBITS
+		pushc_i		$00000016
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		store_i
+		chkdbg
+	.ln		89
+		pusha		FLL
+		pushv_i		FBITS
+		pushc_i		$00000017
+		tbsr_i
+		pushc_i		$00000001
+		tband_i
+		store_i
+		chkdbg
+	.ln		91
+		pushv_i		FMOVING
+		tnot_i
+		brcf		L36
+L36
+		chkdbg
+	.ln		94
+		pushc_i		$00000002
+		pushc_i		$00000001
+		enable_cmd
+		chkdbg
+	.ln		96
+		pushv_d		FSTEPSIZE
+		pushc_d		$00000000 $00000000
+		tgt_d
+		pushv_d		FTARGET_POSITION
+		pushv_d		FSTEPSIZE
+		add_d
+		pushv_d		FHP
+		pushc_d		$00000000 $3ff00000
+		add_d
+		tgt_d
+		tand_d
+		pushv_i		FHL
+		cnvt_id
+		tor_d
+		cnvt_di
+		brcf		L38
+		chkdbg
+	.ln		97
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushv_d		FACCELERATION
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		98
+		pushc_i		$00000002
+		pushv_d		FLP
+		pushv_d		FSPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		chkdbg
+	.ln		99
+		pusha		FTARGET_POSITION
+		pushv_d		FLP
+		store_d
+		chkdbg
+	.ln		100
+		pusha		FTRIGGERED_STEP
+		pushc_d		$00000000 $00000000
+		store_d
+		chkdbg
+	.ln		101
+		pusha		FSTEP_COUNT
+		pushv_i		FSTEP_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+		bra		L37
+L38
+		chkdbg
+	.ln		102
+		pushv_d		FSTEPSIZE
+		pushc_d		$00000000 $00000000
+		tlt_d
+		pushv_d		FTARGET_POSITION
+		pushv_d		FSTEPSIZE
+		add_d
+		pushv_d		FLP
+		pushc_d		$00000000 $3ff00000
+		sub_d
+		tlt_d
+		tand_d
+		pushv_i		FLL
+		cnvt_id
+		tor_d
+		cnvt_di
+		brcf		L39
+		chkdbg
+	.ln		103
+		pushc_i		$00000000
+		pushc_i		$00000002
+		pushv_d		FACCELERATION
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000000
+		ramp_cmd
+		chkdbg
+	.ln		104
+		pushc_i		$00000002
+		pushv_d		FHP
+		pushv_d		FSPEED
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		chkdbg
+	.ln		105
+		pusha		FTARGET_POSITION
+		pushv_d		FHP
+		store_d
+		chkdbg
+	.ln		106
+		pusha		FTRIGGERED_STEP
+		pushc_d		$00000000 $00000000
+		store_d
+		chkdbg
+	.ln		107
+		pusha		FSTEP_COUNT
+		pushv_i		FSTEP_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+		bra		L37
+L39
+		chkdbg
+	.ln		109
+		dclspc		$00000006
+		callp		FMOVE_STEP
+		chkdbg
+	.ln		110
+		pusha		FTRIGGERED_STEP
+		pushc_d		$00000000 $3ff00000
+		store_d
+		chkdbg
+	.ln		111
+		pusha		FSTEP_COUNT
+		pushv_i		FSTEP_COUNT
+		pushc_i		$00000001
+		add_i
+		store_i
+L37
+L30
+		chkdbg
+	.ln		116
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000000
+		pushc_i		$00000001
+		dout_cmd
+L28
+		bra		L15
+L16
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,z:\all projects\aps\instrumentation\experimental hutch\high speed diffractometer\software\trajectorytest.ab
+	.def	FSTEP_POSITION
+	.val	FSTEP_POSITION
+	.scl	2
+	.type	$27
+	.endef
+FSTEP_POSITION
+	.bf		128
+	.def	FT
+	.val	-12
+	.scl	9
+	.type	$7
+	.endef
+	.bb		128
+	.def	FA
+	.val	-10
+	.scl	1
+	.type	$7
+	.endef
+	.def	FXS
+	.val	-8
+	.scl	1
+	.type	$7
+	.endef
+	.def	FTR
+	.val	-6
+	.scl	1
+	.type	$7
+	.endef
+	.def	FX
+	.val	-4
+	.scl	1
+	.type	$7
+	.endef
+	.def	FSTEP_POSITION
+	.val	-2
+	.scl	19
+	.type	$7
+	.endef
+		rcrdfp
+		chkdbg
+	.ln		128
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		pushv_d		FSTEP_ACCELERATION
+		lstore_d
+		chkdbg
+	.ln		129
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		pushv_d		FSTEPSIZE
+		lstore_d
+		chkdbg
+	.ln		131
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		pushc_i		$00000007
+		abs_emb
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		lload_d
+		div_d
+		sqr_emb
+		lstore_d
+		chkdbg
+	.ln		132
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushc_d		$00000000 $00000000
+		tle_d
+		cnvt_di
+		brcf		L1
+		chkdbg
+	.ln		133
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushc_d		$00000000 $00000000
+		lstore_d
+		bra		L0
+L1
+		chkdbg
+	.ln		134
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		lload_d
+		tle_d
+		cnvt_di
+		brcf		L2
+		chkdbg
+	.ln		135
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		div_d
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		pwr_d
+		mpy_d
+		lstore_d
+		bra		L0
+L2
+		chkdbg
+	.ln		136
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		lload_d
+		mpy_d
+		tle_d
+		cnvt_di
+		brcf		L3
+		chkdbg
+	.ln		137
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		div_d
+		pushc_d		$00000000 $40000000
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		lload_d
+		mpy_d
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		sub_d
+		pushc_d		$00000000 $40000000
+		pwr_d
+		mpy_d
+		sub_d
+		lstore_d
+		bra		L0
+L3
+		chkdbg
+	.ln		139
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		lstore_d
+L0
+		chkdbg
+	.ln		141
+		pushfp
+		pushc_i		$fffffffe
+		add_i
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		lstore_d
+	.eb		142
+	.ef		142
+		rtn		$00000002		$0000000c
+	.def	*
+	.val	0
+	.scl	-1
+	.type	$0
+	.endef
+	.def	FSTEP_VELOCITY
+	.val	FSTEP_VELOCITY
+	.scl	2
+	.type	$27
+	.endef
+FSTEP_VELOCITY
+	.bf		152
+	.def	FT
+	.val	-14
+	.scl	9
+	.type	$7
+	.endef
+	.bb		152
+	.def	FA
+	.val	-12
+	.scl	1
+	.type	$7
+	.endef
+	.def	FXS
+	.val	-10
+	.scl	1
+	.type	$7
+	.endef
+	.def	FTR
+	.val	-8
+	.scl	1
+	.type	$7
+	.endef
+	.def	FSIGN
+	.val	-6
+	.scl	1
+	.type	$7
+	.endef
+	.def	FV
+	.val	-4
+	.scl	1
+	.type	$7
+	.endef
+	.def	FSTEP_VELOCITY
+	.val	-2
+	.scl	19
+	.type	$7
+	.endef
+		rcrdfp
+		chkdbg
+	.ln		152
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		pushv_d		FSTEP_ACCELERATION
+		lstore_d
+		chkdbg
+	.ln		153
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		pushv_d		FSTEPSIZE
+		lstore_d
+		chkdbg
+	.ln		155
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		lload_d
+		pushc_i		$00000007
+		abs_emb
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		div_d
+		sqr_emb
+		lstore_d
+		chkdbg
+	.ln		156
+		pushfp
+		pushc_i		$fffffff6
+		add_i
+		lload_d
+		pushc_d		$00000000 $00000000
+		tgt_d
+		cnvt_di
+		brcf		L5
+		chkdbg
+	.ln		157
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pushc_d		$00000000 $3ff00000
+		lstore_d
+		bra		L4
+L5
+		chkdbg
+	.ln		159
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pushc_d		$00000000 $bff00000
+		lstore_d
+L4
+		chkdbg
+	.ln		161
+		pushfp
+		pushc_i		$fffffff2
+		add_i
+		lload_d
+		pushc_d		$00000000 $00000000
+		tle_d
+		cnvt_di
+		brcf		L7
+		chkdbg
+	.ln		162
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushc_d		$00000000 $00000000
+		lstore_d
+		bra		L6
+L7
+		chkdbg
+	.ln		163
+		pushfp
+		pushc_i		$fffffff2
+		add_i
+		lload_d
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		tle_d
+		cnvt_di
+		brcf		L8
+		chkdbg
+	.ln		164
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushfp
+		pushc_i		$fffffff2
+		add_i
+		lload_d
+		mpy_d
+		lstore_d
+		bra		L6
+L8
+		chkdbg
+	.ln		165
+		pushfp
+		pushc_i		$fffffff2
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		mpy_d
+		tle_d
+		cnvt_di
+		brcf		L9
+		chkdbg
+	.ln		166
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffff4
+		add_i
+		lload_d
+		pushc_d		$00000000 $40000000
+		pushfp
+		pushc_i		$fffffff8
+		add_i
+		lload_d
+		mpy_d
+		pushfp
+		pushc_i		$fffffff2
+		add_i
+		lload_d
+		sub_d
+		mpy_d
+		lstore_d
+		bra		L6
+L9
+		chkdbg
+	.ln		168
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushc_d		$00000000 $00000000
+		lstore_d
+L6
+		chkdbg
+	.ln		170
+		pushfp
+		pushc_i		$fffffffe
+		add_i
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		lstore_d
+	.eb		171
+	.ef		171
+		rtn		$00000002		$0000000e
+	.def	*
+	.val	0
+	.scl	-1
+	.type	$0
+	.endef
+	.def	FMOVE_STEP
+	.val	FMOVE_STEP
+	.scl	2
+	.type	$21
+	.endef
+FMOVE_STEP
+	.bf		176
+	.bb		176
+	.def	FPOS
+	.val	-6
+	.scl	1
+	.type	$7
+	.endef
+	.def	FT
+	.val	-4
+	.scl	1
+	.type	$7
+	.endef
+	.def	FDT
+	.val	-2
+	.scl	1
+	.type	$7
+	.endef
+		rcrdfp
+		chkdbg
+	.ln		176
+		pushfp
+		pushc_i		$fffffffe
+		add_i
+		pushc_d		$d2f1a9fc $3f50624d
+		lstore_d
+		chkdbg
+	.ln		177
+		abs_cmd
+		chkdbg
+	.ln		178
+		pushc_i		$00000000
+		pushc_i		$00020004
+		spline_cmd
+		chkdbg
+	.ln		179
+		pushfp
+		pushc_i		$fffffffe
+		add_i
+		lload_d
+		pushc_i		$00040001
+		spline_cmd
+		chkdbg
+	.ln		180
+		halt_cmd
+		chkdbg
+	.ln		181
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushc_d		$00000000 $00000000
+		lstore_d
+		pusha		_ForNextLimit0INMOVE_STEP
+		pushc_d		$8d4fdf3c $3f926e97
+		store_d
+		pusha		_ForNextStep0INMOVE_STEP
+		pushfp
+		pushc_i		$fffffffe
+		add_i
+		lload_d
+		store_d
+		bra		L12
+L10
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		pushv_d		_ForNextLimit0INMOVE_STEP
+		pushv_d		_ForNextStep0INMOVE_STEP
+		tfor_d
+		brcf		L11
+L12
+		chkdbg
+	.ln		182
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		pushv_d		FTARGET_POSITION
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		dclspc		$0000000a
+		callp		FSTEP_POSITION
+		add_d
+		lstore_d
+		chkdbg
+	.ln		183
+		pusha		FVEL
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		dclspc		$0000000c
+		callp		FSTEP_VELOCITY
+		store_d
+		chkdbg
+	.ln		184
+		pushc_i		$00000002
+		pushfp
+		pushc_i		$fffffffa
+		add_i
+		lload_d
+		pushv_d		FVEL
+		pushc_i		$00000101
+		spline_cmd
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		pushfp
+		pushc_i		$fffffffc
+		add_i
+		lload_d
+		pushv_d		_ForNextStep0INMOVE_STEP
+		add_d
+		lstore_d
+		bra		L10
+L11
+		chkdbg
+	.ln		186
+		pusha		FTARGET_POSITION
+		pushv_d		FTARGET_POSITION
+		pushv_d		FSTEPSIZE
+		add_d
+		store_d
+		chkdbg
+	.ln		187
+		start_cmd
+	.eb		189
+	.ef		189
+		rtn		$00000000		$00000006
+	.def	*
+	.val	0
+	.scl	-1
+	.type	$0
+	.endef
+
+
+	org	y:
+
+	.def	FVERSION
+	.val	FVERSION
+	.scl	2
+	.dim	1
+	.strt	0
+	.size	1
+	.type	$3c
+	.endef
+FVERSION
+	dc	$00342e32
+
+	org	y:
+
+	.def	FRES
+	.val	FRES
+	.scl	2
+	.type	$7
+	.endef
+FRES		bsc	2
+
+	org	y:
+
+	.def	FSTEPSIZE
+	.val	FSTEPSIZE
+	.scl	2
+	.type	$7
+	.endef
+FSTEPSIZE		bsc	2
+
+	org	y:
+
+	.def	FSTART_POS
+	.val	FSTART_POS
+	.scl	2
+	.type	$7
+	.endef
+FSTART_POS		bsc	2
+
+	org	y:
+
+	.def	FEND_POS
+	.val	FEND_POS
+	.scl	2
+	.type	$7
+	.endef
+FEND_POS		bsc	2
+
+	org	y:
+
+	.def	FAUTO_RETURN
+	.val	FAUTO_RETURN
+	.scl	2
+	.type	$4
+	.endef
+FAUTO_RETURN		bsc	1
+
+	org	y:
+
+	.def	FAUTO_REVERSE
+	.val	FAUTO_REVERSE
+	.scl	2
+	.type	$4
+	.endef
+FAUTO_REVERSE		bsc	1
+
+	org	y:
+
+	.def	FSPEED
+	.val	FSPEED
+	.scl	2
+	.type	$7
+	.endef
+FSPEED		bsc	2
+
+	org	y:
+
+	.def	FSTEP_ACCELERATION
+	.val	FSTEP_ACCELERATION
+	.scl	2
+	.type	$7
+	.endef
+FSTEP_ACCELERATION		bsc	2
+
+	org	y:
+
+	.def	FACCELERATION
+	.val	FACCELERATION
+	.scl	2
+	.type	$7
+	.endef
+FACCELERATION		bsc	2
+
+	org	y:
+
+	.def	FLOW_LIMIT
+	.val	FLOW_LIMIT
+	.scl	2
+	.type	$7
+	.endef
+FLOW_LIMIT		bsc	2
+
+	org	y:
+
+	.def	FHIGH_LIMIT
+	.val	FHIGH_LIMIT
+	.scl	2
+	.type	$7
+	.endef
+FHIGH_LIMIT		bsc	2
+
+	org	y:
+
+	.def	FTRIGGER_ENABLED
+	.val	FTRIGGER_ENABLED
+	.scl	2
+	.type	$4
+	.endef
+FTRIGGER_ENABLED		bsc	1
+
+	org	y:
+
+	.def	FTIMER_ENABLED
+	.val	FTIMER_ENABLED
+	.scl	2
+	.type	$4
+	.endef
+FTIMER_ENABLED		bsc	1
+
+	org	y:
+
+	.def	FTIMER_PERIOD
+	.val	FTIMER_PERIOD
+	.scl	2
+	.type	$4
+	.endef
+FTIMER_PERIOD		bsc	1
+
+	org	y:
+
+	.def	FLAST_TIMER
+	.val	FLAST_TIMER
+	.scl	2
+	.type	$4
+	.endef
+FLAST_TIMER		bsc	1
+
+	org	y:
+
+	.def	FLAST_LEVEL
+	.val	FLAST_LEVEL
+	.scl	2
+	.type	$4
+	.endef
+FLAST_LEVEL		bsc	1
+
+	org	y:
+
+	.def	FTRIGGER_COUNT
+	.val	FTRIGGER_COUNT
+	.scl	2
+	.type	$4
+	.endef
+FTRIGGER_COUNT		bsc	1
+
+	org	y:
+
+	.def	FSTEP_COUNT
+	.val	FSTEP_COUNT
+	.scl	2
+	.type	$4
+	.endef
+FSTEP_COUNT		bsc	1
+
+	org	y:
+
+	.def	FTRIGGED_STEP
+	.val	FTRIGGED_STEP
+	.scl	2
+	.type	$4
+	.endef
+FTRIGGED_STEP		bsc	1
+
+	org	y:
+
+	.def	FTARGET_POSITION
+	.val	FTARGET_POSITION
+	.scl	2
+	.type	$7
+	.endef
+FTARGET_POSITION		bsc	2
+
+	org	y:
+
+	.def	FVEL
+	.val	FVEL
+	.scl	2
+	.type	$7
+	.endef
+FVEL		bsc	2
+
+	org	y:
+
+	.def	FTRIGGERED_STEP
+	.val	FTRIGGERED_STEP
+	.scl	2
+	.type	$7
+	.endef
+FTRIGGERED_STEP		bsc	2
+
+	org	y:
+
+	.def	FLEVEL
+	.val	FLEVEL
+	.scl	2
+	.type	$4
+	.endef
+FLEVEL		bsc	1
+
+	org	y:
+
+	.def	FBITS
+	.val	FBITS
+	.scl	2
+	.type	$4
+	.endef
+FBITS		bsc	1
+
+	org	y:
+
+	.def	FHL
+	.val	FHL
+	.scl	2
+	.type	$4
+	.endef
+FHL		bsc	1
+
+	org	y:
+
+	.def	FLL
+	.val	FLL
+	.scl	2
+	.type	$4
+	.endef
+FLL		bsc	1
+
+	org	y:
+
+	.def	FMOVING
+	.val	FMOVING
+	.scl	2
+	.type	$4
+	.endef
+FMOVING		bsc	1
+
+	org	y:
+
+	.def	FT
+	.val	FT
+	.scl	2
+	.type	$4
+	.endef
+FT		bsc	1
+
+	org	y:
+
+	.def	FT1
+	.val	FT1
+	.scl	2
+	.type	$4
+	.endef
+FT1		bsc	1
+
+	org	y:
+
+	.def	FDO_STEP
+	.val	FDO_STEP
+	.scl	2
+	.type	$7
+	.endef
+FDO_STEP		bsc	2
+
+	org	y:
+
+	.def	FHP
+	.val	FHP
+	.scl	2
+	.type	$7
+	.endef
+FHP		bsc	2
+
+	org	y:
+
+	.def	FLP
+	.val	FLP
+	.scl	2
+	.type	$7
+	.endef
+FLP		bsc	2
+
+
+	org	y:
+
+	.def	_ForNextLimit0INMOVE_STEP
+	.val	_ForNextLimit0INMOVE_STEP
+	.scl	20
+	.type	$7
+	.endef
+_ForNextLimit0INMOVE_STEP		bsc	2
+
+	org	y:
+
+	.def	_ForNextStep0INMOVE_STEP
+	.val	_ForNextStep0INMOVE_STEP
+	.scl	20
+	.type	$7
+	.endef
+_ForNextStep0INMOVE_STEP		bsc	2
+

@@ -1,0 +1,64 @@
+PROGRAM
+'Set up for PVT calls
+
+	motor = 2 '(0,1,2 -> X,Y,Z)
+
+	Plane 1
+	RECONCILE Z
+	Z_pos = PCMD(Z)
+	RECONCILE X
+	X_pos = PCMD(X)
+	RECONCILE Y
+	Y_pos = PCMD(Y)
+	
+	
+	ABS 'Positions specified in absolute coordinates
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	
+	Scope_Trigger_Delay = 0 
+	SCOPETRIGPERIOD -4 					' 0.25 ms per point (4 kHz)
+	SCOPEBUFFER  1000
+	SCOPETRIG
+	
+	Ti = 0.001
+	DT = 0.012
+	
+	DX = 0.1
+	DY = 0.2
+	DZ = 0.60
+	
+	IF motor = 0 THEN
+		PVT X X_pos,0 TIME Ti
+		PVT X X_pos + DX,0 TIME Ti+DT
+		PVT X X_pos + DX,0 TIME Ti+2*DT
+		PVT X X_pos + 2*DX,0 TIME Ti+3*DT
+		PVT X X_pos + 2*DX,0 TIME Ti+4*DT
+		PVT X X_pos,0 TIME Ti+10*DT
+	END IF
+	
+	IF motor = 1 THEN
+		PVT Y Y_pos,0 TIME Ti
+		PVT Y Y_pos + DY,0 TIME Ti+DT
+		PVT Y Y_pos + DY,0 TIME Ti+2*DT
+		PVT Y Y_pos + 2*DY,0 TIME Ti+3*DT
+		PVT Y Y_pos + 2*DY,0 TIME Ti+4*DT
+		PVT Y Y_pos,0 TIME Ti+10*DT
+	END IF
+	
+	IF motor = 2 THEN
+		PVT Z Z_pos,0 TIME Ti
+		PVT Z Z_pos + DZ,0 TIME Ti+DT
+		PVT Z Z_pos + DZ,0 TIME Ti+2*DT
+		PVT Z Z_pos + 2*DZ,0 TIME Ti+3*DT
+		PVT Z Z_pos + 2*DZ,0 TIME Ti+4*DT
+		PVT Z Z_pos,0 TIME Ti+10*DT
+	END IF
+	
+	START
+	DWELL 0.5
+	PROGRAM STOP 1
+END PROGRAM
+
+

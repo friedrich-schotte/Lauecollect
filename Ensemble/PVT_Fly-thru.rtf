@@ -1,0 +1,41 @@
+PROGRAM
+'Test of new fly-thru mode\
+
+	Plane 1
+	RECONCILE Z
+	Z_start = 12.6
+	Z_1 = -12
+	Z_41 = 12
+	WAIT MODE MOVEDONE
+	MOVEABS Z Z_start
+
+	ABS 'Positions specified in absolute coordinates
+	PVT INIT TIME ABS
+	VELOCITY ON
+	HALT
+	
+	Scope_Trigger_Delay = 0 
+	SCOPETRIGPERIOD -4 					' 0.25 ms per point (4 kHz)
+	SCOPEBUFFER  2100
+	SCOPETRIG
+	
+	Ti = 0.001
+	DT = 0.004
+	DZ = 0.60
+	VZ = 150
+	
+	PVT Z Z_start,0 TIME Ti
+	Ti = Ti + 24*DT
+	PVT Z Z_1,VZ TIME Ti
+	Ti = Ti + 40*DT
+	PVT Z Z_41,VZ TIME Ti
+	Ti = Ti + 24*DT
+	PVT Z Z_1,VZ TIME Ti
+	Ti = Ti + 40*DT
+	PVT Z Z_41,VZ TIME Ti
+	Ti = Ti + 2*DT
+	PVT Z Z_start,0 TIME Ti
+	
+	START
+
+END PROGRAM

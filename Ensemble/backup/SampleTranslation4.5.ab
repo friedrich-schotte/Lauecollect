@@ -1,0 +1,135 @@
+' This program is to tranlate the sample for a Laue crystallography experiment
+' synchronously to an exteranl trigger signal.
+' The maximum trigger needed rate is 82 Hz, the translation step 150 um.
+' The tranlations is trigger by a rising edge at the digital input 0.
+
+' Friedrich Schotte, NIH, 18 Apr 2013 - 15 Sep 2014
+
+HEADER
+  INCLUDE "StringLibHeader.abi"
+  DEFINE UNIT 1.0 'position unit in multiples of of mm (if um use 0.001)
+  ' Global string registers
+  DEFINE PROGRAM_NAME 0
+  DEFINE VERSION 1
+  ' Global integer register numbers.
+  DEFINE TRIGGER_ENABLED 0
+  DEFINE AUTO_RETURN 1 'automatically return to start at end of travel
+  DEFINE AUTO_REVERSE 2 'automatically return to start at end of travel
+  DEFINE TIMER_ENABLED 3 'Move stage on a timer?
+  DEFINE TRIGGER_COUNT 4 'number of trigger events detected
+  DEFINE NSTEPS 6 'number of X,Y,Z coordinates to use
+  DEFINE STEP_COUNT 7 'current position number
+  ' Global double register numbers.
+  DEFINE SPEED 0 'top speed in mm/s
+  DEFINE ACCELERATION 1 'for return stroke in mm/s2
+  DEFINE TIMER_PERIOD 4 'timer period in ms  
+  DEFINE X0 5    'first position X in mm
+  DEFINE Y0 X0+1 'first position Y in mm
+  DEFINE Z0 X0+2 'first position Z in mm
+END HEADER
+
+DECLARATIONS
+  GLOBAL timer_period AS DOUBLE 'timer period on ms  
+END DECLARATIONS
+
+PROGRAM
+  DIM last_level AS INTEGER 'digital input state
+  DIM trigged_step AS INTEGER 'Was last move done on external trigger?
+  'DIM x1 as DOUBLE, y1 as DOUBLE, z1 as DOUBLE 'current position
+  DIM i AS INTEGER ' current position number
+  DIM level AS INTEGER 'digital input state
+  DIM bits AS INTEGER 'status bits
+  DIM t AS INTEGER 'time in milliseconds
+  DIM do_step AS INTEGER 'Start motion?
+  DIM xp AS DOUBLE, yp AS DOUBLE, zp AS DOUBLE
+  DIM ox as DOUBLE, oy AS DOUBLE, oz AS DOUBLE ' grid origin
+  DIM dx as DOUBLE, dy AS DOUBLE, dz AS DOUBLE ' grid stepsize
+  DIM nx as INTEGER, ny AS INTEGER, nz AS INTEGER ' grid size
+  'Initialize global variables
+  SGLOBAL(PROGRAM_NAME) = "SampleTranslation"
+  SGLOBAL(VERSION) = "4.5"
+  IGLOBAL(AUTO_RETURN) = 1 'automatically return to start at end of travel
+  IGLOBAL(AUTO_REVERSE) = 0 'automatically reverse direction at end of travel
+  IGLOBAL(TRIGGER_ENABLED) = 0 'move stage on external trigger
+  IGLOBAL(TIMER_ENABLED) = 0 'move stage on a timer  
+  DGLOBAL(TIMER_PERIOD) = 24.0 'timer period in ms  
+  DGLOBAL(SPEED) = 200/UNIT 'top speed in units/s
+  DGLOBAL(ACCELERATION) = 14000.000/UNIT 'for triggered operation in units/s2
+  IGLOBAL(TRIGGER_COUNT) = 0 'number of trigger events detected
+  IGLOBAL(NSTEPS) = 64 'number of triggered steps operations
+  IGLOBAL(STEP_COUNT) = 0 'number of triggered steps operations
+  ' initialize the coordinates
+  nz = 8
+  dz = 1.0
+  oz = -1*nz/2*dz
+  ny = 8
+  dy = 1.0
+  oy = -1*ny/2*dy
+  FOR i = 0 TO IGLOBAL(NSTEPS)
+    DGLOBAL(X0+3*I) = 0
+	DGLOBAL(Y0+3*I) = oy + FLOOR(i/nz)*dy
+	DGLOBAL(Z0+3*I) = oz + (i-FLOOR(i/nz)*nz) *dz
+  NEXT i
+
+  FAULTACK X Y Z 'Make sure any fault state is cleared.
+  ENABLE X Y Z 'Turn the drive on.
+  'PLANE 0 'for coordinated moved using the LINEAR command
+  'ABS 'for the LINEAR command: LINEAR uses absolute coordinates.
+  WAIT MODE NOWAIT 'After a motion command, do not wait for it to complete.
+  RAMP MODE X Y Z RATE 'The acceleration ramp is determind by the RAMP RATE parameter (default)
+  SCURVE 0 'Set ramp portion of velocity profile to fully linear.
+
+  ' Read digital inputs (on AUX I/O connector)
+  last_level = DIN(X,1,0)
+  triggered_step = 0 'Was last move done on external trigger?
+
+  WHILE 1
+	do_step = 0
+    IF IGLOBAL(TRIGGER_ENABLED) THEN
+      ' Read digital inputs (on AUX I/O connector)
+      level = DIN(X,1,0)
+      DOUT X,1,level ' Timing marker for debugging
+	  IF level = 1 AND last_level = 0 THEN
+		do_step = 1
+	  END IF 
+	  IF do_step THEN IGLOBAL(TRIGGER_COUNT) = (IGLOBAL(TRIGGER_COUNT)+1) END IF
+	  last_level = level
+	END IF
+    IF IGLOBAL(TIMER_ENABLED) THEN
+	  t = TIMER()
+	  IF t >= DGLOBAL(TIMER_PERIOD) THEN do_step = 1 END IF
+	  IF do_step THEN CLEARTIMER END IF
+	END IF
+    ' On the rising edge of input 1, operated the stage momentarily advancing
+    ' one step.
+    IF do_step THEN
+	  i = IGLOBAL(STEP_COUNT)
+	  xp = DGLOBAL(X0+3*i)/UNIT
+	  yp = DGLOBAL(Y0+3*i)/UNIT
+	  zp = DGLOBAL(Z0+3*i)/UNIT
+	  speed = DGLOBAL(SPEED)
+	  acceleration = DGLOBAL(ACCELERATION)
+	  RAMP RATE acceleration
+	  'non-coordinated move
+      IF xp = xp THEN ' Ignore NaN
+	    MOVEABS X xp XF speed
+	  END IF
+      IF yp = yp THEN ' Ignore NaN
+	    MOVEABS Y yp YF speed
+	  END IF
+      IF zp = zp THEN ' Ignore NaN
+  	    MOVEABS Z zp ZF speed 
+	  END IF
+	  'LINEAR X xp Y yp Z zp F speed ' coordinated move
+	  i = i+1
+	  IF i >= IGLOBAL(NSTEPS) THEN
+		IF IGLOBAL(AUTO_RETURN) THEN
+          i = 0
+	    ELSE
+		  i = IGLOBAL(NSTEPS)-1
+		END IF
+	  END IF
+	  IGLOBAL(STEP_COUNT) = i
+    END IF
+  WEND
+END PROGRAM

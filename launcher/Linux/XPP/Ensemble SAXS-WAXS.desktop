@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Ensemble SAXS-WAXS
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh EnsembleSAXSPanel.py
+Comment=F. Schotte, 30 Jan 2012
+Icon=/reg/neh/home/schotte/Software/Lauecollect/icons/timing-system.png
+Type=Application

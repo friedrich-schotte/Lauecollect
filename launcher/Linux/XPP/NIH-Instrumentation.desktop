@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=NIH-Instrumentation
+Comment=F. Schotte Jan 28, 2016
+Exec=vncviewer -PasswordFile /reg/neh/operator/xppopr/.vnc/passwd ics-xpp-lj12-NIH-Instrumentation
+Icon=/usr/share/icons/hicolor/48x48/apps/tigervnc.png
+Type=Application

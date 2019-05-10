@@ -1,0 +1,100 @@
+'RasterScan uses PVT commands to translate the sample cell within a 
+'plane normal to the microscope camera, with Z being the fast axis.
+'It opens the millisecond shutter at intervals of 24*DT, where DT is the
+'time for 1 revolution of the high-speed chopper. The first x-ray pulse
+'in the sequence arrives 48*DT after the rising edge of the Ensemble 
+'trigger, which is assumed to be coincident with an x-ray pulse. 
+'After the scan, the stage returns to its starting position.
+'
+'Usage: enter NR, NC, NT, NP, and DZ in "RasterScan_parameters.abi"
+'DZ is the step size in mm. The number of rows (NR) and number of 
+'columns (NC) should be odd. The number of heat-load chopper revolutions
+'before starting the scan is given by NT, and the time between pulses
+'is given by NP.
+'
+
+HEADER
+	INCLUDE "RasterScan_parameters.abi" 
+END HEADER
+
+PROGRAM
+	DIM ROW AS INTEGER, COL AS INTEGER, SGN AS INTEGER
+	DIM PrintString AS STRING(120)
+	SETPARM UserString0,"RasterScan.ab"
+	pi = 3.1415926
+	msShut_close1 = -0.3
+	msShut_open = 9.7
+	msShut_close2 = 19.7
+	DT = 0.024304558/24
+	DX = DZ*SIN(pi/6)	'pi/6 radians = 30 deg
+	DY = DZ*COS(pi/6)
+	ZV = DZ/(NP*12*DT)
+
+	XPOS = PFBK(X)
+	YPOS = PFBK(Y)
+	ZPOS = PFBK(Z)
+	SPOS = PFBK(msShut_ext)
+
+	SCOPEBUFFER 700
+	SCOPETRIGPERIOD 1	' -4 (-2) corresponds to 4 (2) kHz
+	
+	PLANE 1
+	ABS
+	VELOCITY ON
+	
+	IGLOBAL(0) = 0
+	WHILE IGLOBAL(0) > -1 'enter IGLOBAL(0) = -1 to exit loop
+	
+		PVT INIT TIME ABS
+		HALT
+		
+		'Specify starting position and time.
+		Ti = 0.0001
+		PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti
+		
+		
+		'Wait for trigger (next low-to-high transition)
+		WHILE DIN(X,1,0)=0 
+			DWELL 0.00025
+		WEND
+		
+		'SCOPETRIG
+		START
+		
+		'Specify arrival of first x-ray pulse at 48*DT.
+		Ti = Ti + (NT*12-6.5)*DT
+		
+		SGN = 1
+		FOR ROW = -(NR-1)/2 TO (NR-1)/2
+			Xi = XPOS + ROW*DX
+			Yi = YPOS - ROW*DY
+			FOR COL = -(NC-1)/2 TO (NC-1)/2
+				Ti = Ti - 9*DT
+				Zi = ZPOS + SGN*(COL-9.0/(NP*12))*DZ
+				PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+				FORMAT PrintString, "%d,%d,%.3f,%.3f,%.3f\r",
+				INTV:ROW,INTV:COL,DBLV:Zi,DBLV:ZV,DBLV:Ti
+				'PRINT PrintString
+				Ti = Ti + 18*DT
+				Zi = ZPOS + SGN*(COL+9.0/(NP*12))*DZ
+				IF SPOS < msShut_open THEN
+					SPOS = msShut_close2
+				ELSE
+					SPOS = msShut_close1
+				END IF
+				PVT X Xi,0 Y Yi,0 Z Zi,ZV msShut_ext SPOS,0 TIME Ti
+				FORMAT PrintString, "%d,%d,%.3f,%.3f,%.3f\r",
+				INTV:ROW,INTV:COL,DBLV:Zi,DBLV:ZV,DBLV:Ti
+				'PRINT PrintString
+				Ti = Ti + (NP*12-9)*DT
+			NEXT COL
+			SGN = -1*SGN
+			ZV = -1*ZV
+		NEXT ROW
+		'reposition ms shutter to its starting position.
+		Ti = Ti + ((NT-NP)*12 + 9)*DT
+		PVT X XPOS,0 Y YPOS,0 Z ZPOS,0 msShut_ext SPOS,0 TIME Ti
+	WEND
+	START
+	
+END PROGRAM

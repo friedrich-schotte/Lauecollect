@@ -1,0 +1,9 @@
+Size = wx.Size(854, 515)
+logfile = '\\\\Id14bxf\\data\\anfinrud_1011\\Logbook\\2010.11.05-09 Lok-to-Clock Stability.log'
+nom_delay = 8.4999999999999996e-010
+average_count = 20
+max_dt = 4.0000000000000001e-010
+min_dt = -4.0000000000000001e-010
+fraction = 0.43400000000000005
+reject_outliers = True
+outlier_cutoff = 2.5

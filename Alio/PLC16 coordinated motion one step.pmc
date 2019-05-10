@@ -1,0 +1,42 @@
+; This code waits for a pulse from the FPGA to cause a coordinated motion.
+; Simply drives to the positions defined by P1007, P1008, P1009
+; Need to arm the system by setting a P variable (P250=1)
+; How do we set the feed rate?
+; Need to understand how acceleration works.
+; Set P250=1 to enable. Maybe this script should reset it back to 0 at the end.
+; Set P251 to the speed (mm/s).
+; Set P252 to the acceleration time
+; RH 10/20/14
+
+CLOSE
+END GATHER
+DELETE GATHER
+DELETE TRACE
+
+OPEN PLC 16 CLEAR
+;This waits for the FPGA trigger but only moves the motor if the Exphi code is armed
+IF(M8=1andP250=1)
+; This line reads the end position from the Exphi code and drives it 0.11 deg further
+;P1001=P3/5597.86670+0.1
+; Set the proper motor speed and accel from the pmac code
+Q222=P251
+Q223=P252 / 2
+Q224=P252
+; Execute prog 16
+COMMAND "&1B16R"
+;P250=0
+END IF
+CLOSE
+
+OPEN PROG 16 CLEAR
+P990=0
+F(Q222)
+TS(Q223)
+TA(Q224)
+FRAX
+ABS
+LINEAR
+X(P1007)Y(P1008)Z(P1009)
+CLOSE
+
+; ** End of Upload **

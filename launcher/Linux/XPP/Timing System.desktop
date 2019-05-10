@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Timing System
+Comment=F. Schotte Jan 28, 2016
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh TimingPanel.py
+Icon=/reg/neh/home/schotte/Software/Lauecollect/icons/timing-system.png
+Type=Application

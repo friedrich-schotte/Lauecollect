@@ -1,0 +1,9 @@
+Size = wx.Size(675, 465)
+logfile = 'J:\\anfinrud_1102\\Logbook\\2011.02.12-15 X-ray Timing.log'
+nom_delay = 0.0
+average_count = 2
+max_dt = 4.0000000000000001e-010
+min_dt = -4.0000000000000001e-010
+fraction = 1.0
+reject_outliers = True
+outlier_cutoff = 3.0

@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Image Viewer
+Comment=F. Schotte, 29 Jan 2016
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh ImageViewer.py
+Icon=/reg/neh/home/schotte/Software/Lauecollect/icons/camera.png
+Type=Application

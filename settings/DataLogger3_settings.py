@@ -1,0 +1,11 @@
+counter_name = 'temperature_controller.T'
+Size = wx.Size(640, 480)
+logfile = '//id14bxf/data/anfinrud_1106/Logfiles/backup/2011.06.16-21 Temperature Controller Temperature-6.log'
+average_count = 1
+max_value = 50
+min_value = 0
+start_fraction = 0.997
+reject_outliers = False
+outlier_cutoff = 2.5
+show_statistics = True
+time_window = 600

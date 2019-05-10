@@ -1,0 +1,7 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=IDLE
+Comment=F. Schotte Jan 30, 2016
+Exec=bash -c "cd /reg/neh/home/schotte/Software/Lauecollect; ./launch.sh idle"
+Icon=/usr/share/icons/gnome/32x32/mimetypes/gnome-mime-text-x-python.png
+Type=Application

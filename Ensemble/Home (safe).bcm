@@ -1,0 +1,127 @@
+
+		; **** BCM file generated: Sun, Mar 10 2019, 09:55:57 PM ****
+
+	.ver	200003
+
+	org	p:
+
+		chkdbg
+	.ln		2
+		pushc_i		$000003ff
+		pushc_i		$00000091
+		pushc_i		$00000004
+		pshgpa		_LC0
+		setparm_cmd
+		chkdbg
+	.ln		3
+		ackall_cmd
+		chkdbg
+	.ln		4
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pushc_i		$00000005
+		pushc_i		$00000005
+		enable_cmd
+		chkdbg
+	.ln		5
+		pushc_i		$00000000
+		plane_cmd
+		chkdbg
+	.ln		6
+		pushc_i		$00000000
+		pushc_i		$00000001
+		pushc_i		$00000002
+		pushc_i		$00000004
+		pushc_i		$00000005
+		pushc_i		$00000005
+		reconcile_cmd
+		chkdbg
+	.ln		7
+		pushc_i		$00000001
+		waitmode_cmd
+		chkdbg
+	.ln		8
+		pushc_i		$00000001
+		pushc_i		$00000001
+		home_cmd
+		chkdbg
+	.ln		9
+		pushc_i		$00000002
+		pushc_i		$00000001
+		home_cmd
+		chkdbg
+	.ln		10
+		pushc_i		$00000001
+		pushc_d		$00000000 $40280000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		chkdbg
+	.ln		11
+		pushc_i		$00000000
+		pushc_i		$00000001
+		home_cmd
+		chkdbg
+	.ln		12
+		pushc_i		$00000001
+		pushc_d		$00000000 $00000000
+		pushc_i		$00000001
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		chkdbg
+	.ln		13
+		pushc_i		$00000005
+		pushc_i		$00000001
+		home_cmd
+		chkdbg
+	.ln		14
+		pusha		FPUMPA_POS
+		pushc_i		$00000004
+		pcmd_cmd
+		store_d
+		chkdbg
+	.ln		15
+		pushc_i		$00000004
+		pushc_d		$00000000 $40490000
+		pushv_d		FPUMPA_POS
+		pushc_d		$00000000 $40490000
+		div_d
+		ceil_emb
+		cnvt_id
+		mpy_d
+		pushc_d		$00000000 $40340000
+		pushc_i		$00000002
+		pushc_i		$00000001
+		pushc_i		$00000002
+		index_cmd
+		chkdbg
+	.ln		16
+		pushc_i		$00000004
+		pushc_i		$00000001
+		home_cmd
+
+		chkdbg
+	.ln		-1
+		end
+
+	.file		0,\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\home (safe).ab
+
+
+	org	y:
+
+	.def	FPUMPA_POS
+	.val	FPUMPA_POS
+	.scl	2
+	.type	$7
+	.endef
+FPUMPA_POS		bsc	2
+
+	org	y:
+_LC0
+	dc	$656d6f48, $61732820, $2e296566, $00006261
+
+

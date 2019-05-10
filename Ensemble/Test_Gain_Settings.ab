@@ -1,0 +1,11 @@
+PROGRAM
+	'SETGAIN X, 3154000, 22870, 29.71, 297200 'original settings: Kp, Ki, Kpos, Aff
+	'SETGAIN X, 833800, 12700, 62.38, 257200 'settings: Kp, Ki, Kpos, Aff for Fc (Hz) = 90
+	'SETGAIN Y, 1129000, 21920, 79.54, 159600 'original settings: Kp, Ki, Kpos, Aff
+	'SETGAIN Y, 2258000, 21920, 39.77, 159600 'original settings: Kp, Ki, Kpos, Aff
+	SETGAIN Z, 1780000, 10000, 56.2, 56200 'original settings: Kp, Ki, Kpos, Aff
+	'SETGAIN Z, 1000000, 3162, 17.8, 31620 'original settings: Kp, Ki, Kpos, Aff
+	'SETPARM X, GainVff, 1616 'original setting
+	'SETPARM Y, GainVff, 2192 'original setting
+	'SETPARM Z, GainVff, 0 'original setting
+END PROGRAM
