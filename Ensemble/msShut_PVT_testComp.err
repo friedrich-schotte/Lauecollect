@@ -1,6 +1,0 @@
-  2|  0|
-
-1|\\femto\C\All Projects\APS\Instrumentation\Software\Lauecollect\Ensemble\msShut_PVT_test.ab|136|SYNTAX|Actual:  Stream Expression  Expecting:  '@' : Use of number or variable for axis requires the '@' symbol|
-
-
-2|\\femto\C\All Projects\APS\Instrumentation\Software\Lauecollect\Ensemble\msShut_PVT_test.ab|137|SYNTAX|Actual:  ENABLE|

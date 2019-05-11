@@ -1,6 +1,0 @@
-  2|  0|
-
-1|\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\pvt_250hz_v4.ab|115|SYNTAX|Actual:  WEND  Expecting:  END : End of Block or Begin of New Line Expected|
-
-
-2|\\femto\c\all projects\aps\instrumentation\software\lauecollect\ensemble\test\pvt_250hz_v4.ab|117|SYNTAX|Actual:  Remark Token  Expecting:  WEND|
