@@ -12,13 +12,13 @@ from logging import debug,warn,info,error
 #from temperature_controller_driver import temperature_controller as lightwave
 #from oasis_chiller import oasis_chiller_driver as oasis
 #from temperature_controller_server import temperature_controller_IOC
-#from oasis_chiller import oasis_chiller_IOC
-
+from oasis_chiller_driver import driver as oasis_driver
+from LDT_5900_driver import driver as lightwave_driver
 
 from IOC import IOC
 
 
-class Lightwave():
+class Lightwave_DL():
     """
     an wrapper object to communicate with lightwave temperature controller
     """
@@ -51,7 +51,7 @@ class Lightwave():
         caget(self.prefix+'VAL',value)
     setT = property(get_setT,set_setT)
 
-class Oasis():
+class Oasis_DL():
     """
     an wrapper object to communicate with Oasis Chiller
     """
@@ -62,19 +62,14 @@ class Oasis():
         self.prefix = prefix
         
     def init(self):
-        pass
+        from circular_buffer_LL import Server
+        self.buffer = Server()
 
     def run_once(self):
         pass
 
     def run(self):
         pass
-
-    def get_T(self):
-        from CA import caget
-        value = caget(self.prefix+'RBV')
-        return value
-    T = property(get_T)
 
     def get_T(self):
         from CA import caget
@@ -195,8 +190,8 @@ class Temperature_Server():
 
 
 temperature_server = Temperature_Server()
-temperature_server.oasis = oasis = Oasis()
-temperature_server.lightwave = lightwave = Lightwave()
+temperature_server.oasis = oasis_dl = Oasis_DL()
+temperature_server.lightwave = lightwave_dl = Lightwave_DL()
 
 
 if __name__ == "__main__": 

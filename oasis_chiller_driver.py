@@ -134,18 +134,22 @@ class OasisChillerDriver(object):
         from time import sleep
         if ser is None:
             ser = self.ser
-        t1 = time()
-        self.write(command)
-        i = 0
-        while self.waiting(ser)[0] != count:
-            if i >int(self.timeout/0.015):
-                break
-            sleep(0.015)
-            i+=1
-        reply = self.read(ser = ser,count=count)
-        t2 = time()
-        self.last_command_execution_time = t2-t1
-        self.last_reply_time = time()
+
+        if ser is not None:
+            t1 = time()
+            self.write(command)
+            i = 0
+            while self.waiting(ser)[0] != count:
+                if i >int(self.timeout/0.015):
+                    break
+                sleep(0.015)
+                i+=1
+            reply = self.read(ser = ser,count=count)
+            t2 = time()
+            self.last_command_execution_time = t2-t1
+            self.last_reply_time = time()
+        else:
+            reply = ''
         return reply
 
     def write(self,command,ser = None):
@@ -160,6 +164,7 @@ class OasisChillerDriver(object):
     def read(self,count=None, ser = None):
         """Read a reply from the controller,
         terminated with the given terminator string"""
+        from time import time
         ##debug("read count=%r,ser=%r" % (count,ser))
         if ser is None:
             ser = self.ser
