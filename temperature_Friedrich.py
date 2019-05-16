@@ -1,9 +1,13 @@
-"""Prototype for temperature ramp server
+"""Temperature System Level (SL) Server
+Capabilities:
+- Time-based Temperature ramping
+- EPICS IOC
+
 Authors: Valentyn Stadnydskyi, Friedrich Schotte
-Date created: 2019-05-18
-Date last modified: 2019-05-18
+Date created: 2019-05-08
+Date last modified: 2019-05-13
 """
-__version__ = "0.0"
+__version__ = "1.0"
 
 from logging import debug,warn,info,error
 
@@ -14,23 +18,35 @@ class Temperature_Server(IOC):
     property_names = [
         "time_points",
         "temp_points",
-        "set_point",
-        "temperature",
+        "VAL",
+        "RBV",
         "set_point_update_period",
     ]
 
     from persistent_property import persistent_property
-    time_points = persistent_property("time_points",[0.0,5.0,10.0])
-    temp_points = persistent_property("temp_points",[22.0,22.5,23.0])
+    time_points = persistent_property("time_points",[])
+    temp_points = persistent_property("temp_points",[])
     set_point_update_period = persistent_property("set_point_update_period",0.5) 
 
-    def __init__(self):
-        from CA import camonitor
+    def run(self):
+        self.monitoring = True
+        self.running = True        
+        from sleep import sleep
+        while self.running: sleep(0.25)
+    
+    def get_monitoring(self):
         from timing_system import timing_system
-        camonitor(timing_system.acquiring.PV_name,callback=self.on_acquire)
+        return self.on_acquire in timing_system.acquiring.monitors
+    def set_monitoring(self,value):
+        value = bool(value)
+        from timing_system import timing_system
+        if value != self.monitoring:
+            if value == True:  timing_system.acquiring.monitor(self.on_acquire)
+            if value == False: timing_system.acquiring.monitor_clear(self.on_acquire)
+    monitoring = property(get_monitoring,set_monitoring)
         
     def on_acquire(self):
-        self.ramping = self.acquiring
+        self.ramping = self.acquiring 
 
     from thread_property_2 import thread_property
     @thread_property
@@ -42,7 +58,7 @@ class Temperature_Server(IOC):
             dt = self.start_time+t - time()
             if dt > 0:
                 sleep(dt)
-                self.set_point = T
+                self.VAL = T
             if self.ramping_cancelled: break
         info("Ramp ended")
 
@@ -65,7 +81,7 @@ class Temperature_Server(IOC):
     def times(self):
         from numpy import arange,concatenate
         min_dt = self.set_point_update_period
-        times = []
+        times = [[]]
         for i in range(0,len(self.time_points)-1):
             T0,T1 = self.time_points[i],self.time_points[i+1]
             DT = T1-T0
@@ -80,29 +96,30 @@ class Temperature_Server(IOC):
 
     @property
     def temperatures(self):
-        from scipy.interpolate import interp1d
-        T = interp1d(
-            self.time_points[0:self.N_points],
-            self.temp_points[0:self.N_points],
-            kind='linear',
-            bounds_error=False,
-        )
-        return T(self.times)
+        temperatures = []
+        time_points = self.time_points[0:self.N_points]
+        temp_points = self.temp_points[0:self.N_points]
+        if len(temp_points) > 1:
+            from scipy.interpolate import interp1d
+            f = interp1d(time_points,temp_points,kind='linear',bounds_error=False)
+            temperatures = f(self.times)
+        if len(temp_points) == 1:
+            from numpy import array
+            temperatures = array(temp_points)
+        return temperatures
 
     @property
     def N_points(self):
         return min(len(self.time_points),len(self.temp_points))
 
-    def get_set_point(self):
-        return self.temperature_controller.command_value
-    def set_set_point(self,value):
-        info("set_point = %r" % value)
-        self.temperature_controller.command_value = value
-    set_point = property(get_set_point,set_set_point)
+    def get_VAL(self): return self.temperature_controller.VAL
+    def set_VAL(self,value):
+        info("VAL = %r" % value)
+        self.temperature_controller.VAL = value
+    VAL = property(get_VAL,set_VAL)
 
-    def get_temperature(self):
-        return self.temperature_controller.value
-    temperature = property(get_temperature,set_set_point)
+    def get_RBV(self): return self.temperature_controller.RBV
+    RBV = property(get_RBV,set_VAL)
 
     @property
     def temperature_controller(self):
@@ -117,8 +134,8 @@ class Temperature(object):
     time_points = PV_property("time_points",[])
     temp_points = PV_property("temp_points",[])
     from numpy import nan
-    set_point = PV_property("set_point",nan)
-    temperature = PV_property("temperature",nan)
+    VAL = PV_property("VAL",nan)
+    RBV = PV_property("RBV",nan)
 
 temperature = Temperature()
 
@@ -128,20 +145,32 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
         format="%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s",
     )
-    temperature_server.running = True
 
-    from time import sleep
-    sleep(0.5)
+    ##from time import sleep
+    ##sleep(0.5)
 
-    print('temperature.set_point = %r' % temperature.set_point)
-    print('temperature.temperature = %r' % temperature.temperature)
+    from collect import collect
+    print('collect.temperature_start()')
+    print('')
+
+    from numpy import nan
+    ##print('temperature.VAL = %r' % temperature.VAL)
+    ##print('temperature.RBV = %r' % temperature.RBV)
     print('temperature.time_points = %r' % temperature.time_points)
     print('temperature.temp_points = %r' % temperature.temp_points)
+    ##print('temperature.time_points = [nan]')
+    ##print('temperature.temp_points = [nan]')
+    print('')
 
     from timing_sequencer import timing_sequencer
     print("timing_sequencer.queue_active = %r" % timing_sequencer.queue_active)
     print("timing_sequencer.queue_active = False # cancel acquistion")
+    print("timing_sequencer.queue_repeat_count = 0 # restart acquistion")
     print("timing_sequencer.queue_active = True  # simulate acquistion")
+    print ('')
+
+    print ('temperature_server.monitoring = True')
+    print ('temperature_server.running = True')
 
     self = temperature_server # for debugging
 

@@ -51,16 +51,19 @@ Windows 7 > Control Panel > Windows Firewall > Advanced Settings > Inbound Rules
 Inbound Rules > python > General > Allow the connection
 Inbound Rules > pythonw > General > Allow the connection
 
-Authors: Friedrich Schotte, Nara Dashdorj
+Authors: Friedrich Schotte, Nara Dashdorj, Valentyn Stadnytskyi
 Date created: 2009-05-28
-Date last modified: 2018-10-15 Valentyn Stadnytskyi
+Date last modified: 2018-10-15
 """
 
 from struct import pack,unpack
 from numpy import nan,rint,isnan
 from logging import error,warn,info,debug
+import os
+import platform
+computer_name = platform.node()
 
-__version__ = "2.1" # fault code
+__version__ = "2.2" # PID parameters
 
 class OasisChillerDriver(object):
     """Oasis thermoelectric chiller by Solid State Cooling Systems"""
@@ -70,9 +73,9 @@ class OasisChillerDriver(object):
     id_query = "A"
     id_reply_length = 3
 
-    wait_time = 0 # bewteen commands 
+    wait_time = 0 # bewteen commands
     last_reply_time = 0.0
-        
+
     def id_reply_valid(self,reply):
         valid = reply.startswith("A") and len(reply) == 3
         debug("Reply %r valid? %r" % (reply,valid))
@@ -81,53 +84,41 @@ class OasisChillerDriver(object):
     # Make multithread safe
     from thread import allocate_lock
     __lock__ = allocate_lock()
-    
+
     port = None
 
-    def get_nominal_temperature(self):
-        """Temperature set point"""
-        debug("Getting nominal temperature...")
-        value = self.get_value(1)/10.
-        if not isnan(value): debug("Nominal temperature %r C" % value)
-        else: warn("Nominal temperature unreadable")
-        return value
-    
-    def set_nominal_temperature(self,value): self.set_value(1,value*10)
-    nominal_temperature = property(get_nominal_temperature,set_nominal_temperature)
-    VAL = nominal_temperature
+    def parameter_property(parameter_number,scale_factor=1):
+        """A 16-bit parameter"""
+        def get(self): return self.get_value(parameter_number)/scale_factor
+        def set(self,value): self.set_value(parameter_number,value*scale_factor)
+        return property(get,set)
 
-    @property
-    def actual_temperature(self):
-        """Temperature read value"""
-        debug("Getting actual temperature...")
-        value = self.get_value(9)/10.
-        if not isnan(value): debug("Actual temperature %r C" % value)
-        else: warn("Actual temperature unreadable")
-        return value
+    nominal_temperature = parameter_property(1,scale_factor=10.0)
+    actual_temperature = parameter_property(9,scale_factor=10.0)
+    low_limit = parameter_property(6,scale_factor=10.0)
+    high_limit = parameter_property(7,scale_factor=10.0)
+
+    VAL = nominal_temperature
     RBV = actual_temperature
-    
-    def get_low_limit(self):
-        """Not supported early firmware (serial number 1)"""
-        info("Getting low limit...")
-        value = self.get_value(6)/10.
-        if not isnan(value): info("Low limit %r C" % value)
-        else: warn("Low limit unreadable (old firmware?)")
-        return value
-    def set_low_limit(self,value): self.set_value(6,value*10)
-    low_limit = property(get_low_limit,set_low_limit)
     LLM = low_limit
-    
-    def get_high_limit(self):
-        """Not supported early firmware (serial number 1)"""
-        info("Getting high limit...")
-        value = self.get_value(7)/10.
-        if not isnan(value): info("High limit %r C" % value)
-        else: warn("High limit unreadable (old firmware?)")
-        return value
-    def set_high_limit(self,value): self.set_value(7,value*10)
-    high_limit = property(get_high_limit,set_high_limit)
     HLM = high_limit
-    
+
+    P1 = parameter_property(0xD0)
+    I1 = parameter_property(0xD1)
+    D1 = parameter_property(0xD2)
+    P2 = parameter_property(0xD3)
+    I2 = parameter_property(0xD4)
+    D2 = parameter_property(0xD5)
+
+    def set_factory_PID(self):
+        """Reset PID parameters to factory settings"""
+        self.P1 = 90
+        self.I1 = 32
+        self.D1 = 2
+        self.P2 = 50
+        self.I2 = 35
+        self.D2 = 3
+
     @property
     def port_name(self):
         """Serial port name"""
@@ -150,30 +141,14 @@ class OasisChillerDriver(object):
     @property
     def fault_code(self):
         """Report faults as number
-        bit 0: Tank Level Low
-        bit 2: Temperature above alarm range
-        bit 4: RTD Fault
-        bit 5: Pump Fault
-        bit 7: Temperature below alarm range
+        0: no fault
+        1: Tank Level Low
+        2: Temp above alarm range
+        5: RTD Fault
+        6: Pump Fault
+        8: Temp below alarm range
         """
-        from numpy import nan
-        debug("Getting faults...")
-        code = int("01001000",2)
-        command = pack('B',code)
-        reply = self.query(command,count=2)
-        fault_code = nan
-        # The reply is 0xC8 followed by a faults status byte.
-        if len(reply) != 2:
-            if len(reply)>0:
-                warn("%r: expecting 2-byte reply, got %r" % (command,reply))
-            elif self.connected:
-                warn("%r: expecting 2-byte reply, got no reply" % command)
-        else:
-            reply_code,fault_code = unpack('<BB',reply)
-            if reply_code != code:
-                warn("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
-                     (reply,code,bin(code),reply_code,bin(reply_code)))
-                fault_code = nan
+        fault_code = self.faults_byte
         if fault_code == 2.0**7:
             fault_code = 8
         elif fault_code == 2.0**6:
@@ -200,38 +175,59 @@ class OasisChillerDriver(object):
     @property
     def faults(self):
         """Report list of faults as string"""
-        debug("Getting faults...")
-        code = int("01001000",2)
+        faults = ""
+        bits = self.faults_byte
+        if not isnan(bits):
+            for i in range(0,8):
+                if (bits >> i) & 1:
+                    if i in self.fault_names: faults += self.fault_names[i]+", "
+                    else: faults += str(i)+", "
+            faults = faults.strip(", ")
+            if faults == "": faults = "none"
+        if faults == "": faults = " "
+        debug("Faults %s" % faults)
+        return faults
+
+    fault_names = {
+        0:"Tank Level Low",
+        2:"Temp above alarm range",
+        4:"RTD Fault",
+        5:"Pump Fault",
+        7:"Temp below alarm range",
+    }
+
+    @property
+    def faults_byte(self):
+        return self.get_byte(8)
+
+    def get_byte(self,parameter_number):
+        """Read an 8-bit value
+        parameter_number: 0-255
+          8 = fault
+        """
+        code = int("01000000",2) | parameter_number
         command = pack('B',code)
         reply = self.query(command,count=2)
-        faults = " "
         # The reply is 0xC8 followed by a faults status byte.
+        count = nan
         if len(reply) != 2:
             if len(reply)>0:
                 warn("%r: expecting 2-byte reply, got %r" % (command,reply))
             elif self.connected:
                 warn("%r: expecting 2-byte reply, got no reply" % command)
         else:
-            reply_code,bits = unpack('<BB',reply)
+            reply_code,count = unpack('<BB',reply)
             if reply_code != code:
                 warn("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
                      (reply,code,bin(code),reply_code,bin(reply_code)))
-            else:
-                fault_names = {0:"Tank Level Low",2:"Temperature above alarm range",
-                    4:"RTD Fault",5:"Pump Fault",7:"Temperature below alarm range"}
-                faults = ""
-                for i in range(0,8):
-                    if (bits >> i) & 1:
-                        if i in fault_names: faults += fault_names[i]+", "
-                        else: faults += str(i)+", "
-                faults = faults.strip(", ")
-                if faults == "": faults = "none"
-        debug("Faults %s" % faults)
-        return faults
+                count = nan
+        return count
 
     def get_value(self,parameter_number):
         """Read a 16-bit value
-        parameter_number: 1-15 (1=set point, 6=low limit, 7=high limit, 9=coolant temp.)
+        parameter_number: 0-255
+          1=set point, 6=low limit, 7=high limit, 9=coolant temp.
+          208-213=PID parameter P1,I1,D1,P2,I2,D2
         """
         code = int("01000000",2) | parameter_number
         command = pack('B',code)
@@ -317,11 +313,11 @@ class OasisChillerDriver(object):
                 if not self.id_reply_valid(reply):
                     debug("%s: %r: invalid reply %r" % (self.port.name,self.id_query,reply))
                     info("%s: lost connection" % self.port.name)
-                    self.port = None 
+                    self.port = None
                 else: info("Device is still responsive.")
             except Exception,msg:
                 debug("%s: %s" % (Exception,msg))
-                self.port = None 
+                self.port = None
 
         if self.port is None:
             port_basenames = ["COM"] if not exists("/dev") \
@@ -330,12 +326,12 @@ class OasisChillerDriver(object):
                 for port_basename in port_basenames:
                     port_name = port_basename+("%d" % i if i>=0 else "")
                     ##debug("Trying port %s..." % port_name)
-                    try: 
+                    try:
                         port = Serial(port_name,baudrate=self.baudrate)
                         port.write(self.id_query)
                         debug("%s: Sent %r" % (port.name,self.id_query))
                         reply = self.read(count=self.id_reply_length,port=port)
-                        if self.id_reply_valid(reply): 
+                        if self.id_reply_valid(reply):
                            self.port = port
                            info("Discovered device at %s based on reply %r" % (self.port.name,reply))
                            break
@@ -363,20 +359,6 @@ class OasisChiller_IOC(object):
         else: self.running = False
     EPICS_enabled = property(get_EPICS_enabled,set_EPICS_enabled)
 
-    def start(self):
-        """Run EPCIS IOC in background"""        
-        from threading import Thread
-        task = Thread(target=self.run,name="oasis_chiller_IOC.run")
-        task.daemon = True
-        task.start()
-
-    def run(self):
-        """Run EPICS IOC"""
-        self.startup()
-        self.running = True
-        while self.running: self.update_once()
-        self.shutdown()
-
     def startup(self):
         from CAServer import casput,casmonitor
         from numpy import nan
@@ -386,8 +368,14 @@ class OasisChiller_IOC(object):
         # Set defaults
         casput(self.prefix+".VAL",nan)
         casput(self.prefix+".RBV",nan)
-        casput(self.prefix+".LLM",nan)        
-        casput(self.prefix+".HLM",nan)        
+        casput(self.prefix+".LLM",nan)
+        casput(self.prefix+".HLM",nan)
+        casput(self.prefix+".P1",nan)
+        casput(self.prefix+".I1",nan)
+        casput(self.prefix+".D1",nan)
+        casput(self.prefix+".P2",nan)
+        casput(self.prefix+".I2",nan)
+        casput(self.prefix+".D2",nan)
         casput(self.prefix+".faults"," ")
         casput(self.prefix+".fault_code",0)
         casput(self.prefix+".COMM"," ")
@@ -413,10 +401,18 @@ class OasisChiller_IOC(object):
                     casput(self.prefix+".VAL",oasis_chiller_driver.VAL)
                     casput(self.prefix+".RBV",oasis_chiller_driver.RBV)
                     casput(self.prefix+".fault_code",oasis_chiller_driver.fault_code)
-                    casput(self.prefix+".faults",oasis_chiller_driver.faults+" ")
+                    casput(self.prefix+".faults",oasis_chiller_driver.faults)
                     casput(self.prefix+".LLM",oasis_chiller_driver.LLM)
                     casput(self.prefix+".HLM",oasis_chiller_driver.HLM)
+                    casput(self.prefix+".P1",oasis_chiller_driver.P1)
+                    casput(self.prefix+".I1",oasis_chiller_driver.I1)
+                    casput(self.prefix+".D1",oasis_chiller_driver.D1)
+                    casput(self.prefix+".P2",oasis_chiller_driver.P2)
+                    casput(self.prefix+".I2",oasis_chiller_driver.I2)
+                    casput(self.prefix+".D2",oasis_chiller_driver.D2)
                     casput(self.prefix+".SCANT",nan)
+                    casput(self.prefix+".processID",value = os.getpid(), update = False)
+                    casput(self.prefix+".computer_name", value = computer_name, update = False)
                 t = time()
                 RBV = oasis_chiller_driver.RBV
                 if not isnan(RBV): self.last_valid_reply = time()
@@ -429,12 +425,29 @@ class OasisChiller_IOC(object):
                 casput(self.prefix+".faults",oasis_chiller_driver.faults+" ")
                 sleep(t+1.00*SCAN-time())
                 casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
-            else: sleep(SCAN)
-            self.was_online = online 
+            else:
+                sleep(SCAN)
+            self.was_online = online
         else:
             casput(self.prefix+".SCANT",nan)
             sleep(0.1)
-            
+
+    def run(self):
+        """Run EPICS IOC"""
+        self.startup()
+        self.running = True
+        while self.running: self.update_once()
+        self.shutdown()
+
+    def start(self):
+        """Run EPCIS IOC in background"""
+        from threading import Thread
+        task = Thread(target=self.run,name="oasis_chiller_IOC.run")
+        task.daemon = True
+        task.start()
+
+
+
     def shutdown(self):
         from CAServer import casdel
         casdel(self.prefix)
@@ -446,15 +459,10 @@ class OasisChiller_IOC(object):
         if PV_name == self.prefix+".SCAN":
             self.SCAN = float(value)
             casput(self.prefix+".SCAN",self.SCAN)
-        if PV_name == self.prefix+".VAL":
-            oasis_chiller_driver.VAL = float(value)
-            casput(self.prefix+".VAL",oasis_chiller_driver.VAL)
-        if PV_name == self.prefix+".LLM":
-            oasis_chiller_driver.LLM = float(value)
-            casput(self.prefix+".LLM",oasis_chiller_driver.LLM)
-        if PV_name == self.prefix+".HLM":
-            oasis_chiller_driver.HLM = float(value)
-            casput(self.prefix+".HLM",oasis_chiller_driver.HLM)
+        else:
+            attr = PV_name.replace(self.prefix+".","")
+            setattr(oasis_chiller_driver,attr,float(value))
+            casput(PV_name,getattr(oasis_chiller_driver,attr))
 
 oasis_chiller_IOC = OasisChiller_IOC()
 
@@ -482,8 +490,8 @@ class OasisChiller(EPICS_motor):
     command_value = alias("VAL") # EPICS_motor.command_value not changable
     port_name = alias("COMM")
     prefix = alias("__prefix__") # EPICS_motor.prefix not changable
-    nominal_temperature = alias("VAL") # for backward compatbility 
-    actual_temperature = alias("RBV") # for backward compatbility 
+    nominal_temperature = alias("VAL") # for backward compatbility
+    actual_temperature = alias("RBV") # for backward compatbility
 
 oasis_chiller = OasisChiller(prefix="NIH:CHILLER",name="oasis_chiller")
 chiller = oasis_chiller # for backward compatbility
@@ -497,7 +505,7 @@ def binstr(n):
         elif s != "": s += "0"
     return s
 
-if __name__ == "__main__": # for testing 
+if __name__ == "__main__": # for testing
     from sys import argv
     if "run_IOC" in argv: run_IOC()
     from pdb import pm
@@ -506,7 +514,7 @@ if __name__ == "__main__": # for testing
     import CAServer
     from CAServer import casput,casmonitor,PVs,PV_info
     CAServer.DEBUG = True
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
         format="%(asctime)s %(levelname)s: %(message)s")
     self = oasis_chiller_IOC # for debugging
     PV_name = "NIH:CHILLER.VAL"

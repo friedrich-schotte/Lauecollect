@@ -1,4 +1,0 @@
-history_length = 300
-stabilization_RMS = 0.01
-stabilization_time = 3.0
-temp_points = [20.0, 20.5, 21.0]

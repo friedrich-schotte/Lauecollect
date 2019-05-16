@@ -2,9 +2,9 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2019-05-09
+Date last modified: 2019-05-13
 """
-__version__ = "1.12" # set_collection_variables: set temperaure in separate thread
+__version__ = "1.13" # temperature ramp server
 
 from logging import debug,info,warn,error
 import traceback
@@ -181,20 +181,34 @@ class Collect(object):
                 if self.scan_return:
                     self.variable_set(variable,self.scan_origin)
 
+    collection_values = {}
+    
     def collection_variables_start(self):
+        self.collection_values = {}
+        for variable,values in zip(self.collection_variables,self.collection_variable_all_values):
+            if variable == "Repeat": continue
+            if variable == "Temperature": continue
+            self.collection_values[variable] = values
         from timing_system import timing_system
-        timing_system.image_number.monitor(self.collection_variables_handle_image_number_update)
+        for variable in self.collection_values:
+            timing_system.image_number.monitor(self.collection_variables_handle_image_number_update,variable)
 
     def collection_variables_stop(self):
         from timing_system import timing_system
-        timing_system.image_number.monitor_clear(self.collection_variables_handle_image_number_update)
+        for variable in self.collection_values:
+            timing_system.image_number.monitor_clear(self.collection_variables_handle_image_number_update,variable)
+        self.collection_values = {}
 
-    def collection_variables_handle_image_number_update(self):
+    def collection_variables_handle_image_number_update(self,variable):
         from timing_system import timing_system
         i = timing_system.image_number.count
-        debug("Setting collection variables for image %r..." % i)
-        self.set_collection_variables(i)
-        debug("Setting collection variables for image %r done" % i)
+        collection_values = dict(self.collection_values)
+        if variable in collection_values:
+            if 0 <= i < len(collection_values[variable]):
+                value = collection_values[variable][i]
+                debug("Image %r: Setting collection variable %s=%r..." % (i,variable,value))
+                self.variable_set(variable,value)
+                debug("Image %r: Setting collection variable %s=%r done" % (i,variable,value))
                 
     def variable_value(self,variable):
         """Current read-back value"""
@@ -269,6 +283,14 @@ class Collect(object):
         values = []
         for j,n in enumerate(self.collection_variable_indices(i)):
             values += [self.variable_values(j)[n]]
+        return values
+
+    def collection_all_values(self,variable):
+        """variable: e.g. 'Temperature'"""
+        values = []
+        if variable in self.collection_variables:
+            i = self.collection_variables.index(variable)
+            values = self.collection_variable_all_values[i]
         return values
 
     @property
@@ -427,6 +449,39 @@ class Collect(object):
         values = self.expand_sequence(self.temperatures)
         return values
 
+    def temperature_start(self):
+        if "Temperature" in self.collection_variables and \
+            self.variable_wait("Temperature") == False:
+            self.actual("Temperature start...")
+            from linear_ranges import linear_ranges
+            image_numbers,temperatures = \
+                linear_ranges(self.collection_all_values("Temperature"))
+            times = image_numbers * self.image_acquisition_time
+            from temperature_Friedrich import temperature
+            self.actual("Temperature uploading ramp...")
+            temperature.time_points = list(times)
+            temperature.temp_points = list(temperatures)
+            self.actual("Temperature started")
+
+    def temperature_stop(self):
+        if "Temperature" in self.collection_variables and \
+            self.variable_wait("Temperature") == False:
+            self.actual("Temperature stop...")
+            from temperature_Friedrich import temperature
+            temperature.time_points = []
+            temperature.temp_points = []
+            self.actual("Temperature stopped")
+
+    @property
+    def image_acquisition_time(self):
+        sequences = self.sequences
+        N = sum([sequence.period for sequence in sequences])
+        ##T = sequences[0].tick_period()
+        from timing_system import timing_system
+        T = timing_system.hsct
+        t = N * T
+        return t
+            
     @property
     def temperature_count(self):
         """List of temperature setpoints for dataset"""
@@ -651,6 +706,7 @@ class Collect(object):
         self.laser_scope_start()
         self.diagnostics_start()
         self.logging_start()
+        self.temperature_start()
         self.collection_variables_start()
         self.update_status_start()
 
@@ -669,6 +725,7 @@ class Collect(object):
 
         self.update_status_stop()
         self.collection_variables_stop()
+        self.temperature_stop()
         self.diagnostics_stop()
         self.timing_system_stop()
         self.collection_variables_dataset_stop()
@@ -1287,13 +1344,20 @@ if __name__ == '__main__':
     ##print('self.scan_point_list')
     ##print("self.power_configuration")
     ##print('self.collection_order')
-    print('self.collection_variables')
-    print('self.collection_variable_counts')
+    ##print('self.collection_variables')
+    ##print('self.collection_variable_counts')
+    print('self.temperatures')
+    ##print('self.temperature_list')
+    print('self.collection_all_values("Temperature")')
+    from linear_ranges import linear_ranges
+    print('linear_ranges(self.collection_all_values("Temperature"))')
+    from temperature_Friedrich import temperature
+    print('temperature.time_points,temperature.temp_points')
     print('')
     ##print('self.temperature_list')
     ##print('self.scan_point_list')
     ##print('self.power_list')
-    print('')
+    ##print('')
     ##print('self.delay_configuration')
     ##print('self.delay_sequences')
     ##print('self.delay_list')
@@ -1332,14 +1396,16 @@ if __name__ == '__main__':
     ##print('self.laser_scope_start()')
     ##print('self.diagnostics_start()')
     ##print('self.logging_start()')
-    print('self.collection_variables_start()')
-    print('self.update_status_start()')
+    print('self.temperature_start()')
+    ##print('self.collection_variables_start()')
+    ##print('self.update_status_start()')
     print('')
     ##print('self.acquisition_start()')
     print('self.timing_system_acquisition_start()')
     print('')
-    print('self.update_status_stop()')
-    print('self.collection_variables_stop()')
+    ##print('self.update_status_stop()')
+    ##print('self.collection_variables_stop()')
+    print('self.temperature_stop()')
     ##print('self.logging_stop()')
     ##print('self.diagnostics_stop()')
     ##print('self.xray_scope_stop()')
@@ -1349,8 +1415,8 @@ if __name__ == '__main__':
     ##print('self.collection_variables_dataset_stop()')
     print('')
     ##print('self.generating_packets = True')
-    print('self.collect_dataset()')
-    ##print('self.dataset_started')
+    ##print('self.collect_dataset()')
+    print('self.collecting_dataset = True')
     ##print('self.erasing_dataset = True')
     ##print('sum(self.logfile_has_entries(self.xray_image_filenames))')
     ##print('self.logfile_delete_filenames(self.xray_image_filenames)')

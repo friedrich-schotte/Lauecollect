@@ -51,7 +51,7 @@ variable with three arguments:
 """
 from logging import debug,info,warn,error
 
-__version__ = "1.4.9" # update data_count if array length changes
+__version__ = "1.4.10" # handle empty arrays
 
 DEBUG = False # Generate debug messages?
 
@@ -1208,7 +1208,7 @@ def header_info(data_type,payload):
     return ""
 
 def convert(PV_name,value):
-    """Convert value to the correct data type for the givne process variable"""
+    """Convert value to the correct data type for the given process variable"""
     # The value of a PV might be passed as string when the PV type is acually
     # DOUBLE.
     current_value = PV_value(PV_name)
@@ -1221,13 +1221,15 @@ def convert(PV_name,value):
                 (PV_name,value,dtype,message))
             new_value = dtype()
     else:
+        if not isarray(value): value = [value]
         # Convert each array element.
-        dtype = type(current_value[0])
+        if len(current_value) > 0: dtype = type(current_value[0])
+        else: dtype = float
         try: new_value = [dtype(x) for x in value]
         except Exception,message:
             if DEBUG: debug("convert: %r from %r to %r failed: %r" %
                 (PV_name,value,dtype,message))
-            new_value = [dtype(x)]*len(value)
+            new_value = [dtype()]*len(value)
     if new_value != value:
         if DEBUG: debug("converting %r from %r to %r" % (PV_name,value,new_value))
     return new_value

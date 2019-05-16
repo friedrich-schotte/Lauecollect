@@ -10,29 +10,22 @@ legend_lst = []
 def round_p(lst):
     return str(round(float(lst),3))
 
-def plot_data(temp_plot,lst):
-    print lst
-    from_t = floor(float(lst[5]))
-    duration_t = floor(float(lst[6]))
-    a = asarray(channel_archiver.history("NIH:TEMP.RBV",from_t,from_t+duration_t))
+def get_data(name = 'TEMP',from_time = 0, duration = 0):
+    a = asarray(channel_archiver.history("NIH:"+name+".RBV",from_time-duration,from_time))
     
- #lst[7] - step
-    #lst[2],3,4 - P I D parameters
-    if float(lst[7]) == temp_plot:# and float(lst[7]) == 5 :
-        plt.plot(a[0,:]-a[0,0],a[1,:]-a[1,0])
-        #legend_lst.append('P = '+ round_p(lst[2]) + ' I = ' + round_p(lst[3])+ ' D = ' + round_p(lst[4]))
-        legend_lst.append('dT = '+ lst[0]+'->'+lst[1])
-plt.figure()
-t_jump = 10
-with open(getcwd()+"\\temperature_controller_tunning_data_PID_var_scan.txt",'r') as f:
-    for line in f: 
-        print line
-        lst = line.split(',')
-        plot_data(t_jump,lst)
-plt.legend(legend_lst)
-plt.title('temperature jump by ' + str(t_jump) + ' K;')
-plt.xlabel('time. seconds')
-plt.ylabel('Temperature change, K')
-plt.draw()
+    return a
+def temp_to_oasis(T):
+    t_min = T*0+ 8
+    t_max = T*0+ 45
+    T_min = T*0+ -16
+    T_max = T*0+ 120
+    t = ((T-T_min)/(T_max-T_min))*(t_max-t_min) + t_min
+    return t
+temp  = get_data(name = 'TEMP',from_time = time(), duration = 1200)
+oasis  = get_data(name = 'CHILLER',from_time = time(), duration = 1200)
+
+plt.plot(temp[0,:],temp_to_oasis(temp[1,:]),'o')
+plt.plot(oasis[0,:],oasis[1,:],'o')
 plt.show()
+
 

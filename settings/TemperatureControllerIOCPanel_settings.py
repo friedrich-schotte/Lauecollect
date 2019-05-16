@@ -1,2 +1,2 @@
-CustomView = ['Enabled', 'EPICS Record', 'Baud Rate', 'Port']
+CustomView = ['Enabled', 'EPICS Record', 'Port', 'Set Point', 'Temperature']
 view = 'Custom'

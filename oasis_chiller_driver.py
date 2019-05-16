@@ -59,7 +59,11 @@ Date last modified: 2018-10-15 Valentyn Stadnytskyi
 from struct import pack,unpack
 from numpy import nan,rint,isnan
 from logging import error,warn,info,debug
-from thread import allocate_lock
+import sys
+if sys.version[0] == '3':
+    from _thread import allocate_lock
+else:
+    from thread import allocate_lock
 __lock__ = allocate_lock()
 __version__ = "2.1" # fault code
 
@@ -71,13 +75,13 @@ class OasisChillerDriver(object):
     id_query = "A"
     id_reply_length = 3
 
-    wait_time = 0 # bewteen commands 
+    wait_time = 0 # bewteen commands
     last_reply_time = 0.0
     last_command_execution_time = 0.0
 
     # Make multithread safe
-    
-    
+
+
     ser = None
 
     def __init__(self):
@@ -89,7 +93,7 @@ class OasisChillerDriver(object):
     def close(self):
         self.ser.close()
         self.ser = None
-        
+
     def init_communications(self):
         """To do before communncating with the controller"""
         from os.path import exists
@@ -104,30 +108,30 @@ class OasisChillerDriver(object):
                 if not self.id_reply_valid(reply):
                     debug("%s: %r: invalid reply %r" % (self.ser.name,self.id_query,reply))
                     info("%s: lost connection" % self.ser.name)
-                    self.ser = None 
+                    self.ser = None
                 else: info("Device is still responsive.")
-            except Exception,msg:
+            except Exception as msg:
                 debug("%s: %s" % (Exception,msg))
-                self.ser = None 
+                self.ser = None
 
         if self.ser is None:
             devices = serial.tools.list_ports.comports()
             debug('devices: %r' % devices)
             for item in devices:
                 debug('device: %r' % item)
-                try: 
+                try:
                     ser = Serial(item.device,baudrate=self.baudrate)
                     ser.write(self.id_query)
                     debug("%s: Sent %r" % (ser.name,self.id_query))
                     reply = self.read(count=self.id_reply_length,ser=ser)
-                    if self.id_reply_valid(reply): 
+                    if self.id_reply_valid(reply):
                        self.ser = ser
                        info("Discovered device at %s based on reply %r" % (self.ser.name,reply))
                        break
-                except Exception,msg:
+                except Exception as msg:
                     debug("%s: %s" % (Exception,msg))
                 if self.ser is not None: break
-    
+
     def query(self,command = None,count=1,ser = None):
         """Send a command to the controller and return the reply"""
         from time import time
@@ -191,7 +195,7 @@ class OasisChillerDriver(object):
         else:
             value = None
         return value
-        
+
     def id_reply_valid(self,reply):
         valid = reply.startswith("A") and len(reply) == 3
         debug("Reply %r valid? %r" % (reply,valid))
@@ -205,7 +209,7 @@ class OasisChillerDriver(object):
         if not isnan(value): debug("Nominal temperature %r C" % value)
         else: warn("Nominal temperature unreadable")
         return value
-    
+
     def set_nominal_temperature(self,value): self.set_value(1,value*10)
     nominal_temperature = property(get_nominal_temperature,set_nominal_temperature)
     VAL = nominal_temperature
@@ -219,7 +223,7 @@ class OasisChillerDriver(object):
         else: warn("Actual temperature unreadable")
         return value
     RBV = actual_temperature
-    
+
     def get_low_limit(self):
         """Not supported early firmware (serial number 1)"""
         debug("Getting low limit...")
@@ -230,7 +234,7 @@ class OasisChillerDriver(object):
     def set_low_limit(self,value): self.set_value(6,value*10)
     low_limit = property(get_low_limit,set_low_limit)
     LLM = low_limit
-    
+
     def get_high_limit(self):
         """Not supported early firmware (serial number 1)"""
         debug("Getting high limit...")
@@ -263,7 +267,7 @@ class OasisChillerDriver(object):
             dic['p2'] = ('\xd3',3)
         except:
             dic['p1'] = nan
-        try:   
+        try:
             dic['i2'] = ('\xd4',3)
         except:
             dic['p1'] = nan
@@ -279,7 +283,7 @@ class OasisChillerDriver(object):
                 res = nan
             sleep(0.1)
         return res_dic
-    
+
     def set_factory_PID(self):
         pid_dic = {}
         #factory settings: good settings
@@ -297,7 +301,7 @@ class OasisChillerDriver(object):
         dic['i2'] = '\xf4'
         dic['d2'] = '\xf5'
         for key in pid_dic.keys():
-            byte_temp =  pack('h',round(pid_dic[key],0))    
+            byte_temp =  pack('h',round(pid_dic[key],0))
             self.query(command = dic[key]+byte_temp,count = 1)
             sleep(0.1)
 
@@ -315,12 +319,12 @@ class OasisChillerDriver(object):
             dic['i2'] = '\xf4'
             dic['d2'] = '\xf5'
             for key in pid_in.keys():
-                byte_temp =  pack('h',round(pid_in[key],0))    
+                byte_temp =  pack('h',round(pid_in[key],0))
                 self.query(command = dic[key]+byte_temp,count = 1)
                 sleep(0.1)
         except:
             error('Oasis driver set_PID wrong input dictionary structure')
-    
+
     @property
     def port_name(self):
         """Serial port name"""

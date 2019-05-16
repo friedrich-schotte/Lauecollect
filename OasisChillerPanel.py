@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """
 Control panel for thermoelectric circulating water chiller.
-Author: Friedrich Schotte, Jun 1, 2009 - Oct 31, 2017
+Author: Friedrich Schotte, Valentyn Stadnytskiy
+Date created: 2009-06-01
+Date last modified: 2019-05-15
 
 Fault Codes:
 The fault byte is a bit map (0 = OK, 1 = Fault):
@@ -23,8 +25,7 @@ from oasis_chiller import chiller
 from numpy import nan,isnan
 from Panel import BasePanel,PropertyPanel
 
-__version__ = "2.0.1" # SCAN, no "Live" and "Refresh" buttons
-#Changed About field to include fault codes: Valentyn Stadnytskyi Oct 15 2018
+__version__ = "2.1" # PID parameters
 
 class OasisChillerPanel(BasePanel):
     name = "OasisChiller"
@@ -66,6 +67,12 @@ class SettingsPanel(BasePanel):
             [[PropertyPanel,"Port",      chiller,"COMM" ],{"refresh_period":1.0}],
             [[PropertyPanel,"Low Limit", chiller,"LLM" ],{"unit":"C","refresh_period":1.0}],
             [[PropertyPanel,"High Limit",chiller,"HLM"],{"unit":"C","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback P1",chiller,"P1"],{"format":"%g","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback I1",chiller,"I1"],{"format":"%g","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback D1",chiller,"D1"],{"format":"%g","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback P2",chiller,"P2"],{"format":"%g","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback I2",chiller,"I2"],{"format":"%g","refresh_period":1.0}],
+            [[PropertyPanel,"Feedback D2",chiller,"D2"],{"format":"%g","refresh_period":1.0}],
             [[PropertyPanel,"Nom. update rate",chiller,"SCAN"],{"format":"%.3f","unit":"s","refresh_period":1.0}],
             [[PropertyPanel,"Act. update rate",chiller,"SCANT"],{"format":"%.3f","unit":"s","refresh_period":1.0}],
         ]

@@ -10,7 +10,10 @@ from CAServer import casput,casget,casmonitor,casdel
 from time import time
 from logging import debug,info,warn,error
 from thread import start_new_thread
-from numpy import isfinite,nan
+from numpy import isfinite, nan
+import platform
+computer_name = platform.node()
+import os
 
 class Temperature_Controller_IOC(object):
     name = "temperature_controller_IOC"
@@ -42,6 +45,8 @@ class Temperature_Controller_IOC(object):
         casput(self.prefix+".DESC","Temp")
         casput(self.prefix+".EGU","C")
         casput(self.prefix+".BAUD",temperature_controller.baudrate.value)
+        # Complex Actions
+        casput(self.prefix+".ACTION",'')
         # Monitor client-writable PVs.
         casmonitor(self.prefix+".SCAN",callback=self.monitor)
         casmonitor(self.prefix+".BAUD",callback=self.monitor)
@@ -59,7 +64,7 @@ class Temperature_Controller_IOC(object):
         casmonitor(self.prefix+".P1EP",callback=self.monitor)
         casmonitor(self.prefix+".P1SI",callback=self.monitor)
         while self.running:
-            if self.scan_time > 0 and isfinite(self.scan_time): 
+            if self.scan_time > 0 and isfinite(self.scan_time):
                 if temperature_controller.max_time_between_replies > 10:
                     temperature_controller.max_time_between_replies = 0
                     info("Reading configuration")
@@ -78,6 +83,8 @@ class Temperature_Controller_IOC(object):
                     casput(self.prefix+".P1SP",temperature_controller.trigger_start)
                     casput(self.prefix+".P1EP",temperature_controller.trigger_stop)
                     casput(self.prefix+".P1SI",temperature_controller.trigger_stepsize)
+                    casput(self.prefix+".processID",value = os.getpid(), update = False)
+                    casput(self.prefix+".computer_name",value = computer_name, update = False)
                 t = time()
                 casput(self.prefix+".RBV",temperature_controller.actual_temperature.value)
                 casput(self.prefix+".DMOV",temperature_controller.stable)
@@ -127,7 +134,7 @@ class Temperature_Controller_IOC(object):
             casput(self.prefix+".RDBD",temperature_controller.stabilization_threshold)
         if PV_name == self.prefix+".NSAM":
             temperature_controller.stabilization_nsamples = value
-            casput(self.prefix+".NSAM",temperature_controller.stabilization_nsamples)            
+            casput(self.prefix+".NSAM",temperature_controller.stabilization_nsamples)
         if PV_name == self.prefix+".IHLM":
             temperature_controller.current_high_limit = value
             casput(self.prefix+".IHLM",temperature_controller.current_high_limit)

@@ -28,13 +28,17 @@ adapter -> black ethernet cable -> STRAIGHT TRU adapter ->
 temperature controller
 
 Documentation:
-LDT-5900 Series Temperature Controllers User's Guide 
+LDT-5900 Series Temperature Controllers User's Guide
 www.newport.com/medias/sys_master/images/images/h75/h4e/8797193273374/LDT-59XX-User-Manual.pdf
 """
 from __future__ import with_statement
 from persistent_property import persistent_property
 from logging import warn,debug,info,error
-
+import sys
+if sys.version[0] == '3':
+    from _thread import allocate_lock
+else:
+    from thread import allocate_lock
 __version__ = "3.0.9" # multi-thread safe history
 
 class TemperatureController(object):
@@ -43,12 +47,11 @@ class TemperatureController(object):
     verbose_logging = True
     last_reply_time = 0.0
     max_time_between_replies = 0.0
-    
+
     def __init__(self):
         # Make multithread safe
-        from thread import allocate_lock
         self.__lock__ = allocate_lock()
-                
+
         # When read, read actual temperature, when changed, change set point.
         self.actual_temperature = self.property_object(self,"MEAS:T",unit="C",
             name="Temperature")
@@ -132,7 +135,7 @@ class TemperatureController(object):
         from time import time
         if self.port is not None:
             try: reply = self.port.readline()
-            except Exception,msg: warn("readline: %s" % msg); reply = ""
+            except Exception as msg: warn("readline: %s" % msg); reply = ""
             self.log_comm("Read %r" % reply)
         else: reply = ""
         if reply:
@@ -154,31 +157,31 @@ class TemperatureController(object):
                 if not self.id_string in reply:
                     debug("Port %s: %r: reply %r" % (self.__port_name__,id_query,reply))
                     info("Port %s: lost connection" % self.__port_name__)
-                    self.port = None 
+                    self.port = None
                     self.__port_name__ = ""
-            except Exception,msg:
+            except Exception as msg:
                 debug("%s: %s" % (Exception,msg))
-                self.port = None 
+                self.port = None
                 self.__port_name__ = ""
 
         if self.port is None:
-            port_basename = "COM" if not exists("/dev") else "/dev/tty.usbserial"   
+            port_basename = "COM" if not exists("/dev") else "/dev/tty.usbserial"
             for i in range(0,64):
                 port_name = port_basename+("%d" % i if i>0 else "")
                 debug("Trying port %s..." % port_name)
-                try: 
+                try:
                     temp = Serial(port_name,timeout=self.comm_timeout,
                         baudrate=self.baudrate.value)
                     temp.write(id_query)
                     reply = temp.readline()
                     debug("Port %s: %r: reply %r" % (port_name,id_query,reply))
-                    if self.id_string in reply: 
+                    if self.id_string in reply:
                        self.port = temp
                        self.__port_name__ = port_name
                        info("Port %s: found %s" % (port_name,self.id_string))
                        break
-                except Exception,msg: debug("%s: %s" % (Exception,msg))
-            
+                except Exception as msg: debug("%s: %s" % (Exception,msg))
+
     id_string = "LDT-5948"
     port = None
     __port_name__ = ""
@@ -195,7 +198,7 @@ class TemperatureController(object):
     id = property(get_id,set_id)
 
     def instantiate(x): return x()
-  
+
     @instantiate
     class baudrate(object):
         """Serial port EPICS record name"""
@@ -218,7 +221,7 @@ class TemperatureController(object):
         """For logging and scanning, can be used as counter"""
         unit = "C"
         name = "Temp."
-        
+
         def __init__(self,controller):
             self.controller = controller
             self.last_change = 0
@@ -242,7 +245,7 @@ class TemperatureController(object):
         def RMS(self): return self.T.RMS
         @property
         def average(self): return self.T.average
-        
+
         def get_moving(self):
             """Has the actual temperature not yet reached the set point within
             tolerance?
@@ -294,7 +297,7 @@ class TemperatureController(object):
         history_length = persistent_property("history_length",300)
         # Criteria for deciding whether the temperature has stabilized.
         stabilization_time = persistent_property("stabilization_time",0.0) # seconds
-        stabilization_RMS  = persistent_property("stabilization_RMS" ,0.0) 
+        stabilization_RMS  = persistent_property("stabilization_RMS" ,0.0)
 
         def __init__(self,controller,read,unit="",name="",write=""):
             """read: e.g. 'SET:TEMP?'.
@@ -307,8 +310,11 @@ class TemperatureController(object):
             if not self.read.endswith("?"): self.read += "?"
             if self.write == "": self.write = self.read.rstrip("?")
             # To make history multi-thread safe
-            from thread import allocate_lock
-            self.lock = allocate_lock()        
+            if sys.version[0] == '3':
+                from _thread import allocate_lock
+            else:
+                from thread import allocate_lock
+            self.lock = allocate_lock()
 
         def get_value(self):
             from numpy import nan
@@ -344,8 +350,8 @@ class TemperatureController(object):
             dt = self.stabilization_time
             values = self.values[self.timestamps > time()-dt]
             average = average(values) if len(values)>0 else nan
-            return average            
-            
+            return average
+
         @property
         def RMS(self):
             from time import time
@@ -353,8 +359,8 @@ class TemperatureController(object):
             dt = self.stabilization_time
             values = self.values[self.timestamps > time()-dt]
             RMS = std(values) if len(values)>0 else nan
-            return RMS            
-        
+            return RMS
+
         def get_moving(self):
             """Has the value been stable for some time?"""
             moving = self.RMS > self.stabilization_RMS
@@ -384,10 +390,11 @@ class TemperatureController(object):
             try: P,I,D = eval(reply)
             except: return nan,nan,nan
             return P,I,D
-        def set_PID(self,(P,I,D)):
+        def set_PID(self,PID):
+            (P,I,D) = PID
             self.controller.query("PID %s,%s,%s" % (P,I,D))
         PID = property(get_PID,set_PID)
-        
+
         class parameter(object):
             def __init__(self,feedback_loop,name):
                 self.feedback_loop = feedback_loop
@@ -415,8 +422,8 @@ class TemperatureController(object):
                 return "temperature_controller.feedback_loop."+self.name
 
         def __repr__(self):
-            return "temperature_controller.feedback_loop" 
-   
+            return "temperature_controller.feedback_loop"
+
     class status_object(object):
         """Diagnostics message"""
         def __init__(self,controller):
@@ -444,7 +451,7 @@ class TemperatureController(object):
         else: stable = False
         return stable
 
-    stabilization_threshold  = persistent_property("stabilization_threshold",0.01) 
+    stabilization_threshold  = persistent_property("stabilization_threshold",0.01)
     stabilization_nsamples  = persistent_property("stabilization_nsamples",3)
 
     @property
@@ -615,7 +622,7 @@ driver = temperature_controller = TemperatureController()
 SampleT = temperature_controller
 temperature = temperature_controller.temperature
 set_point = temperature_controller.nominal_temperature
-power = temperature_controller.power 
+power = temperature_controller.power
 
 def test_ramp():
     from time import sleep
@@ -625,9 +632,9 @@ def test_ramp():
     for T in arange(4,111,0.871):
         set_point.value = T
         setT = set_point.value
-        print T,setT,abs(setT-T)
+        print(T,setT,abs(setT-T))
         if abs(setT - T) > 0.0005: fail_count += 1
-    if fail_count: print "failed %d times" % fail_count
+    if fail_count: print("failed %d times" % fail_count)
     set_point.value = T0
 
 if __name__ == "__main__":

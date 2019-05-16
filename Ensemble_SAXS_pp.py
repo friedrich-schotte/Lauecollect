@@ -97,9 +97,10 @@ class Sequence(object):
 
     @staticmethod
     def tick_period():
-        from timing_system import timing_system
+        ##from timing_system import timing_system
         ##T = timing_system.hsct
-        T = 0.0010126898793523787
+        ##T = 0.0010126898793523787
+        T = 0.0010182857142857144
         return T
             
     @property

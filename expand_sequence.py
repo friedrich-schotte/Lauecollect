@@ -2,9 +2,9 @@
 Shorthand notation for timing sequences
 Author: Friedrich Schotte
 Date created: 2018-10-02
-Date last modified: 2010-01-29
+Date last modified: 2010-05-13
 """
-__version__ = "1.1.4" # last point of arange(-2,2,0.05)
+__version__ = "1.2" # temperature ramp starting with hold_low
 
 from logging import debug,info,warn,error
 
@@ -252,8 +252,12 @@ def ramp(low=20.0,high=24.0,step=1.0,hold=1,hold_low=None,hold_high=None,repeat=
     if hold_high is None: hold_high = hold
     s = sign(high-low)
     step = s*abs(step)
-    values = arange(low,high-step,step) + [high]*hold_high + \
-             arange(high-step,low-step,step) + [low ]*(hold_low-1)
+    values = (
+        [low ]*hold_low +
+        arange(low,high-step,step) +
+        [high]*hold_high +
+        arange(high,low-step,step)
+    )
     values = values*repeat
     return values
 

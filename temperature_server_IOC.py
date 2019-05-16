@@ -2,130 +2,253 @@
 
 The server communicates with Lightwave( previously known as temperature controller IOC) and Oasis IOC to synchronize the temperature changes.
 Authors: Valentyn Stadnydskyi, Friedrich Schotte
-Date created: 2019-05-18
-Date last modified: 2019-05-18
+Date created: 2019-05-08
+Date last modified: 2019-05-14
 """
-__version__ = "0.0"
+__version__ = "0.1" # Friedrich Schotte: bug fixes
 
 from logging import debug,warn,info,error
-
-#from temperature_controller_driver import temperature_controller as lightwave
-#from oasis_chiller import oasis_chiller_driver as oasis
-#from temperature_controller_server import temperature_controller_IOC
-from oasis_chiller_driver import driver as oasis_driver
-from LDT_5900_driver import driver as lightwave_driver
-
+import os
 from IOC import IOC
+import traceback
+from time import time,sleep
+from numpy import empty, mean, std, zeros, abs, where
+from scipy.interpolate import interp1d
 
+from CA import caget
+from CAServer import casput,casget,casdel
 
-class Lightwave_DL():
-    """
-    an wrapper object to communicate with lightwave temperature controller
-    """
+import platform
+computer_name = platform.node()
 
+class Temperature_Server_IOC(object):
 
-    def __init__(self,prefix = "NIH:TEMP.", name = 'lightwave'):
-        self.name = name
-        self.prefix = prefix
-    def init(self):
-        pass
+    name = "temperature_server_IOC"
+    from persistent_property import persistent_property
+    prefix = persistent_property("prefix","NIH:TRAMP")
+    SCAN = persistent_property("SCAN",0.5)
+    running = False
+    last_valid_reply = 0
+    was_online = False
+    set_point_update_period = 0.5
+    lightwave_prefix = 'NIH:TEMP'
+    oasis_prefix = 'NIH:CHILLER'
+    oasis_headstart_time = 15
+    ramping_cancelled = False
+    idle_temperature = 22.0
+    idle_temperature_oasis = 8.0
+    temperature_oasis_switch = 83.0
+    temperature_oasis_limit_high = 45.0
 
-    def get_T(self):
-        from CA import caget
-        value = caget(self.prefix+'RBV')
-        return value
-    T = property(get_T)
+    def get_EPICS_enabled(self):
+        return self.running
+    def set_EPICS_enabled(self,value):
+        from thread import start_new_thread
+        if value:
+            if not self.running: start_new_thread(self.run,())
+        else: self.running = False
+    EPICS_enabled = property(get_EPICS_enabled,set_EPICS_enabled)
 
-    def get_moving(self):
-        from CA import caget
-        value = caget(self.prefix+'DMOV')
-        return value
-    moving = property(get_moving)
-    
-    def get_setT(self):
-        from CA import caget
-        value = caget(self.prefix+'VAL')
-        return value
-    def set_setT(self,value):
-        from CA import caget
-        caget(self.prefix+'VAL',value)
-    setT = property(get_setT,set_setT)
+    def startup(self):
+        from CAServer import casput,casmonitor
+        from CA import caput,camonitor
+        from numpy import nan
+        #print('startup with prefix = %r' %self.prefix)
+        casput(self.prefix+".SCAN",self.SCAN)
+        casput(self.prefix+".DESC",value = "Temperature server IOC: a System Layer server that orchestrates setting on Lightwave IOC and Oasis IOC.", update = False)
+        casput(self.prefix+".EGU",value = "C", update = False)
+        # Set defaults
+        casput(self.prefix+".VAL",value = nan, update = False)
+        casput(self.prefix+".VAL_ADV",value = nan, update = False)
+        casput(self.prefix+".RBV",value = nan, update = False)
+        casput(self.prefix+".TIME_POINTS",[])
+        casput(self.prefix+".TEMP_POINTS",[])
+        casput(self.prefix+".FAULTS"," ")
+        casput(self.prefix+".DMOV",value = nan, update = False)
+        casput(self.prefix+".KILL",value = nan, update = False)
 
-class Oasis_DL():
-    """
-    an wrapper object to communicate with Oasis Chiller
-    """
+        casput(self.prefix+".oasis_RBV",value = nan, update = False)
+        casput(self.prefix+".oasis_VAL",value = nan, update = False)
 
+        casput(self.prefix+".processID",value = os.getpid(), update = False)
+        casput(self.prefix+".computer_name",value = computer_name, update = False)
 
-    def __init__(self,prefix = "NIH:CHILLER.", name = 'oasis'):
-        self.name = name
-        self.prefix = prefix
-        
-    def init(self):
+        # Monitor client-writable PVs.
+        casmonitor(self.prefix+".VAL",callback=self.monitor)
+        casmonitor(self.prefix+".VAL_ADV",callback=self.monitor)
+        casmonitor(self.prefix+".TIME_POINTS",callback=self.monitor)
+        casmonitor(self.prefix+".TEMP_POINTS",callback=self.monitor)
+        casmonitor(self.prefix+".KILL",callback=self.monitor)
+
+        #############################################################################
+        ## Monitor server-writable PVs that come other servers
+
+        ## Monitor Timing system IOC
+        from timing_system import timing_system
+        camonitor(timing_system.acquiring.PV_name,callback=self.on_acquire)
+
+        ## Lightwave Temperature controller server
+        prefix = self.lightwave_prefix
+        camonitor(prefix+".VAL",callback=self.lightwave_monitor)
+        camonitor(prefix+".RBV",callback=self.lightwave_monitor)
+        camonitor(prefix+".DMOV",callback=self.lightwave_monitor)
+
+        ## Oasis chiller server
+        prefix = self.oasis_prefix
+        camonitor(prefix+".VAL",callback=self.oasis_monitor)
+        camonitor(prefix+".RBV",callback=self.oasis_monitor)
+
+        ## Create local circular buffers
         from circular_buffer_LL import Server
-        self.buffer = Server()
+        self.buffers = {}
+        self.buffers['oasis_RBV'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+        self.buffers['oasis_VAL'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+        self.buffers['oasis_FAULTS'] = Server(size = (2,1*3600*2) , var_type = 'float64')
 
-    def run_once(self):
+        self.buffers['lightwave_RBV'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+        self.buffers['lightwave_VAL'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+
+
+    def update_once(self):
+        from CAServer import casput
+        from numpy import isfinite,isnan,nan
+        from time import time
+        from sleep import sleep
         pass
 
     def run(self):
-        pass
+        """Run EPICS IOC"""
+        self.startup()
+        self.running = True
+        while self.running:
+            sleep(1)
+        self.running = False
 
-    def get_T(self):
-        from CA import caget
-        value = caget(self.prefix+'RBV')
-        return value
-    T = property(get_T)
-    
-    def get_setT(self):
-        from CA import caget
-        value = caget(self.prefix+'VAL')
-        return value
-    def set_setT(self,value):
-        from CA import caget
-        caget(self.prefix+'VAL',value)
-    setT = property(get_setT,set_setT)
+        #self.running = True
+        #while self.running:
+        #    self.update_once()
+        #self.shutdown()
 
-    
-class Temperature_Server():
-    name = "temperature"
-    prefix = "NIH:TRAMP."
+    def start(self):
+        """Run EPCIS IOC in background"""
+        from threading import Thread
+        task = Thread(target=self.run,name="temperature_server_IOC.run")
+        task.daemon = True
+        task.start()
 
-    from persistent_property import persistent_property
-    time_points = persistent_property("time_points",[0.0,5.0,10.0])
-    temp_points = persistent_property("temp_points",[22.0,22.5,23.0])
-    set_point_update_period = persistent_property("set_point_update_period",0.5)
 
-    def __init__(self):
-        pass
 
-    def init(self):
-        lightwave.init_communications()
-        oasis.init_communications()
+    def shutdown(self):
+        from CAServer import casdel
+        self.running = False
+        casdel(self.prefix)
+        del self
 
-        from CA import camonitor
-        from timing_system import timing_system
-        camonitor(timing_system.acquiring.PV_name,callback=self.on_acquire)
-        
+    def monitor(self,PV_name,value,char_value):
+        """Process PV change requests"""
+        from CAServer import casput
+        from CA import caput
+        print("monitor: %s = %r" % (PV_name,value))
+        if PV_name == self.prefix+".VAL":
+            self.set_T(value)
+        if PV_name == self.prefix+".VAL_ADV":
+            self.set_adv_T(value)
+        if PV_name == self.prefix + ".oasis_VAL":
+            caput(self.oasis_prefix,float(value))
+        if PV_name == self.prefix + ".KILL":
+            self.shutdown()
+
+    def lightwave_monitor(self,PV_name,value,char_value):
+        #print('time: %r, PV_name = %r,value= %r,char_value = %r' %(time(),PV_name,value,char_value) )
+        from CA import cainfo
+        from CAServer import casput
+        prefix = self.lightwave_prefix
+        if PV_name == prefix+".VAL":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".VAL","timestamp")
+            arr[1] = float(value)
+            self.buffers['lightwave_VAL'].append(arr)
+            casput(self.prefix +'.VAL',value = float(value), update = False)
+        if PV_name == prefix+".RBV":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".RBV","timestamp")
+            arr[1] = float(value)
+            self.buffers['lightwave_RBV'].append(arr)
+            casput(self.prefix +'.RBV',value = float(value), update = False)
+        #Done Move PV
+        if PV_name == prefix+".DMOV":
+            casput(self.prefix +'.DMOV',value = float(value), update = False)
+
+    def oasis_monitor(self,PV_name,value,char_value):
+        #print('oasis_monitor: time: %r, PV_name = %r,value= %r,char_value = %r' %(time(),PV_name,value,char_value) )
+        from CA import cainfo
+        prefix = self.oasis_prefix
+        if PV_name == prefix+".VAL":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".VAL","timestamp")
+            arr[1] = float(value)
+            self.buffers['oasis_VAL'].append(arr)
+            casput(self.prefix +'.oasis_VAL',value = float(value), update = False)
+        if PV_name == prefix+".RBV":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".RBV","timestamp")
+            arr[1] = float(value)
+            self.buffers['oasis_RBV'].append(arr)
+            casput(self.prefix +'.oasis_RBV',value = float(value), update = False)
+
+    ## Temperature trajectory
     def on_acquire(self):
+        """
+        starts T-Ramp.
+        Usually called from monitor()
+        """
+        print('on acquire')
         self.ramping = self.acquiring
+        self.start_ramping()
 
-    def ramping(self):
+    def start_ramping(self):
+        """
+        starts T-Ramp run_ramping_once method in a separate thread
+        """
+        from thread import start_new_thread
+        start_new_thread(self.run_ramping_once,())
+
+    def run_ramping_once(self):
+        """
+        runs ramping trajectory defined by self.time_points and self.temperaturs
+        """
         from time_string import date_time
         info("Ramp start time: %s" % date_time(self.start_time))
         from time import time,sleep
+        from numpy import where, asarray
         for (t,T) in zip(self.times,self.temperatures):
             dt = self.start_time+t - time()
             if dt > 0:
                 sleep(dt)
-                self.set_point = T
+                debug('t = %r, T = %r,dt = %r' %(t,T,dt))
+                self.set_ramp_T(T)
+                try:
+                    indices = where(self.times >= t+self.oasis_headstart_time)[0][0:1]
+                    debug(indices)
+                    if len(indices) > 0:
+                        idx = indices[0]
+                        self.set_set_oasisT(self.oasis_temperatures[idx])
+                        debug('time = %r, oasis T = %r' %(t,self.temp_to_oasis(self.temperatures[idx])))
+                except:
+                    error(traceback.format_exc())
             if self.ramping_cancelled: break
+        self.temp_points = []
+        self.time_points = []
+
         info("Ramp ended")
+        self.set_T(self.idle_temperature)
+        self.ramping_cancelled = False
+        self.ramping = False
 
     @property
     def acquiring(self):
         from timing_system import timing_system
-        return timing_system.acquiring.value        
+        return timing_system.acquiring.value
 
     @property
     def start_time(self):
@@ -139,9 +262,12 @@ class Temperature_Server():
 
     @property
     def times(self):
+        """
+        converts self.time_points to an array of values with specified spacing (readT_time_spacing0
+        """
         from numpy import arange,concatenate
         min_dt = self.set_point_update_period
-        times = []
+        times = [[]]
         for i in range(0,len(self.time_points)-1):
             T0,T1 = self.time_points[i],self.time_points[i+1]
             DT = T1-T0
@@ -156,50 +282,171 @@ class Temperature_Server():
 
     @property
     def temperatures(self):
-        from scipy.interpolate import interp1d
-        T = interp1d(
-            self.time_points[0:self.N_points],
-            self.temp_points[0:self.N_points],
-            kind='linear',
-            bounds_error=False,
-        )
-        return T(self.times)
+        temperatures = []
+        time_points = self.time_points[0:self.N_points]
+        temp_points = self.temp_points[0:self.N_points]
+        if len(temp_points) > 1:
+            from scipy.interpolate import interp1d
+            f = interp1d(time_points,temp_points, kind='linear',bounds_error=False)
+            temperatures = f(self.times)
+        if len(temp_points) == 1:
+            from numpy import array
+            temperatures = array(temp_points)
+        return temperatures
+
+    @property
+    def oasis_temperatures(self):
+        from numpy import max
+        if len(self.temperatures) == 0:
+            t_oasis = []
+        else:
+            temp_points = self.temperatures
+            first_temp = self.temperatures[0]
+            max_temp = max(temp_points)
+            t_oasis = []
+            idx = 0
+            for temp in temp_points:
+                oasis_temp = self.temp_to_oasis(temp)
+                if max_temp >=self.temperature_oasis_switch:
+                    if idx <=1:
+                        t_oasis.append(oasis_temp)
+                    elif idx > 1:
+                        if temp > temp_points[idx-1] and temp_points[idx-1] > temp_points[idx-2]:
+                            t_oasis.append(self.temperature_oasis_limit_high)
+                        elif temp < temp_points[idx-1] and temp_points[idx-1] < temp_points[idx-2]:
+                            t_oasis.append(self.idle_temperature_oasis)
+                        else:
+                            t_oasis.append(t_oasis[idx-2])
+                else:
+                    t_oasis.append(oasis_temp)
+                idx +=1
+
+
+        return t_oasis
+
+    @property
+    def oasis_times(self):
+        time_points = self.times
+        time_oasis = []
+        for time in time_points:
+            time_oasis.append(time - self.oasis_dl.headstart_time)
+        return time_oasis
 
     @property
     def N_points(self):
         return min(len(self.time_points),len(self.temp_points))
 
     def get_setT(self):
-        value = self.lightwave.setT
+        value = self.buffers['lightwave_VAL'].get_last_N(N = 1)[1,0]
         return value
     def set_setT(self,value):
-        info("set_point = %r" % value)
-        self.lightwave.setT = value
+        debug("set_point = %r" % value)
+        value = float(value)
+        if self.get_setT() != value:
+            caput()
+            self.lightwave_dl.set_cmdT(value)
+            self.oasis_dl.set_cmdT(self.temp_to_oasis(value))
     setT = property(get_setT,set_setT)
 
-    def get_T(self):
-        value = self.lightwave.T
+
+    def get_lightwaveT(self):
+        value = self.buffers['lightwave_RBV'].get_last_N(N = 1)[1,0]
         return value
-    T = property(get_T)
+    lightwaveT = property(get_lightwaveT)
 
-    @property
-    def temperature_controller(self):
-        from temperature_controller import temperature_controller
-        return temperature_controller
+    def get_set_lightwaveT(self):
+        value = self.buffers['lightwave_VAL'].get_last_N(N = 1)[1,0]
+        return value
+    def set_set_lightwaveT(self,value):
+        from CA import caput
+        caput(self.lightwave_prefix + '.VAL', value = float(value))
+    set_lightwaveT = property(get_set_lightwaveT,set_set_lightwaveT)
 
+    def get_oasisT(self):
+        value = self.buffers['oasis_RBV'].get_last_N(N = 1)[1,0]
+        return value
+    oasisT = property(get_oasisT)
 
+    def get_set_oasisT(self):
+        value = self.buffers['oasis_VAL'].get_last_N(N = 1)[1,0]
+        return value
+    def set_set_oasisT(self,value):
+        from CA import caput
+        caput(self.oasis_prefix+'.VAL', value = float(value))
+    set_oasisT = property(get_set_oasisT,set_set_oasisT)
 
-temperature_server = Temperature_Server()
-temperature_server.oasis = oasis_dl = Oasis_DL()
-temperature_server.lightwave = lightwave_dl = Lightwave_DL()
+    def set_T(self,value):
+        value = float(value)
+        if value != self.get_lightwaveT():
+            self.set_set_oasisT(self.temp_to_oasis(value))
+            self.set_set_lightwaveT(value)
 
+    def set_ramp_T(self,value):
+        value = float(value)
+        if value != self.get_lightwaveT():
+            self.set_set_lightwaveT(value)
 
-if __name__ == "__main__": 
+    def set_adv_T(self,value):
+        value = float(value)
+        if value != self.get_lightwaveT():
+            self.set_set_oasisT(self.temp_to_oasis(value))
+            self.set_ICOF(0.0)
+            self.set_set_lightwaveT(value)
+            print('set_set_lightwaveT %r at %r' %(value , time()))
+            sleep(0.1)
+            print(abs(self.get_lightwaveT() - self.get_set_lightwaveT()))
+            while abs(self.get_lightwaveT() - self.get_set_lightwaveT()) > 1.0:
+                sleep(0.05)
+            print('set_ICOF 0.3', time())
+            self.set_ICOF(0.3)
+
+    def set_ICOF(self,value):
+        from CA import caput
+        caput(self.lightwave_prefix + '.ICOF',value)
+    def get_ICOF(self):
+        from CA import caget
+        value = caget(self.lightwave_prefix + '.ICOF')
+        return value
+
+    def temp_to_oasis(self,T, mode = 'bistable'):
+        if mode == 'bistable':
+            if T >= self.temperature_oasis_switch:
+                t = 45.0
+            else:
+                t =8.0
+        else:
+            oasis_min = t_min= 8.0
+            oasis_max = t_max = 45.0
+            T_max= 120.0
+            T_min= -16
+            if T <=T_max or T >=T_min:
+                t = ((T-T_min)/(T_max-T_min))*(t_max-t_min) + t_min
+            elif T>T_max:
+                t = 45.0
+            elif T<T_min:
+                t = 8
+
+        return round(t,1)
+
+temperature_server_IOC = Temperature_Server_IOC()
+
+if __name__ == "__main__":
     import logging
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
         format="%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s",
     )
+    from timing_sequencer import timing_sequencer
 
-    self = temperature_server # for debugging
-
-
+    print("timing_sequencer.queue_active = %r" % timing_sequencer.queue_active)
+    print("timing_sequencer.queue_active = False # cancel acquistion")
+    print("timing_sequencer.queue_active = True  # simulate acquistion")
+    print("timing_sequencer.queue_repeat_count = 0 # restart acquistion")
+    print("timing_sequencer.queue_active = True  # simulate acquistion")
+    print("self.start_time = time(); self.start_ramping()")
+    self =  temperature_server_IOC
+    ##from matplotlib import pyplot as plt
+    self.time_points = [0.0,30.0,302.0,332.0,634.0,30.0+634.0,302.0+634.0,332.0+634.0,634.0+634.0]
+    self.temp_points = [-16,-16,120,120,-16,-16,120,120,-16]
+    ##print("self.lightwave_dl.driver.feedback_loop.PID = (1.0, 0.300000012, 0.561999977)")
+    ##print('plt.plot(self.times,self.temperatures); plt.plot(self.oasis_times,self.oasis_temperatures); plt.show()')
+    ##plt.plot(self.times,self.temperatures); plt.plot(self.oasis_times,self.oasis_temperatures); plt.show()

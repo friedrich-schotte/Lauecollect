@@ -1,1 +1,1 @@
-scan_time = 0.33
+scan_time = 0.6

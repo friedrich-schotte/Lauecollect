@@ -1,9 +1,9 @@
 """EPICS IOC prototype
 Author: Friedrich Schotte
 Date created: 2019-05-18
-Date last modified: 2019-05-18
+Date last modified: 2019-05-13
 """
-__version__ = "1.0"
+__version__ = "1.1" # added: run
 
 from logging import debug,warn,info,error
 
@@ -16,9 +16,13 @@ class IOC(object):
     scan_period = persistent_property("scan_period",2.0)
 
     property_names = []
+
+    def run(self):
+        self.running = True
+        from sleep import sleep
+        while self.running: sleep(0.25)
     
     from thread_property_2 import thread_property
-    
     @thread_property
     def running(self):
         info("Starting IOC: Prefix: %s ..." % self.prefix)
