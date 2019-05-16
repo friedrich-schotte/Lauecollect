@@ -6,3 +6,4 @@
 *.err
 *.basi
 
+.DS_Store
