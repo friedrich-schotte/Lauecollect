@@ -346,7 +346,6 @@ class OasisChiller_IOC(object):
     name = "oasis_chiller_IOC"
     from persistent_property import persistent_property
     prefix = persistent_property("prefix","NIH:CHILLER")
-    SCAN = persistent_property("SCAN",0.5)
     running = False
     was_online = False
 
@@ -380,7 +379,7 @@ class OasisChiller_IOC(object):
     def startup(self):
         from CAServer import casput,casmonitor
         from numpy import nan
-        casput(self.prefix+".SCAN",self.SCAN)
+        casput(self.prefix+".SCAN",oasis_chiller_driver.wait_time)
         casput(self.prefix+".DESC","Temp")
         casput(self.prefix+".EGU","C")
         # Set defaults
@@ -409,44 +408,38 @@ class OasisChiller_IOC(object):
         from numpy import isfinite,isnan,nan
         from time import time
         from sleep import sleep
-        if self.SCAN > 0 and isfinite(self.SCAN):
-            t = time()
-            SCAN = self.SCAN
-            online = oasis_chiller_driver.online
-            if online:
-                if online and not self.was_online:
-                    info("Reading configuration...")
-                    casput(self.prefix+".COMM",oasis_chiller_driver.COMM)
-                    casput(self.prefix+".VAL",oasis_chiller_driver.VAL)
-                    casput(self.prefix+".RBV",oasis_chiller_driver.RBV)
-                    casput(self.prefix+".fault_code",oasis_chiller_driver.fault_code)
-                    casput(self.prefix+".faults",oasis_chiller_driver.faults)
-                    casput(self.prefix+".LLM",oasis_chiller_driver.LLM)
-                    casput(self.prefix+".HLM",oasis_chiller_driver.HLM)
-                    casput(self.prefix+".P1",oasis_chiller_driver.P1)
-                    casput(self.prefix+".I1",oasis_chiller_driver.I1)
-                    casput(self.prefix+".D1",oasis_chiller_driver.D1)
-                    casput(self.prefix+".P2",oasis_chiller_driver.P2)
-                    casput(self.prefix+".I2",oasis_chiller_driver.I2)
-                    casput(self.prefix+".D2",oasis_chiller_driver.D2)
-                    casput(self.prefix+".SCANT",nan)
-                    casput(self.prefix+".processID",value = os.getpid(), update = False)
-                    casput(self.prefix+".computer_name", value = computer_name, update = False)
-                if len(self.command_queue) > 0:
-                    attr,value = self.command_queue.popleft()
-                    setattr(oasis_chiller_driver,attr,value)
-                    value = getattr(oasis_chiller_driver,attr)
-                else:
-                    attr = self.next_poll_property
-                    value = getattr(oasis_chiller_driver,attr)
-                    casput(self.prefix+"."+attr,value)
-                    casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
+        t = time()
+        online = oasis_chiller_driver.online
+        if online:
+            if online and not self.was_online:
+                info("Reading configuration...")
+                casput(self.prefix+".COMM",oasis_chiller_driver.COMM)
+                casput(self.prefix+".VAL",oasis_chiller_driver.VAL)
+                casput(self.prefix+".RBV",oasis_chiller_driver.RBV)
+                casput(self.prefix+".fault_code",oasis_chiller_driver.fault_code)
+                casput(self.prefix+".faults",oasis_chiller_driver.faults)
+                casput(self.prefix+".LLM",oasis_chiller_driver.LLM)
+                casput(self.prefix+".HLM",oasis_chiller_driver.HLM)
+                casput(self.prefix+".P1",oasis_chiller_driver.P1)
+                casput(self.prefix+".I1",oasis_chiller_driver.I1)
+                casput(self.prefix+".D1",oasis_chiller_driver.D1)
+                casput(self.prefix+".P2",oasis_chiller_driver.P2)
+                casput(self.prefix+".I2",oasis_chiller_driver.I2)
+                casput(self.prefix+".D2",oasis_chiller_driver.D2)
+                casput(self.prefix+".SCANT",nan)
+                casput(self.prefix+".processID",value = os.getpid(), update = False)
+                casput(self.prefix+".computer_name", value = computer_name, update = False)
+            if len(self.command_queue) > 0:
+                attr,value = self.command_queue.popleft()
+                setattr(oasis_chiller_driver,attr,value)
+                value = getattr(oasis_chiller_driver,attr)
             else:
-                sleep(SCAN)
-            self.was_online = online
-        else:
-            casput(self.prefix+".SCANT",nan)
-            sleep(0.1)
+                attr = self.next_poll_property
+                value = getattr(oasis_chiller_driver,attr)
+                casput(self.prefix+"."+attr,value)
+                casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
+        else: sleep(1)
+        self.was_online = online
 
     from collections import deque
     command_queue = deque()
@@ -465,8 +458,8 @@ class OasisChiller_IOC(object):
         from CAServer import casput
         info("%s = %r" % (PV_name,value))
         if PV_name == self.prefix+".SCAN":
-            self.SCAN = float(value)
-            casput(self.prefix+".SCAN",self.SCAN)
+            oasis_chiller_driver.wait_time = float(value)
+            casput(self.prefix+".SCAN",oasis_chiller_driver.wait_time)
         else: 
             attr = PV_name.replace(self.prefix+".","")
             self.command_queue.append([attr,float(value)])
