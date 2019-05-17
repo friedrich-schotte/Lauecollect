@@ -53,7 +53,7 @@ Inbound Rules > pythonw > General > Allow the connection
 
 Authors: Friedrich Schotte, Nara Dashdorj, Valentyn Stadnytskyi
 Date created: 2009-05-28
-Date last modified: 2018-10-15
+Date last modified: 2018-10-16
 """
 
 from struct import pack,unpack
@@ -63,7 +63,7 @@ import os
 import platform
 computer_name = platform.node()
 
-__version__ = "2.2" # PID parameters
+__version__ = "2.3" # command scheduler
 
 class OasisChillerDriver(object):
     """Oasis thermoelectric chiller by Solid State Cooling Systems"""
@@ -73,7 +73,8 @@ class OasisChillerDriver(object):
     id_query = "A"
     id_reply_length = 3
 
-    wait_time = 0 # bewteen commands
+    from persistent_property import persistent_property
+    wait_time = persistent_property("wait_time",1.0) # bewteen commands
     last_reply_time = 0.0
 
     def id_reply_valid(self,reply):
@@ -347,8 +348,25 @@ class OasisChiller_IOC(object):
     prefix = persistent_property("prefix","NIH:CHILLER")
     SCAN = persistent_property("SCAN",0.5)
     running = False
-    last_valid_reply = 0
     was_online = False
+
+    def run(self):
+        """Run EPICS IOC"""
+        self.startup()
+        self.running = True
+        while self.running: self.update_once()
+        self.shutdown()
+
+    def start(self):
+        """Run EPCIS IOC in background"""
+        from threading import Thread
+        task = Thread(target=self.run,name="oasis_chiller_IOC.run")
+        task.daemon = True
+        task.start()
+
+    def shutdown(self):
+        from CAServer import casdel
+        casdel(self.prefix)
 
     def get_EPICS_enabled(self):
         return self.running
@@ -392,6 +410,7 @@ class OasisChiller_IOC(object):
         from time import time
         from sleep import sleep
         if self.SCAN > 0 and isfinite(self.SCAN):
+            t = time()
             SCAN = self.SCAN
             online = oasis_chiller_driver.online
             if online:
@@ -413,18 +432,15 @@ class OasisChiller_IOC(object):
                     casput(self.prefix+".SCANT",nan)
                     casput(self.prefix+".processID",value = os.getpid(), update = False)
                     casput(self.prefix+".computer_name", value = computer_name, update = False)
-                t = time()
-                RBV = oasis_chiller_driver.RBV
-                if not isnan(RBV): self.last_valid_reply = time()
-                casput(self.prefix+".RBV",RBV)
-                sleep(t+0.25*SCAN-time())
-                casput(self.prefix+".VAL",oasis_chiller_driver.VAL)
-                sleep(t+0.5*SCAN-time())
-                casput(self.prefix+".fault_code",oasis_chiller_driver.fault_code)
-                sleep(t+0.75*SCAN-time())
-                casput(self.prefix+".faults",oasis_chiller_driver.faults+" ")
-                sleep(t+1.00*SCAN-time())
-                casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
+                if len(self.command_queue) > 0:
+                    attr,value = self.command_queue.popleft()
+                    setattr(oasis_chiller_driver,attr,value)
+                    value = getattr(oasis_chiller_driver,attr)
+                else:
+                    attr = self.next_poll_property
+                    value = getattr(oasis_chiller_driver,attr)
+                    casput(self.prefix+"."+attr,value)
+                    casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
             else:
                 sleep(SCAN)
             self.was_online = online
@@ -432,25 +448,17 @@ class OasisChiller_IOC(object):
             casput(self.prefix+".SCANT",nan)
             sleep(0.1)
 
-    def run(self):
-        """Run EPICS IOC"""
-        self.startup()
-        self.running = True
-        while self.running: self.update_once()
-        self.shutdown()
+    from collections import deque
+    command_queue = deque()
 
-    def start(self):
-        """Run EPCIS IOC in background"""
-        from threading import Thread
-        task = Thread(target=self.run,name="oasis_chiller_IOC.run")
-        task.daemon = True
-        task.start()
-
-
-
-    def shutdown(self):
-        from CAServer import casdel
-        casdel(self.prefix)
+    @property
+    def next_poll_property(self):
+        name = self.poll_properties[self.poll_count % len(self.poll_properties)]
+        self.poll_count += 1
+        return name
+    
+    poll_properties = ["RBV","VAL","fault_code","faults"]
+    poll_count = 0
 
     def monitor(self,PV_name,value,char_value):
         """Process PV change requests"""
@@ -459,10 +467,9 @@ class OasisChiller_IOC(object):
         if PV_name == self.prefix+".SCAN":
             self.SCAN = float(value)
             casput(self.prefix+".SCAN",self.SCAN)
-        else:
+        else: 
             attr = PV_name.replace(self.prefix+".","")
-            setattr(oasis_chiller_driver,attr,float(value))
-            casput(PV_name,getattr(oasis_chiller_driver,attr))
+            self.command_queue.append([attr,float(value)])
 
 oasis_chiller_IOC = OasisChiller_IOC()
 
@@ -513,7 +520,7 @@ if __name__ == "__main__": # for testing
     from numpy import nan
     import CAServer
     from CAServer import casput,casmonitor,PVs,PV_info
-    CAServer.DEBUG = True
+    ##CAServer.DEBUG = True
     logging.basicConfig(level=logging.DEBUG,
         format="%(asctime)s %(levelname)s: %(message)s")
     self = oasis_chiller_IOC # for debugging
