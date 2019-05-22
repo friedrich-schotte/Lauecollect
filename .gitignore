@@ -5,5 +5,7 @@
 *.bcm
 *.err
 *.basi
-
 .DS_Store
+.AppleDouble
+._*
+_Archived Items

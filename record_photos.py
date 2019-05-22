@@ -1,9 +1,9 @@
 """Record photos using a Prosilica GigE camera
 Author: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2017-04-012
-Date last modified: 2019-02-28
+Date last modified: 2019-02-22
 """
-__version__ = "2.3" # WideFieldCamera (uppercase F)
+__version__ = "2.4" # temperature
 from GigE_camera_client import Camera
 from sleep import sleep
 from time import time
@@ -31,7 +31,7 @@ delay = 0.0025 #in seconds
 i = 0
 
 from EPICS_motor import motor
-from temperature_controller import temperature_controller
+from instrumentation import temperature
 from sample_frozen_optical import sample_frozen_optical as sfo
 motorX = motor("NIH:SAMPLEX")
 motorY = motor("NIH:SAMPLEY")
@@ -45,7 +45,7 @@ def record_T_once(l):
     from numpy import zeros,flip
     from SAXS_WAXS_control import SAXS_WAXS_control
     ins = 0#str(SAXS_WAXS_control.inserted)
-    filename = template % ("Microscope/",time(),l,int(ins),temperature_controller.value)
+    filename = template % ("Microscope/",time(),l,int(ins),temperature.value)
     print("%s" % basename(filename))
     img = camera1.RGB_array
     gray = sum(img,2)
@@ -83,10 +83,10 @@ def record(camera_name = 'MicroscopeCamera'):
         i=0
         while True:
             ins = 0
-            filename = template % ("Microscope/",time(),i,int(ins),temperature_controller.value)
+            filename = template % ("Microscope/",time(),i,int(ins),temperature.value)
             print("%s" % basename(filename))
             camera1.save_image(filename)
-            filename = template % ("WideField/",time(),i,int(ins),temperature_controller.value)
+            filename = template % ("WideField/",time(),i,int(ins),temperature.value)
             print("%s" % basename(filename))
             camera2.save_image(filename)
             i += 1

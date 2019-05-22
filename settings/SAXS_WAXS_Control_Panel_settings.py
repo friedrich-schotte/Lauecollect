@@ -95,8 +95,12 @@ Home.properties = {
 }
 Inserted.action = {
     False: 'control.retracted = True',
-    True: 'control.inserted = True'}
-Inserted.defaults = {'Enabled': False, 'Label': 'Inserted [Withdrawn]'}
+    True: 'control.inserted = True',
+}
+Inserted.defaults = {
+    'Enabled': True,
+    'Label': 'Inserted [Withdrawn]'
+}
 Inserted.properties = {
     'BackgroundColour': [
         ('grey80', 'control.moving_sample == True'),
@@ -105,19 +109,19 @@ Inserted.properties = {
         ('red', 'control.inserted == control.retracted'),
     ],
     'Enabled': [
-        (True, 'control.XY_enabled and not control.moving_sample')
-        (False, 'not control.ensemble_online')
+        (True, 'control.XY_enabled and not control.moving_sample'),
+        (False, 'not control.ensemble_online'),
     ],
     'Value': [
         (True, 'control.inserted == True'),
-        (False, 'control.retracted == True')
+        (False, 'control.retracted == True'),
     ],
     'Label': [
         ('Cancel', 'control.inserting_sample == True'),
         ('Cancel', 'control.retracting_sample == True'),
         ('Retract', 'control.inserted == True'),
         ('Insert', 'control.inserted == False'),
-    ]
+    ],
 }
 LoadSample.action = {
     False: 'control.sample_loading = False',

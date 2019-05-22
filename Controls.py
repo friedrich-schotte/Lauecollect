@@ -2,9 +2,9 @@
 """Controls for control panels
 Author: Friedrich Schotte,
 Date created: 2017-06-20
-Date last modified: 2019-02-27
+Date last modified: 2019-05-22
 """
-__version__ = "1.4.6" # issue: refresh after background color change 
+__version__ = "1.4.7" # safe isnan 
 
 from logging import debug,info,warn,error
 import wx, wx3_compatibility
@@ -195,7 +195,6 @@ class Control(wx.Panel):
     def refresh_status(self,event=None):
         """Update the controls with current values"""
         ##debug("refresh_status")
-        from numpy import isnan
 
         refresh_needed = True
   
@@ -263,7 +262,6 @@ class Control(wx.Panel):
     def control_value(self,value):
         """Convert the value into the form that can be represented by the
         control"""
-        from numpy import isnan
         if self.control_data_type == str and not isinstance(value,str):
             if isinstance(value,float) and isnan(value): value = ""
             else:
@@ -318,6 +316,12 @@ def nan_equal(a,b):
     try: numpy.testing.assert_equal(a,b)
     except AssertionError: return False
     return True
+
+def isnan(x):
+    """Is x 'Not a Number'? fail-safe version"""
+    from numpy import isnan
+    try: return isnan(x)
+    except: return True
 
 
 if __name__ == '__main__':

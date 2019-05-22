@@ -215,8 +215,8 @@ class Collect(object):
         from numpy import nan
         value = nan
         if variable == "Temperature":
-            from instrumentation import temperature_controller
-            value = temperature_controller.value
+            from instrumentation import temperature
+            value = temperature.value
         if variable == "Power":
             from instrumentation import trans2
             value = trans2.value
@@ -229,8 +229,8 @@ class Collect(object):
         from numpy import nan
         value = nan
         if variable == "Temperature":
-            from instrumentation import temperature_controller
-            value = temperature_controller.command_value
+            from instrumentation import temperature
+            value = temperature.command_value
         if variable == "Power":
             from instrumentation import trans2
             value = trans2.value # has no attribute 'command_value'
@@ -244,9 +244,9 @@ class Collect(object):
             self.actual("%s=%s" % (variable,formatted_value))
 
         if variable == "Temperature":
-            from instrumentation import temperature_controller
-            if temperature_controller.command_value != value:
-                temperature_controller.command_value = value
+            from instrumentation import temperature
+            if temperature.command_value != value:
+                temperature.command_value = value
                 self.temperature_changed = True
         if variable == "Power":
             from instrumentation import trans2
@@ -257,8 +257,8 @@ class Collect(object):
     def variable_changing(self,variable):
         changing = False
         if variable == "Temperature":
-            from instrumentation import temperature_controller
-            changing = temperature_controller.moving or self.temperature_changed
+            from instrumentation import temperature
+            changing = temperature.moving or self.temperature_changed
         if variable == "Power":
             from instrumentation import trans2
             changing = trans2.moving
@@ -457,7 +457,7 @@ class Collect(object):
             image_numbers,temperatures = \
                 linear_ranges(self.collection_all_values("Temperature"))
             times = image_numbers * self.image_acquisition_time
-            from temperature import temperature
+            from instrumentation import temperature
             self.actual("Temperature uploading ramp...")
             temperature.time_points = list(times)
             temperature.temp_points = list(temperatures)
@@ -467,7 +467,7 @@ class Collect(object):
         if "Temperature" in self.collection_variables and \
             self.variable_wait("Temperature") == False:
             self.actual("Temperature stop...")
-            from temperature import temperature
+            from instrumentation import temperature
             temperature.time_points = []
             temperature.temp_points = []
             self.actual("Temperature stopped")
@@ -1351,7 +1351,7 @@ if __name__ == '__main__':
     print('self.collection_all_values("Temperature")')
     from linear_ranges import linear_ranges
     print('linear_ranges(self.collection_all_values("Temperature"))')
-    from temperature import temperature
+    from instrumentation import temperature
     print('temperature.time_points,temperature.temp_points')
     print('')
     ##print('self.temperature_list')
