@@ -1,1 +1,1 @@
-MEAN.filename = '//mx340hs/data/anfinrud_1903/Archive/NIH.SAMPLE_FROZEN_OPTICAL2.MEAN.txt'
+MEAN.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.SAMPLE_FROZEN_OPTICAL2.MEAN.txt'

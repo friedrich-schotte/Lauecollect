@@ -12,10 +12,12 @@ import os
 from IOC import IOC
 import traceback
 from time import time,sleep
-from numpy import empty, mean, std, zeros, abs, where
+from numpy import empty, mean, std, zeros, abs, where, nan , isnan
+import numpy.polynomial.polynomial as poly
+
 from scipy.interpolate import interp1d
 
-from CA import caget
+from CA import caget, caput
 from CAServer import casput,casget,casdel
 
 import platform
@@ -25,13 +27,16 @@ class Temperature_Server_IOC(object):
 
     name = "temperature_server_IOC"
     from persistent_property import persistent_property
-    prefix = persistent_property("prefix","NIH:TRAMP")
+    prefix = persistent_property("prefix","NIH:TEMP")
     SCAN = persistent_property("SCAN",0.5)
+    P_default = persistent_property("P_default",1.000)
+    I_default = persistent_property("I_default",0.316)
+    D_default = persistent_property("D_default",0.562)
     running = False
     last_valid_reply = 0
     was_online = False
     set_point_update_period = 0.5
-    lightwave_prefix = 'NIH:TEMP'
+    lightwave_prefix = 'NIH:LIGHTWAVE'
     oasis_prefix = 'NIH:CHILLER'
     oasis_headstart_time = 15
     ramping_cancelled = False
@@ -39,6 +44,8 @@ class Temperature_Server_IOC(object):
     idle_temperature_oasis = 8.0
     temperature_oasis_switch = 83.0
     temperature_oasis_limit_high = 45.0
+    time_points = []
+    temp_points = []
 
     def get_EPICS_enabled(self):
         return self.running
@@ -53,25 +60,28 @@ class Temperature_Server_IOC(object):
         from CAServer import casput,casmonitor
         from CA import caput,camonitor
         from numpy import nan
+        #self.P_default , self.I_default , self.D_default = 1.0,0.316,0.562
         #print('startup with prefix = %r' %self.prefix)
         casput(self.prefix+".SCAN",self.SCAN)
         casput(self.prefix+".DESC",value = "Temperature server IOC: a System Layer server that orchestrates setting on Lightwave IOC and Oasis IOC.", update = False)
-        casput(self.prefix+".EGU",value = "C", update = False)
+        casput(self.prefix+".EGU",value = "C")
         # Set defaults
-        casput(self.prefix+".VAL",value = nan, update = False)
-        casput(self.prefix+".VAL_ADV",value = nan, update = False)
-        casput(self.prefix+".RBV",value = nan, update = False)
-        casput(self.prefix+".TIME_POINTS",[])
-        casput(self.prefix+".TEMP_POINTS",[])
+        casput(self.prefix+".VAL",value = nan)
+        casput(self.prefix+".VAL_ADV",value = nan)
+        casput(self.prefix+".RBV",value = nan)
+        casput(self.prefix+".P",value = nan)
+        casput(self.prefix+".I",value = nan)
+        casput(self.prefix+".TIME_POINTS",self.time_points)
+        casput(self.prefix+".TEMP_POINTS",self.temp_points)
         casput(self.prefix+".FAULTS"," ")
-        casput(self.prefix+".DMOV",value = nan, update = False)
-        casput(self.prefix+".KILL",value = nan, update = False)
+        casput(self.prefix+".DMOV",value = nan)
+        casput(self.prefix+".KILL",value = nan)
 
-        casput(self.prefix+".oasis_RBV",value = nan, update = False)
-        casput(self.prefix+".oasis_VAL",value = nan, update = False)
+        casput(self.prefix+".oasis_RBV",value = nan)
+        casput(self.prefix+".oasis_VAL",value = nan)
 
-        casput(self.prefix+".processID",value = os.getpid(), update = False)
-        casput(self.prefix+".computer_name",value = computer_name, update = False)
+        casput(self.prefix+".processID",value = os.getpid())
+        casput(self.prefix+".computer_name",value = computer_name)
 
         # Monitor client-writable PVs.
         casmonitor(self.prefix+".VAL",callback=self.monitor)
@@ -91,6 +101,8 @@ class Temperature_Server_IOC(object):
         prefix = self.lightwave_prefix
         camonitor(prefix+".VAL",callback=self.lightwave_monitor)
         camonitor(prefix+".RBV",callback=self.lightwave_monitor)
+        camonitor(prefix+".P",callback=self.lightwave_monitor)
+        camonitor(prefix+".I",callback=self.lightwave_monitor)
         camonitor(prefix+".DMOV",callback=self.lightwave_monitor)
 
         ## Oasis chiller server
@@ -106,6 +118,8 @@ class Temperature_Server_IOC(object):
         self.buffers['oasis_FAULTS'] = Server(size = (2,1*3600*2) , var_type = 'float64')
 
         self.buffers['lightwave_RBV'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+        self.buffers['lightwave_P'] = Server(size = (2,1*3600*2) , var_type = 'float64')
+        self.buffers['lightwave_I'] = Server(size = (2,1*3600*2) , var_type = 'float64')
         self.buffers['lightwave_VAL'] = Server(size = (2,1*3600*2) , var_type = 'float64')
 
 
@@ -140,6 +154,7 @@ class Temperature_Server_IOC(object):
 
     def shutdown(self):
         from CAServer import casdel
+        print('SHUTDOWN command received')
         self.running = False
         casdel(self.prefix)
         del self
@@ -149,12 +164,20 @@ class Temperature_Server_IOC(object):
         from CAServer import casput
         from CA import caput
         print("monitor: %s = %r" % (PV_name,value))
-        if PV_name == self.prefix+".VAL":
-            self.set_T(value)
         if PV_name == self.prefix+".VAL_ADV":
-            self.set_adv_T(value)
+            if self.get_set_lightwaveT() != value or self.get_set_oasisT() != self.temp_to_oasis(value):
+                self.set_T(value)
+        if PV_name == self.prefix+".VAL":
+            if self.get_set_lightwaveT() != value or self.get_set_oasisT() != self.temp_to_oasis(value):
+                self.set_adv_T(value)
         if PV_name == self.prefix + ".oasis_VAL":
-            caput(self.oasis_prefix,float(value))
+            if self.get_set_oasisT() != value:
+                self.set_set_oasisT(value)
+
+        if PV_name == self.prefix + ".TIME_POINTS":
+            self.time_points = value
+        if PV_name == self.prefix + ".TEMP_POINTS":
+            self.temp_points = value
         if PV_name == self.prefix + ".KILL":
             self.shutdown()
 
@@ -168,16 +191,28 @@ class Temperature_Server_IOC(object):
             arr[0] = cainfo(prefix+".VAL","timestamp")
             arr[1] = float(value)
             self.buffers['lightwave_VAL'].append(arr)
-            casput(self.prefix +'.VAL',value = float(value), update = False)
+            casput(self.prefix +'.VAL',value = float(value))
         if PV_name == prefix+".RBV":
             arr = empty((2,1))
             arr[0] = cainfo(prefix+".RBV","timestamp")
             arr[1] = float(value)
             self.buffers['lightwave_RBV'].append(arr)
-            casput(self.prefix +'.RBV',value = float(value), update = False)
+            casput(self.prefix +'.RBV',value = float(value))
+        if PV_name == prefix+".P":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".P","timestamp")
+            arr[1] = float(value)
+            self.buffers['lightwave_P'].append(arr)
+            casput(self.prefix +'.P',value = float(value))
+        if PV_name == prefix+".I":
+            arr = empty((2,1))
+            arr[0] = cainfo(prefix+".I","timestamp")
+            arr[1] = float(value)
+            self.buffers['lightwave_I'].append(arr)
+            casput(self.prefix +'.I',value = float(value))
         #Done Move PV
         if PV_name == prefix+".DMOV":
-            casput(self.prefix +'.DMOV',value = float(value), update = False)
+            casput(self.prefix +'.DMOV',value = float(value))
 
     def oasis_monitor(self,PV_name,value,char_value):
         #print('oasis_monitor: time: %r, PV_name = %r,value= %r,char_value = %r' %(time(),PV_name,value,char_value) )
@@ -188,13 +223,13 @@ class Temperature_Server_IOC(object):
             arr[0] = cainfo(prefix+".VAL","timestamp")
             arr[1] = float(value)
             self.buffers['oasis_VAL'].append(arr)
-            casput(self.prefix +'.oasis_VAL',value = float(value), update = False)
+            casput(self.prefix +'.oasis_VAL',value = float(value))
         if PV_name == prefix+".RBV":
             arr = empty((2,1))
             arr[0] = cainfo(prefix+".RBV","timestamp")
             arr[1] = float(value)
             self.buffers['oasis_RBV'].append(arr)
-            casput(self.prefix +'.oasis_RBV',value = float(value), update = False)
+            casput(self.prefix +'.oasis_RBV',value = float(value))
 
     ## Temperature trajectory
     def on_acquire(self):
@@ -221,12 +256,32 @@ class Temperature_Server_IOC(object):
         info("Ramp start time: %s" % date_time(self.start_time))
         from time import time,sleep
         from numpy import where, asarray
+        if len(self.temperatures) != 0:
+            max_set_T = max(self.temperatures)
+            min_set_T = min(self.temperatures)
+        else:
+            min_set_T = nan
+            max_set_T = nan
         for (t,T) in zip(self.times,self.temperatures):
             dt = self.start_time+t - time()
             if dt > 0:
                 sleep(dt)
+                current_setT = self.get_setT()
                 debug('t = %r, T = %r,dt = %r' %(t,T,dt))
+
                 self.set_ramp_T(T)
+                if T == max_set_T or T == min_set_T:
+                    self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+                else:
+                    self.set_PIDCOF((self.P_default,0.0,0.0))
+                #coeffs = asarray([  4.33863739e-01,  -5.45776351e-02,   3.90549564e-04])
+                #limit = poly.polyval(T, coefs)
+                # if T > current_setT:
+                #     caput('NIH:LIGHTWAVE.IHLM',limit + 0.2)
+                #     caput('NIH:LIGHTWAVE.ILLM',-4.0)
+                # else:
+                #     caput('NIH:LIGHTWAVE.IHLM',+4.0)
+                #     caput('NIH:LIGHTWAVE.ILLM',limit - 0.2)
                 try:
                     indices = where(self.times >= t+self.oasis_headstart_time)[0][0:1]
                     debug(indices)
@@ -237,13 +292,13 @@ class Temperature_Server_IOC(object):
                 except:
                     error(traceback.format_exc())
             if self.ramping_cancelled: break
-        self.temp_points = []
-        self.time_points = []
 
         info("Ramp ended")
-        self.set_T(self.idle_temperature)
+        self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
         self.ramping_cancelled = False
         self.ramping = False
+        # caput('NIH:LIGHTWAVE.IHLM',+4.0)
+        # caput('NIH:LIGHTWAVE.ILLM',-4.0)
 
     @property
     def acquiring(self):
@@ -343,7 +398,6 @@ class Temperature_Server_IOC(object):
         debug("set_point = %r" % value)
         value = float(value)
         if self.get_setT() != value:
-            caput()
             self.lightwave_dl.set_cmdT(value)
             self.oasis_dl.set_cmdT(self.temp_to_oasis(value))
     setT = property(get_setT,set_setT)
@@ -358,8 +412,9 @@ class Temperature_Server_IOC(object):
         value = self.buffers['lightwave_VAL'].get_last_N(N = 1)[1,0]
         return value
     def set_set_lightwaveT(self,value):
-        from CA import caput
+        from CA import caput, cawait
         caput(self.lightwave_prefix + '.VAL', value = float(value))
+        cawait(self.lightwave_prefix + '.VAL')
     set_lightwaveT = property(get_set_lightwaveT,set_set_lightwaveT)
 
     def get_oasisT(self):
@@ -372,12 +427,13 @@ class Temperature_Server_IOC(object):
         return value
     def set_set_oasisT(self,value):
         from CA import caput
-        caput(self.oasis_prefix+'.VAL', value = float(value))
+        if self.get_set_oasisT() != float(value):
+            caput(self.oasis_prefix+'.VAL', value = float(value))
     set_oasisT = property(get_set_oasisT,set_set_oasisT)
 
     def set_T(self,value):
         value = float(value)
-        if value != self.get_lightwaveT():
+        if value != self.get_set_lightwaveT() or self.temp_to_oasis(value) != self.get_set_oasisT():
             self.set_set_oasisT(self.temp_to_oasis(value))
             self.set_set_lightwaveT(value)
 
@@ -388,24 +444,49 @@ class Temperature_Server_IOC(object):
 
     def set_adv_T(self,value):
         value = float(value)
-        if value != self.get_lightwaveT():
+        if value != self.get_lightwaveT() or self.temp_to_oasis(value) != self.get_set_oasisT() :
             self.set_set_oasisT(self.temp_to_oasis(value))
-            self.set_ICOF(0.0)
+            self.set_PIDCOF((self.P_default,0.0,self.D_default))
             self.set_set_lightwaveT(value)
-            print('set_set_lightwaveT %r at %r' %(value , time()))
-            sleep(0.1)
-            print(abs(self.get_lightwaveT() - self.get_set_lightwaveT()))
+            info('set_set_lightwaveT %r at %r' %(value , time()))
+            info(abs(self.get_lightwaveT() - self.get_set_lightwaveT()))
+            if value >= 83:
+                t_diff = 3.0
+            else:
+                t_diff = 1.0
             while abs(self.get_lightwaveT() - self.get_set_lightwaveT()) > 1.0:
                 sleep(0.05)
-            print('set_ICOF 0.3', time())
-            self.set_ICOF(0.3)
+            self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
 
     def set_ICOF(self,value):
-        from CA import caput
-        caput(self.lightwave_prefix + '.ICOF',value)
+        from CA import caput, cawait
+        if self.get_ICOF() != value:
+            caput(self.lightwave_prefix + '.ICOF',value)
+            cawait(self.lightwave_prefix + '.ICOF')
     def get_ICOF(self):
         from CA import caget
         value = caget(self.lightwave_prefix + '.ICOF')
+        return value
+
+    def set_DCOF(self,value):
+        from CA import caput,cawait
+        if self.get_DCOF() != value:
+            caput(self.lightwave_prefix + '.DCOF',value)
+            cawait(self.lightwave_prefix + '.DCOF')
+    def get_DCOF(self):
+        from CA import caget
+        value = caget(self.lightwave_prefix + '.DCOF')
+        return value
+
+    def set_PIDCOF(self,value):
+        from CA import caput,cawait
+        if self.get_PIDCOF() != value:
+            print('setting PIDCOF: %r -> %r' %(self.get_PIDCOF(),value))
+            caput(self.lightwave_prefix + '.PIDCOF',value)
+            cawait(self.lightwave_prefix + '.PIDCOF')
+    def get_PIDCOF(self):
+        from CA import caget
+        value = caget(self.lightwave_prefix + '.PIDCOF')
         return value
 
     def temp_to_oasis(self,T, mode = 'bistable'):

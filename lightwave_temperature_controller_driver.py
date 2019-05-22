@@ -37,9 +37,9 @@ from logging import warn,debug,info,error
 
 __version__ = "3.0.9" # multi-thread safe history
 
-class TemperatureController(object):
+class Lightwave_Temperature_Controller(object):
     """ILX Lightwave LDT-5948 precision temperature controller"""
-    name = "temperature_controller"
+    name = "lightwave_temperature_controller"
     verbose_logging = True
     last_reply_time = 0.0
     max_time_between_replies = 0.0
@@ -94,11 +94,11 @@ class TemperatureController(object):
         self.query("%s %s" % (name,value))
 
     def __getitem__(self,name):
-        """Usage: temperature_controller['SET:TEMP']"""
+        """Usage: lightwave_temperature_controller['SET:TEMP']"""
         return self.get(name)
 
     def __setitem__(self,name,value):
-        """Usage: temperature_controller['SET:TEMP'] = 22.0"""
+        """Usage: lightwave_temperature_controller['SET:TEMP'] = 22.0"""
         self.set(name,value)
 
     def query(self,command):
@@ -206,12 +206,12 @@ class TemperatureController(object):
         """For scans, to provide feedback whether the temperature 'motor'
         is still 'moving'"""
         from DB import dbget
-        s = dbget("temperature_controller.temperature.comm_timeout")
+        s = dbget("lightwave_temperature_controller.temperature.comm_timeout")
         try: return float(s)
         except: return 0.2
     def set_comm_timeout(self,value):
         from DB import dbput
-        dbput("temperature_controller.temperature.moving_timeout",str(value))
+        dbput("lightwave_temperature_controller.temperature.moving_timeout",str(value))
     comm_timeout = property(get_comm_timeout,set_comm_timeout)
 
     class temperature_object(object):
@@ -263,27 +263,27 @@ class TemperatureController(object):
             """For scans, to provide feedback whether the temperature 'motor'
             is still 'moving'"""
             from DB import dbget
-            s = dbget("temperature_controller.temperature.moving_timeout")
+            s = dbget("lightwave_temperature_controller.temperature.moving_timeout")
             try: return float(s)
             except: return 0.0
         def set_timeout(self,value):
             from DB import dbput
-            dbput("temperature_controller.temperature.moving_timeout",str(value))
+            dbput("lightwave_temperature_controller.temperature.moving_timeout",str(value))
         timeout = property(get_timeout,set_timeout)
 
         def get_tolerance(self):
             """For scans, to provide feedback whether the temperature 'motor'
             is still 'moving'"""
             from DB import dbget
-            s = dbget("temperature_controller.temperature.tolerance")
+            s = dbget("lightwave_temperature_controller.temperature.tolerance")
             try: return float(s)
             except: return 3.0
         def set_tolerance(self,value):
             from DB import dbput
-            dbput("temperature_controller.temperature.tolerance",str(value))
+            dbput("lightwave_temperature_controller.temperature.tolerance",str(value))
         tolerance = property(get_tolerance,set_tolerance)
 
-        def __repr__(self): return "temperature_controller.temperature_object"
+        def __repr__(self): return "lightwave_temperature_controller.temperature_object"
 
     class property_object(object):
         """For logging and scanning, can be used as counter"""
@@ -383,7 +383,7 @@ class TemperatureController(object):
             reply = self.controller.query("PID?")
             try: P,I,D = eval(reply)
             except: return nan,nan,nan
-            return P,I,D
+            return round(P,4),round(I,4),round(D,4)
         def set_PID(self,(P,I,D)):
             self.controller.query("PID %s,%s,%s" % (P,I,D))
         PID = property(get_PID,set_PID)
@@ -412,10 +412,10 @@ class TemperatureController(object):
                 "scanned like a motor")
             def stop(self): pass
             def __repr__(self):
-                return "temperature_controller.feedback_loop."+self.name
+                return "lightwave_temperature_controller.feedback_loop."+self.name
 
         def __repr__(self):
-            return "temperature_controller.feedback_loop"
+            return "lightwave_temperature_controller.feedback_loop"
 
     class status_object(object):
         """Diagnostics message"""
@@ -584,19 +584,19 @@ class TemperatureController(object):
     def get_logfile(self):
         """File name for transcript if verbose logging is enabled."""
         from tempfile import gettempdir
-        return gettempdir()+"/temperature_controller.log"
+        return gettempdir()+"/lightwave_temperature_controller.log"
     logfile = property(get_logfile)
 
     def get_error_logfile(self):
         """File name error messages."""
         from tempfile import gettempdir
-        return gettempdir()+"/temperature_controller_error.log"
+        return gettempdir()+"/lightwave_temperature_controller_error.log"
     error_logfile = property(get_error_logfile)
 
     def get_comm_logfile(self):
         """File name error messages."""
         from tempfile import gettempdir
-        return gettempdir()+"/temperature_controller_comm.log"
+        return gettempdir()+"/lightwave_temperature_controller_comm.log"
     comm_logfile = property(get_comm_logfile)
 
 def toint(x):
@@ -610,12 +610,12 @@ def timestamp():
     timestamp = str(datetime.now())
     return timestamp[:-3] # omit microsconds
 
-temperature_controller = TemperatureController()
+lightwave_temperature_controller = Lightwave_Temperature_Controller()
 # Define some shortcuts.
-SampleT = temperature_controller
-temperature = temperature_controller.temperature
-set_point = temperature_controller.nominal_temperature
-power = temperature_controller.power
+SampleT = lightwave_temperature_controller
+temperature = lightwave_temperature_controller.temperature
+set_point = lightwave_temperature_controller.nominal_temperature
+power = lightwave_temperature_controller.power
 
 def test_ramp():
     from time import sleep
@@ -634,8 +634,8 @@ if __name__ == "__main__":
     """For testing"""
     import logging; logging.basicConfig(level=logging.DEBUG)
     from time import time,sleep
-    temperature_controller.logging = True
-    self = temperature_controller
+    lightwave_temperature_controller.logging = True
+    self = lightwave_temperature_controller
     print('self.stabilization_nsamples')
-    ##print('temperature_controller["SET:TEMP"]')
-    ##print('temperature_controller["MEAS:T"]')
+    ##print('lightwave_temperature_controller["SET:TEMP"]')
+    ##print('lightwave_temperature_controller["MEAS:T"]')

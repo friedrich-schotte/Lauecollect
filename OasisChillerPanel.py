@@ -3,7 +3,7 @@
 Control panel for thermoelectric circulating water chiller.
 Author: Friedrich Schotte, Valentyn Stadnytskiy
 Date created: 2009-06-01
-Date last modified: 2019-05-15
+Date last modified: 2019-05-21
 
 Fault Codes:
 The fault byte is a bit map (0 = OK, 1 = Fault):
@@ -25,11 +25,11 @@ from oasis_chiller import chiller
 from numpy import nan,isnan
 from Panel import BasePanel,PropertyPanel
 
-__version__ = "2.1" # PID parameters
+__version__ = "2.2" # title
 
 class OasisChillerPanel(BasePanel):
     name = "OasisChiller"
-    title = "Oasis Chiller"
+    title = "Oasis Chiller DL"
     standard_view = [
         "Set Point",
         "Actual Temperature",

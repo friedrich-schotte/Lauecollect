@@ -36,11 +36,11 @@ class Sample_frozen_optical(object):
     frozen_threshold_temperature = persistent_property('frozen_threshold_temperature', -5.0)
     scattering_threshold = persistent_property('scattering_threshold', 80)
     retracted_time =persistent_property('retracted_time', 15.0)
-    box_dimensions =persistent_property('box_dimensions', 10.0)  
+    box_dimensions =persistent_property('box_dimensions', 10.0)
 
     def __init__(self):
         self.name = 'sample_frozen_optical'
-        self.CAS_prefix = 'NIH:SAMPLE_FROZEN_OPTICAL2'
+        self.CAS_prefix = 'NIH:SCATTERING_OPTICAL'
         self.running = False
         self.orient_dic = {}
         self.orient_dic['vertical'] ={'up': [(532,0),(732,1024)],
@@ -51,8 +51,8 @@ class Sample_frozen_optical(object):
         self.orient_dic['horizontal2'] = {'up':[(0,0),(120,1360)],
                                           'middle':[(512,0),(632,1360)],
                                         'down':[(903,0),(1023,1360)]}
+
         #On-axis uses only middle part and disregards up and down.
-        
         dx = int(self.box_dimensions*2/2.0)
         dy = int(self.box_dimensions*2/2.0)
 
@@ -74,24 +74,34 @@ class Sample_frozen_optical(object):
     def init(self):
         """
         define parameters for current operation
+        initializes image analyzer
         """
         from optical_image_analyzer import image_analyzer
         image_analyzer.init()
 
         self.is_intervention_enabled = self.intervention_enabled
 
+        casput(self.CAS_prefix+".MEAN_TOP",nan)
+        casput(self.CAS_prefix+".MEAN_BOTTOM",nan)
+        casput(self.CAS_prefix+".MEAN_MIDDLE",nan)
+        casput(self.CAS_prefix+".MEAN",nan)
+        casput(self.CAS_prefix+".RBV",nan)
+        casput(self.CAS_prefix+".STDEV",nan)
+        casput(self.CAS_prefix+".VAL",nan)
+        casput(self.CAS_prefix+".ENABLE",nan)
+        casput(self.CAS_prefix+'.RUNNING', nan)
+
 
     def get_is_running(self):
         return self.running
     def set_is_running(self,value):
         from thread import start_new_thread
-        info('set_is_running')
         if value and not self.running:
             self.init()
             self.running = True
             start_new_thread(self.run,())
-            casput(self.CAS_prefix+'.RUNNING', self.running)
         else: self.running = False
+        casput(self.CAS_prefix+'.RUNNING', self.running)
     is_running = property(get_is_running,set_is_running)
 
     def get_is_intervention_enabled(self):
@@ -157,12 +167,13 @@ class Sample_frozen_optical(object):
     def run(self):
         from time import sleep,time
         from CAServer import casput
+        self.running = True
         while self.running:
             self.running_timestamp = time()
             try:
                 self.run_once()
             except:
-                print(traceback.format_exc())
+                error(traceback.format_exc())
                 warn('Microscope camera is not working')
         self.is_running = False
         self.scattering = nan
@@ -179,7 +190,7 @@ class Sample_frozen_optical(object):
 
         if self.bckg_change_flag_down and temperature_controller.value < 1.0:
             #self.set_background()
-            info('circular buffer zeroed')
+            debug('circular buffer zeroed')
             self.circular_buffer = []
             self.bckg_change_flag_down = False
             self.bckg_change_flag_up = True
@@ -189,10 +200,10 @@ class Sample_frozen_optical(object):
             self.bckg_change_flag_up = False
 
         img = image_analyzer.get_image()
-        info('image received: image counter %r, image dimensions %r' %(image_analyzer.imageCounter, img.shape))
+        debug('image received: image counter %r, image dimensions %r' %(image_analyzer.imageCounter, img.shape))
         if self.orientation == 'horizontal2' or self.orientation == 'horizontal' or self.orientation == 'on-axis-h':
             img = rot90(img,3,axes=(1,2))
-            
+
 
         res_dic = self.is_frozen(img)
         debug('res_dic = %r' %res_dic)
@@ -201,6 +212,7 @@ class Sample_frozen_optical(object):
         casput(self.CAS_prefix+".MEAN_BOTTOM",res_dic['mean_bottom'])
         casput(self.CAS_prefix+".MEAN_MIDDLE",res_dic['mean_middle'])
         casput(self.CAS_prefix+".MEAN",res_dic['mean_value'])
+        casput(self.CAS_prefix+".RBV",res_dic['mean_value'])
         casput(self.CAS_prefix+".STDEV",res_dic['stdev'])
         self.intervention_enabled = casget(self.CAS_prefix+'.ENABLED')
         casput(self.CAS_prefix+".VAL",is_frozen_flag)
@@ -253,10 +265,12 @@ class Sample_frozen_optical(object):
         mean_middle = dict2['mean']
         if self.orientation == 'on-axis-h' or self.orientation == 'on-axis-v' :
             mean_value = dict2['mean']
+            stdev = dict2['stdev']
         else:
             mean_value = dict2['mean']-(dict0['mean']/2.)-(dict1['mean']/2.)
+            stdev = (dict2['stdev']**2-(dict0['stdev']/2)**2-(dict1['stdev']/2)**2)**0.5
         self.scattering = round(mean_value,2)
-        stdev = (dict2['mean']**2-(dict0['mean']/2)**2-(dict1['mean']/2)**2)**0.5
+
 
         if not freeze_intervention.active:
             #if mean_value - mean(self.circular_buffer)  > self.scattering_threshold and len(self.circular_buffer) >5:
@@ -305,7 +319,7 @@ class Sample_frozen_optical(object):
         from optical_image_analyzer import image_analyzer
         casdel(self.CAS_prefix+'.ENABLED')
         casdel(self.CAS_prefix+'.VAL')
-        casdel(self.CAS_prefix+"N.BCKG")
+        casdel(self.CAS_prefix+".BCKG")
         casdel(self.CAS_prefix+'.BCKG_NEW')
         casdel(self.CAS_prefix+'.MEAN_TOP')
         casdel(self.CAS_prefix+'.MEAN_BOTOM')
@@ -527,7 +541,9 @@ class Sample_frozen_optical(object):
 
 
 sample_frozen_optical = Sample_frozen_optical()
+sample_frozen_optical.init()
 sample_frozen_optical.orientation = 'on-axis-h'
+
 
 
 
@@ -539,7 +555,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO,
         format="%(asctime)s %(levelname)s: %(message)s",
-        filename=gettempdir()+"/sample_frozen_optical.log",
+        filename=gettempdir()+"/scattering_optical.log",
     )
     self = sample_frozen_optical # for testing
     #self.start()

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Controls when data collection is suspended, in case the X-ray beam is
 down
-    
-Author: Friedrich Schotte
+
+Author: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2017-11-13
-Date modified: 2018-11-21
+Date modified: 2019-05-21
 """
-__version__ = "1.0.8" # setting
+__version__ = "1.0.9" # sleep(0.1) -> sleep(0.5) and refresh_period = 10.0 s
 from servers import servers
 import wx, wx3_compatibility
 from EditableControls import TextCtrl,ComboBox
@@ -22,7 +22,7 @@ class ServersPanel(wx.Frame):
     views = odict([("All","AllView"),("Custom","CustomView")])
     view = setting("view","All")
     attributes = "Nrunning",
-    refresh_period = 1.0 # s
+    refresh_period = 10.0 # s
 
     def __init__(self,parent=None,title="IOCs & Servers"):
         wx.Frame.__init__(self,parent=parent,title=title)
@@ -88,15 +88,15 @@ class ServersPanel(wx.Frame):
         while True:
             try:
                 t0 = time()
-                while time() < t0+self.refresh_period: sleep(0.1)
+                while time() < t0+self.refresh_period: sleep(0.5)
                 if self.Shown:
                     self.update_data()
-                    if self.data_changed: 
+                    if self.data_changed:
                         event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
                         # call OnUpdate in GUI thread
                         wx.PostEvent(self.EventHandler,event)
             except wx.PyDeadObjectError: break
-            
+
     def refresh(self):
         """Force update"""
         from threading import Thread
@@ -107,7 +107,7 @@ class ServersPanel(wx.Frame):
     def refresh_background(self):
         """Force update"""
         self.update_data()
-        if self.data_changed: 
+        if self.data_changed:
             event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
             wx.PostEvent(self.EventHandler,event) # call OnUpdate in GUI thread
 
@@ -240,7 +240,7 @@ class ServerControl(wx.Panel):
     name = "ServersControl"
     attributes = "label","running","OK","test_code_OK","formatted_value",
     refresh_period = 1.0
-    
+
     def __init__(self,parent,n,shown=False):
         self.values = {
             "label":"",
@@ -250,7 +250,7 @@ class ServerControl(wx.Panel):
             "test_code_OK":False
         }
         self.old_values = {}
-        
+
         wx.Panel.__init__(self,parent)
         self.Shown = shown
         self.Title = "Test %d" % n
@@ -282,7 +282,7 @@ class ServerControl(wx.Panel):
         self.Fit()
 
         self.refresh_label()
-        
+
         # Periodically refresh the displayed settings.
         self.Bind(wx.EVT_TIMER,self.OnUpdate)
         from threading import Thread
@@ -302,13 +302,13 @@ class ServerControl(wx.Panel):
                 if self.Shown:
                     ##debug("ServerControl %s: Shown: %r" % (self.n,self.Shown))
                     self.update_data()
-                    if self.data_changed: 
+                    if self.data_changed:
                         event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
                         # call OnUpdate in GUI thread
                         wx.PostEvent(self.EventHandler,event)
-                while time() < t0+self.refresh_period: sleep(0.1)
+                while time() < t0+self.refresh_period: sleep(0.5)
             except wx.PyDeadObjectError: break
-            
+
     def OnUpdate(self,event):
         """Periodically refresh the displayed settings."""
         self.refresh_status()
@@ -324,7 +324,7 @@ class ServerControl(wx.Panel):
     def refresh_background(self):
         """Force update"""
         self.update_data()
-        if self.data_changed: 
+        if self.data_changed:
             event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
             wx.PostEvent(self.EventHandler,event) # call OnUpdate in GUI thread
 
@@ -351,14 +351,14 @@ class ServerControl(wx.Panel):
         """Update the controls with current values"""
         label = self.values["label"]
         running = self.values["running"]
-        
+
         self.Title = label
         self.myEnabled.Value = running
 
         red = (255,0,0)
         green = (0,255,0)
         gray = (180,180,180)
-        
+
         self.myEnabled.Label = "%s: %s" % (label,self.values["formatted_value"])
         color = green if self.values["OK"] else red
         if not self.values["test_code_OK"]: color = gray
@@ -430,7 +430,7 @@ class SetupPanel(wx.Frame):
         self.layout = wx.BoxSizer()
         grid = wx.FlexGridSizer(cols=2,hgap=5,vgap=5)
         flag = wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND
-        
+
         label = "Name:"
         grid.Add(wx.StaticText(self.panel,label=label),flag=flag)
         grid.Add(self.myLabel,flag=flag,proportion=1)
@@ -498,12 +498,12 @@ class SetupPanel(wx.Frame):
         """Rearange contents to fit best into new size"""
         self.panel.Fit()
         event.Skip()
-        
+
 class LogPanel(wx.Frame):
     name = "LogPanel"
     attributes = "log","label"
     refresh_period = 1.0
-    
+
     def __init__(self,parent,n):
         self.n = n
         wx.Frame.__init__(self,parent=parent,title="Log",size=(640,240))
@@ -521,7 +521,7 @@ class LogPanel(wx.Frame):
         self.Bind(wx.EVT_TEXT_ENTER,self.OnLog,self.Log)
 
         # Layout
-        self.layout = wx.BoxSizer()        
+        self.layout = wx.BoxSizer()
         self.layout.Add(self.Log,flag=wx.ALL|wx.EXPAND,proportion=1,border=2)
         self.panel.SetSizer(self.layout)
         self.Layout()
@@ -542,13 +542,13 @@ class LogPanel(wx.Frame):
                 t0 = time()
                 if self.Shown:
                     self.update_data()
-                    if self.data_changed: 
+                    if self.data_changed:
                         event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
                         # call OnUpdate in GUI thread
                         wx.PostEvent(self.EventHandler,event)
-                while time() < t0+self.refresh_period: sleep(0.1)
+                while time() < t0+self.refresh_period: sleep(0.5)
             except wx.PyDeadObjectError: break
-            
+
     def OnUpdate(self,event):
         """Periodically refresh the displayed settings."""
         self.refresh_status()
@@ -564,7 +564,7 @@ class LogPanel(wx.Frame):
     def refresh_background(self):
         """Force update"""
         self.update_data()
-        if self.data_changed: 
+        if self.data_changed:
             event = wx.PyCommandEvent(wx.EVT_TIMER.typeId,self.Id)
             wx.PostEvent(self.EventHandler,event) # call OnUpdate in GUI thread
 
@@ -596,7 +596,7 @@ class LogPanel(wx.Frame):
         self.server.log = self.Log.Value
         self.refresh()
 
-        
+
 if __name__ == '__main__':
     from pdb import pm
     import autoreload

@@ -7,7 +7,7 @@ property: is_new_image returns True\False if there is new image
 method: get_image return 4,X,Y image where 0 - R, 1 - G, 2 - B, 3 - K - colors
 
 Valentyn Stadnytskyi
-created: Feb 29 2018 
+created: Feb 29 2018
 last updated: July 2, 2018
 
 
@@ -61,60 +61,60 @@ class Image_analyzer(object):
     mask_image_filename = persistent_property('mask image filename', 'mask_default')
     frozen_threshold = persistent_property('freezing threshhold', 0.08)
 
-    
+
     def __init__(self, name = 'freeze_detector'):
         self.name = name
         #camera.exposure_time = self.cameraSettingExposureTime
         #camera.gain = self.cameraSettingGain
 ##        self.frozen_threshold = 0.1
 ##        self.frozen_threshold_temperature = -15.0
-##        
+##
 ##        #orientation of the camera
 ##        #self.orientation = 'vertical' #
 ##        self.orientation = 'horizontal' #
 ##
-##        
+##
 ##        self.difference_array = zeros((1,1))
 ##        self.background_array = zeros((1,1))
 ##        self.mask_array = zeros((1,1))
 ##        self.background_image_flag = False
 
         #self.analyse_dict = {}
-        
+
     def init(self, camera_name = 'MicroscopeCamera'):
         self.camera_name = camera_name #Microfluidics camera #MicroscopeCamera
         self.imageCounter = camera.frame_count
         #camera.exposure_time = self.cameraSettingExposureTime
         #camera.gain = self.cameraSettingGain
-        self.logFolder = os.getcwd() + '/optical_image_analyzer/' + self.name + '/'
-        if os.path.exists(os.path.dirname(self.logFolder)):
-            pass
-        else:
-            os.makedirs(os.path.dirname(self.logFolder))
-        if os.path.exists(os.path.dirname(self.logFolder+ 'Archive/') ):
-            pass
-        else:
-            os.makedirs(os.path.dirname(self.logFolder+ 'Archive/'))
-        self.background_image_filename = 'background_default_rgb.tiff'
-        try:
-            #self.background_image = Image.open(self.logFolder + self.background_image_filename)
-            self.background_array = load(self.logFolder + 'background_default_rgb.npy')
-            self.background_image_flag = True
-            info('got bckg image from the drive')
-        except:
-            warn('couldn"t load bckg image')
-            self.background_image_flag = False
-            
-        self.logfile = self.logFolder +'sample_frozen_image_rgb.log'
-        my_file = os.path.isfile(self.logfile )
-        if my_file:
-            pass
-        else:
-            f = open(self.logfile,'w')
-            timeRecord = time()
-            f.write('####This experiment started at: %r and other information %r \r\n'  %(timeRecord,'Other Garbage'))
-            f.write('time,imageCounter, temperature, mean, mean_R,mean_G,mean_B,stdev,stdev_R,stdev_B,stdev_G\r\n')
-            f.close()
+        # self.logFolder = os.getcwd() + '/optical_image_analyzer/' + self.name + '/'
+        # if os.path.exists(os.path.dirname(self.logFolder)):
+        #     pass
+        # else:
+        #     os.makedirs(os.path.dirname(self.logFolder))
+        # if os.path.exists(os.path.dirname(self.logFolder+ 'Archive/') ):
+        #     pass
+        # else:
+        #     os.makedirs(os.path.dirname(self.logFolder+ 'Archive/'))
+        # self.background_image_filename = 'background_default_rgb.tiff'
+        # try:
+        #     #self.background_image = Image.open(self.logFolder + self.background_image_filename)
+        #     self.background_array = load(self.logFolder + 'background_default_rgb.npy')
+        #     self.background_image_flag = True
+        #     info('got bckg image from the drive')
+        # except:
+        #     warn('couldn"t load bckg image')
+        #     self.background_image_flag = False
+        #
+        # self.logfile = self.logFolder +'sample_frozen_image_rgb.log'
+        # my_file = os.path.isfile(self.logfile )
+        # if my_file:
+        #     pass
+        # else:
+        #     f = open(self.logfile,'w')
+        #     timeRecord = time()
+        #     f.write('####This experiment started at: %r and other information %r \r\n'  %(timeRecord,'Other Garbage'))
+        #     f.write('time,imageCounter, temperature, mean, mean_R,mean_G,mean_B,stdev,stdev_R,stdev_B,stdev_G\r\n')
+        #     f.close()
     def get_is_new_image(self):
         """
         """
@@ -138,7 +138,7 @@ class Image_analyzer(object):
         info('Image counter: %r' % self.imageCounter)
         return flag
     is_new_image = property(get_is_new_image)
-            
+
     def get_image(self, timeout = 5, image = None):
         """
         return an array with RGBK colors and convers it to int 16 instead of int 8, for the K array
@@ -155,7 +155,7 @@ class Image_analyzer(object):
                     img[0,:,:] = tmp[0,:,:]
                     img[1,:,:] = tmp[1,:,:]
                     img[2,:,:] = tmp[2,:,:]
-                    img[3,:,:] = tmp[0,:,:]+tmp[1,:,:]+tmp[2,:,:]     
+                    img[3,:,:] = tmp[0,:,:]+tmp[1,:,:]+tmp[2,:,:]
                     self.imageCounter = camera.frame_count
                     flag_fail = False
                     break
@@ -197,7 +197,7 @@ class Image_analyzer(object):
                     mask[:,i,j] = 0
         except:
             error(traceback.format_exc())
-            mask = None 
+            mask = None
         return mask
 
     def mask_array(self,array,mask):
@@ -209,18 +209,18 @@ class Image_analyzer(object):
         x1 = anchors[0][0]
         y1 = anchors[0][1]
         x2 = anchors[1][0]
-        y2 = anchors[1][1] 
+        y2 = anchors[1][1]
         return array[:,x1:x2,y1:y2]
-    
-        
-        
-    
+
+
+
+
     def save_array_as_image(self,arr, filename):
         image = Image.new('RGB',(1360,1024))
         image.frombytes(arr.T.tostring())
         image.save(filename)
 
-        
+
     def rgb2gray(self,rgb):
         r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
         gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
@@ -232,12 +232,12 @@ class Image_analyzer(object):
         arr = self.get_image()
         self.background_array = arr
         return True
-        
-        
+
+
     def set_background_array(self, filename = 'blank'):
        self.background_image_flag = False
        start_new_thread(self.get_background_array,())
-    
+
 
     def plot_slices_difference(self):
         for i in range(7):
@@ -251,7 +251,7 @@ class Image_analyzer(object):
         plt.imshow(abs(self.difference_image))
         plt.colorbar()
         plt.show()
-        
+
     def plot_background(self):
         plt.subplot(121)
         plt.imshow(self.background_image)
@@ -260,7 +260,7 @@ class Image_analyzer(object):
         plt.imshow(self.mask_image)
         plt.colorbar()
         plt.show()
-        
+
     def plot(self,image):
 
         plt.imshow(image)
@@ -279,7 +279,7 @@ class Image_analyzer(object):
         try:
             os.stat(directory)
         except:
-            os.mkdir(directory) 
+            os.mkdir(directory)
 
         for i in range(360):
             sleep(10)
@@ -301,22 +301,22 @@ class Image_analyzer(object):
             return arr
         else:
             return None
-        
-                
+
+
     def test_load_current_1_image(self):
         self.test_current_1 = Image.open(self.logFolder + 'current_rgb.tiff')
-        
+
     def test_save_current_s_image(self):
         self.test_current_s.save(self.logFolder + 'current_test_saved.tiff')
-        
+
     def test_load_current_s_image(self):
         self.test_current_s = Image.open(self.logFolder + 'current_test_saved.tiff')
 
     def test_load_current_2_image(self):
         self.test_current_2 = Image.open(self.logFolder + 'current_test_2.tiff')
 
-            
-        
+
+
 from GigE_camera_client import Camera
 
 #camera = Camera("LabMicroscope")

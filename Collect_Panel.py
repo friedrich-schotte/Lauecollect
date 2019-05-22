@@ -2,9 +2,9 @@
 """Control panel for data dollection.
 Author: Friedrich Schotte
 Date created: 2018-10-17
-Date last modified: 2019-03-20
+Date last modified: 2019-05-21
 """
-__version__ = "1.1.1" #  disabled autoreload
+__version__ = "1.1.2" #  changed pperiodic update timer from 5000 to 10000 ms Valentyn
 
 from logging import debug,info,warn,error
 import wx
@@ -15,7 +15,7 @@ class Collect_Panel(wx.Frame):
     name = "Collect_Panel"
     title = "PP Acquire"
     icon = "Tool"
-    
+
     def __init__(self,parent=None):
         wx.Frame.__init__(self,parent=parent)
 
@@ -25,7 +25,7 @@ class Collect_Panel(wx.Frame):
         # Refresh
         self.timer = wx.Timer(self)
         self.Bind (wx.EVT_TIMER,self.OnTimer,self.timer)
-        self.timer.Start(5000,oneShot=True)
+        self.timer.Start(10000,oneShot=True)
 
     def update(self):
         self.Title = self.title
@@ -43,7 +43,7 @@ class Collect_Panel(wx.Frame):
             error("%s" % msg)
             import traceback
             traceback.print_exc()
-        self.timer.Start(5000,oneShot=True)
+        self.timer.Start(10000,oneShot=True)
 
     def update_controls(self):
         if self.code_outdated:
@@ -74,7 +74,7 @@ class Collect_Panel(wx.Frame):
         debug("Reloaded module %r" % module.__name__)
         debug("Updating class of %r instance" % self.__class__.__name__)
         self.__class__ = getattr(module,self.__class__.__name__)
-            
+
     timestamp = 0
 
     @property
@@ -92,11 +92,11 @@ class Collect_Panel(wx.Frame):
 
         frame = wx.BoxSizer()
         panel.SetSizer(frame)
-        
+
         layout = wx.BoxSizer(wx.VERTICAL)
         frame.Add(layout,flag=wx.EXPAND|wx.ALL,border=10,proportion=1)
         layout_flag = wx.EXPAND
-        
+
         group = wx.FlexGridSizer(cols=2)
         layout.Add(group,flag=layout_flag,border=border,proportion=1)
 
@@ -162,7 +162,7 @@ class Collect_Panel(wx.Frame):
             size=(480,-1),
         )
         group.Add(control,flag=l|cv|a,border=border)
-        
+
         label = wx.StaticText(panel,label="Logfile:")
         group.Add(label,flag=cv,border=0,proportion=1)
         control = Control(panel,type=TextCtrl,
@@ -172,7 +172,7 @@ class Collect_Panel(wx.Frame):
             size=(200,-1),
         )
         group.Add(control,flag=l|cv|a,border=border)
-        
+
         label = wx.StaticText(panel,label="Path:")
         group.Add(label,flag=cv,border=0,proportion=1)
         control = DirectoryControl(panel,
@@ -182,7 +182,7 @@ class Collect_Panel(wx.Frame):
             size=(390,-1),
         )
         group.Add(control,flag=l|cv|a,border=border)
-        
+
         indicator = Control(panel,type=wx.StaticText,
             globals=globals(),
             locals=locals(),
@@ -191,7 +191,7 @@ class Collect_Panel(wx.Frame):
             label="-"*100,
         )
         layout.Add(indicator,flag=layout_flag,border=border,proportion=0)
-        
+
         indicator = Control(panel,type=wx.StaticText,
             globals=globals(),
             locals=locals(),
@@ -253,7 +253,7 @@ class Collect_Panel(wx.Frame):
             size=(width,height),
         )
         group.Add(control,flag=flag,border=border,proportion=1)
-        
+
         panel.Fit()
         return panel
 

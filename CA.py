@@ -19,7 +19,7 @@ https://github.io/python_ca
 
 Author: Friedrich Schotte
 Date created: 2009-04-26
-Date last modified: 2019-03-27
+Date last modified: 2019-05-21
 Python Version: 2.7 and 3.7
 
 Based on: 'Channel Access Protocol Specification', version 4.11
@@ -32,7 +32,7 @@ To do:
   (EPICS R3.12 Channel Access Reference Manual,
   Chapter 1.3.2 Configuring CA for Multiple Subnets)
 """
-__version__ = "3.1.2" # reset_PVs: reset only for one IOC, if connection is lost
+__version__ = "3.2" # record.__setattr__: working for subclasses
 
 __authors__ = ["Friedrich Schotte"]
 __credits__ = []
@@ -310,7 +310,7 @@ class Record(object):
         if (name.startswith("__") and name.endswith("__")):
             object.__setattr__(self,name,value)
             return
-        if name in self.__dict__ or name in self.__class__.__dict__:
+        if name in self.__dict__ or hasattr(type(self),name):
             object.__setattr__(self,name,value)
             return
         ##debug("Record: caput(%r,%r)" % (self.__prefix__+"."+name,value))

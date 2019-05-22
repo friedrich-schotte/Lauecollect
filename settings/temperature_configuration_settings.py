@@ -7,11 +7,11 @@ motor_labels = ['list of temperatures', 'wait', 'Idle\ntemp', 'count']
 widths = [410, 35, 65, 50]
 line0.description = 'NIH:ramp-16_120_0.5_30_20'
 line1.description = 'NIH:ramp-16_100_0.5_30_20'
-line0.collect.temperatures = 'ramp(low=0,high=50,step=0.5,hold_low=30,hold_high=20)'
+line0.collect.temperatures = 'ramp(low=-10,high=120,step=0.5,hold_low=30,hold_high=20)'
 line1.collect.temperatures = 'ramp(low=-16,high=100.,step=0.5,hold_low=30,hold_high=20)'
 line1.updated = '2019-03-21 12:52:55'
 row_height = 40
-line0.updated = '2019-05-15 15:48:15'
+line0.updated = '2019-05-21 18:26:54'
 description_width = 130
 nrows = 17
 line2.description = 'NIH:NCBD'

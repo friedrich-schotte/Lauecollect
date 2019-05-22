@@ -2,9 +2,9 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2019-05-13
+Date last modified: 2019-05-17
 """
-__version__ = "1.13" # temperature ramp server
+__version__ = "1.13.2" # temperature ramp server: renamed temperature_Friedrich -> temperature 
 
 from logging import debug,info,warn,error
 import traceback
@@ -457,7 +457,7 @@ class Collect(object):
             image_numbers,temperatures = \
                 linear_ranges(self.collection_all_values("Temperature"))
             times = image_numbers * self.image_acquisition_time
-            from temperature_Friedrich import temperature
+            from temperature import temperature
             self.actual("Temperature uploading ramp...")
             temperature.time_points = list(times)
             temperature.temp_points = list(temperatures)
@@ -467,7 +467,7 @@ class Collect(object):
         if "Temperature" in self.collection_variables and \
             self.variable_wait("Temperature") == False:
             self.actual("Temperature stop...")
-            from temperature_Friedrich import temperature
+            from temperature import temperature
             temperature.time_points = []
             temperature.temp_points = []
             self.actual("Temperature stopped")
@@ -1351,7 +1351,7 @@ if __name__ == '__main__':
     print('self.collection_all_values("Temperature")')
     from linear_ranges import linear_ranges
     print('linear_ranges(self.collection_all_values("Temperature"))')
-    from temperature_Friedrich import temperature
+    from temperature import temperature
     print('temperature.time_points,temperature.temp_points')
     print('')
     ##print('self.temperature_list')

@@ -1,5 +1,12 @@
-Method.value = 'method.value'
-Method.properties = {'Enabled': 'True','Items': 'method.values'}
+Method.value = 'method.command_value'
+Method.properties = {
+    'Enabled': 'True',
+    'Items': 'method.values',
+    'BackgroundColour': [
+        ('Pink','method.value != method.command_value'),
+        ('White','method.value == method.command_value'),
+    ]
+}
 Show_Methods.action = {True: 'self.show_methods()'}
 Show_Methods.properties = {'Enabled': 'True'}
 File.value = 'collect.basename'

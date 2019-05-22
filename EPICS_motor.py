@@ -93,8 +93,12 @@ class EPICS_motor(Record):
     if not ":" in self.__command__: return getattr(self,self.__command__)
     else: return caget(self.__command__)
   def set_command_PV(self,value):
-    if not ":" in self.__command__: setattr(self,self.__command__,value)
-    else: caput(self.__command__,value)
+    if not ":" in self.__command__:
+      debug("setattr(%r,%r)" % (self.__command__,value))
+      setattr(self,self.__command__,value)
+    else:
+      debug("caput(%r,%r)" % (self.__command__,value))
+      caput(self.__command__,value)
   command_PV = property(get_command_PV,set_command_PV)
 
   def get_readback_PV(self):
@@ -117,7 +121,7 @@ class EPICS_motor(Record):
     else: value = self.command_PV
     return asfloat(value)
   def set_command_value(self,value):
-    ##debug("EPICS_motor: set_command_value(%r)" % value)
+    debug("value = %r" % value)
     try: value = float(value)
     except: return
     if isnan(value): return
@@ -131,6 +135,7 @@ class EPICS_motor(Record):
     # Enable the motor (in case it was disabled)
     #self.CNEN = 1
     # Initiate the motion by setting a new commond value.
+    debug("command_PV = %r" % value)
     self.command_PV = value
     self.__last_command_value__ = value
     self.__move_done__ = False

@@ -5,16 +5,16 @@ Capabilities:
 
 Authors: Valentyn Stadnydskyi, Friedrich Schotte
 Date created: 2019-05-08
-Date last modified: 2019-05-13
+Date last modified: 2019-05-21
 """
-__version__ = "1.0"
+__version__ = "1.3" # lightwave_temperature_controller
 
 from logging import debug,warn,info,error
 
 from IOC import IOC
 class Temperature_Server(IOC):
     name = "temperature"
-    prefix = "NIH:TRAMP."
+    prefix = "NIH:TEMP."
     property_names = [
         "time_points",
         "temp_points",
@@ -123,21 +123,10 @@ class Temperature_Server(IOC):
 
     @property
     def temperature_controller(self):
-        from temperature_controller import temperature_controller
-        return temperature_controller
+        from lightwave_temperature_controller import lightwave_temperature_controller
+        return lightwave_temperature_controller
     
 temperature_server = Temperature_Server()
-
-class Temperature(object):
-    prefix = Temperature_Server.prefix
-    from PV_property import PV_property
-    time_points = PV_property("time_points",[])
-    temp_points = PV_property("temp_points",[])
-    from numpy import nan
-    VAL = PV_property("VAL",nan)
-    RBV = PV_property("RBV",nan)
-
-temperature = Temperature()
 
 
 if __name__ == "__main__": 
@@ -153,6 +142,7 @@ if __name__ == "__main__":
     print('collect.temperature_start()')
     print('')
 
+    from temperature import temperature
     from numpy import nan
     ##print('temperature.VAL = %r' % temperature.VAL)
     ##print('temperature.RBV = %r' % temperature.RBV)

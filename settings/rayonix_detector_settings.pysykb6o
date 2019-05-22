@@ -1,6 +1,6 @@
 ignore_first_trigger = False
 ip_address = 'pico7.niddk.nih.gov:2222'
-nimages_to_keep = 50
+nimages_to_keep = 200
 scratch_directory = '//femto-data/C/Data/tmp'
 timing_mode = 'SAXS/WAXS'
 auto_start = 1
