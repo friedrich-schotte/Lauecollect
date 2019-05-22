@@ -21,7 +21,7 @@ import os
 from time import sleep,time
 from thread import start_new_thread
 from persistent_property import persistent_property
-from temperature_controller import temperature_controller
+from instrumentation import temperature
 from numpy import nan
 from logging import debug,info,warn,error
 import traceback
@@ -188,14 +188,14 @@ class Sample_frozen_optical(object):
         from numpy import rot90
 
 
-        if self.bckg_change_flag_down and temperature_controller.value < 1.0:
+        if self.bckg_change_flag_down and temperature.value < 1.0:
             #self.set_background()
             debug('circular buffer zeroed')
             self.circular_buffer = []
             self.bckg_change_flag_down = False
             self.bckg_change_flag_up = True
 
-        if self.bckg_change_flag_up and temperature_controller.value > 3.0:
+        if self.bckg_change_flag_up and temperature.value > 3.0:
             self.bckg_change_flag_down = True
             self.bckg_change_flag_up = False
 
@@ -216,7 +216,7 @@ class Sample_frozen_optical(object):
         casput(self.CAS_prefix+".STDEV",res_dic['stdev'])
         self.intervention_enabled = casget(self.CAS_prefix+'.ENABLED')
         casput(self.CAS_prefix+".VAL",is_frozen_flag)
-        if is_frozen_flag and temperature_controller.value < self.frozen_threshold_temperature:
+        if is_frozen_flag and temperature.value < self.frozen_threshold_temperature:
             print('freezing detected')
             """Intervention"""
             if self.intervention_enabled:
@@ -232,7 +232,7 @@ class Sample_frozen_optical(object):
         from optical_image_analyzer import image_analyzer
         from numpy import subtract, mean, std, rot90, array
         from freeze_intervention import freeze_intervention
-        from temperature_controller import temperature_controller
+        temperatureimport temperature
         from PIL import Image
 
         dx = int(self.box_dimensions*2/2.0)
@@ -275,7 +275,7 @@ class Sample_frozen_optical(object):
         if not freeze_intervention.active:
             #if mean_value - mean(self.circular_buffer)  > self.scattering_threshold and len(self.circular_buffer) >5:
             if mean_value  > (self.scattering_threshold) and len(self.circular_buffer) >5:
-                if temperature_controller.value < self.frozen_threshold_temperature:
+                if temperature.value < self.frozen_threshold_temperature:
                     flag = True
                 else:
                     flag = False
