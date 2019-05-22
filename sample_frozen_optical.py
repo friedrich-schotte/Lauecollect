@@ -7,7 +7,7 @@ Date last modified: March 2 2019
 
 Utilizes center 50x50 pixels to measure mean value within
 """
-__version__ = "1.0"
+__version__ = "1.0" # write a comment
 
 
 from CAServer import casput,casdel, casget
