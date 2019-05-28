@@ -6,6 +6,7 @@ Date last modified: 2019-05-21
 """
 import wx,wx3_compatibility
 from temperature import temperature
+from oasis_chiller import oasis_chiller as oasis
 from EditableControls import ComboBox,TextCtrl
 from logging import debug
 from Panel import BasePanel,PropertyPanel,TogglePanel,TweakPanel
@@ -28,12 +29,13 @@ class Temperature_Panel (wx.Frame):
 
         style = wx.TE_READONLY
         self.ActualTemperature = wx.TextCtrl(panel,style=style)
+        self.OasisActualTemperature = wx.TextCtrl(panel,style=style)
         self.CurrentPower = wx.TextCtrl(panel,style=style)
 
         self.LiveCheckBox = wx.CheckBox (panel,label="Live")
         self.RefreshButton = wx.Button (panel,label="Refresh",size=(65,-1))
         self.MoreButton = wx.Button (panel,label="More...",size=(60,-1))
-        self.RampButton = wx.Button (panel,label="Ramp...",size=(60,-1))
+        self.SettingsButton = wx.Button (panel,label="Settings...",size=(60,-1))
         w,h = self.MoreButton.Size
         self.AboutButton = wx.Button (panel,label="?",size=(h*1.25,h*0.75))
 
@@ -45,7 +47,7 @@ class Temperature_Panel (wx.Frame):
         self.Bind (wx.EVT_BUTTON,self.OnRefresh,self.RefreshButton)
         self.Bind (wx.EVT_BUTTON,self.OnMore,self.MoreButton)
         self.Bind (wx.EVT_BUTTON,self.OnAbout,self.AboutButton)
-        self.Bind (wx.EVT_BUTTON,self.OnTemperatureRamp,self.RampButton)
+        self.Bind (wx.EVT_BUTTON,self.OnTemperature,self.SettingsButton)
 
         # Layout
         layout = wx.GridBagSizer(1,1)
@@ -62,6 +64,10 @@ class Temperature_Panel (wx.Frame):
         layout.Add (t,(1,0),flag=a)
         layout.Add (self.ActualTemperature,(1,1),flag=a|e)
 
+        t = wx.StaticText(panel,label="Oasis Temperature:")
+        layout.Add (t,(1,2),flag=a)
+        layout.Add (self.OasisActualTemperature,(1,3),flag=a|e)
+
         t = wx.StaticText(panel,label="Current / Power:")
         layout.Add (t,(2,0),flag=a)
         layout.Add (self.CurrentPower,(2,1),flag=a|e)
@@ -73,7 +79,7 @@ class Temperature_Panel (wx.Frame):
         buttons.AddSpacer(5)
         buttons.Add (self.MoreButton,flag=wx.ALIGN_CENTER_VERTICAL)
         buttons.AddSpacer(5)
-        buttons.Add (self.RampButton,flag=wx.ALIGN_CENTER_VERTICAL)
+        buttons.Add (self.SettingsButton,flag=wx.ALIGN_CENTER_VERTICAL)
         buttons.AddSpacer(5)
         buttons.Add (self.AboutButton,flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -152,8 +158,14 @@ class Temperature_Panel (wx.Frame):
 
         value = temperature.value
         self.ActualTemperature.Value = "%.3f C"%value if not isnan(value) else ""
+        value = oasis.value
+        self.OasisActualTemperature.Value = "%.3f C"%value if not isnan(value) else ""
+
         moving = temperature.moving
         self.ActualTemperature.ForegroundColour = (255,0,0) if moving else (0,0,0)
+
+        moving = oasis.moving
+        self.OasisActualTemperature.ForegroundColour = (255,0,0) if moving else (0,0,0)
         ##self.ActualTemperature.BackgroundColour = (255,235,235) if moving else (255,255,255)
 
         current = temperature.I
@@ -166,9 +178,9 @@ class Temperature_Panel (wx.Frame):
         """Display panel with additional parameters."""
         self.parameter_panel = ParameterPanel(self)
 
-    def OnTemperatureRamp(self,event):
+    def OnTemperature(self,event):
         """Show panel with temperature ramp parameters"""
-        self.temperature_ramp_panel = TemperatureRamp(self)
+        self.temperature_ramp_panel = Temperature(self)
 
     def OnAbout(self,event):
         "Called from the Help/About"
@@ -205,16 +217,38 @@ class ParameterPanel(BasePanel):
             label_width=90,
         )
 
-class TemperatureRamp(BasePanel):
-    name = "temperature_ramp"
-    title = "Temperature Ramp"
+class Temperature(BasePanel):
+    name = "temperature"
+    title = "Temperature"
     standard_view = [
         "Temp Points",
         "Time Points",
+        "P default",
+        "I default",
+        "D default",
+        "Lightwave prefix",
+        "Oasis slave (on/off)",
+        "Oasis threshold T",
+        "Oasis idle temperature (low limit) (C)",
+        "Oasis temperature limit high (C)",
+        "Oasis headstart time (s)",
+        "Oasis prefix",
+        "set point update period (s)",
     ]
     parameters = [
         [[PropertyPanel,"Temp Points",temperature,"temp_points" ],{}],
         [[PropertyPanel,"Time Points",temperature,"time_points" ],{}],
+
+        [[PropertyPanel,"P default",temperature,"P_default" ],{}],
+        [[PropertyPanel,"I default",temperature,"I_default" ],{}],
+        [[PropertyPanel,"D default",temperature,"D_default" ],{}],
+        [[PropertyPanel,"Lightwave prefix",temperature,"lightwave_prefix"],{}],
+        [[PropertyPanel,"Oasis slave (on/off)",temperature,"oasis_slave" ],{}],
+        [[PropertyPanel,"Oasis threshold T",temperature,"T_threshold" ],{}],
+        [[PropertyPanel,"Oasis idle temperature (low limit) (C)",temperature,"idle_temperature_oasis" ],{}],
+        [[PropertyPanel,"Oasis temperature limit high (C)",temperature,"temperature_oasis_limit_high" ],{}],
+        [[PropertyPanel,"Oasis headstart time (s)",temperature,"oasis_headstart_time" ],{}],
+        [[PropertyPanel,"Oasis prefix",temperature,"oasis_prefix" ],{}],
     ]
 
     def __init__(self,parent=None):

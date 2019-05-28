@@ -232,7 +232,7 @@ class Sample_frozen_optical(object):
         from optical_image_analyzer import image_analyzer
         from numpy import subtract, mean, std, rot90, array
         from freeze_intervention import freeze_intervention
-        from temperature import temperature
+        temperatureimport temperature
         from PIL import Image
 
         dx = int(self.box_dimensions*2/2.0)

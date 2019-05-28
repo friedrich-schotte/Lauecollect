@@ -1,9 +1,9 @@
 """Software simulated motor
 Author: Friedrich Schotte
 Date created: 2015-11-03
-Date last modified: 2019-02-28
+Date last modified: 2019-05-26
 """
-__version__ = "1.1.4" # issue: moving = False did not  stop
+__version__ = "1.2" # sim_EPICS_motor: readback
 
 class sim_motor(object):
     from persistent_property import persistent_property
@@ -146,16 +146,18 @@ class sim_EPICS_motor(sim_motor):
     __EPICS_enabled__ = persistent_property("EPICS_enabled",True)
     
     def __init__(self,prefix="SIM:MOTOR",name="sim_motor",
-        description="simulated motor",unit=None):
+        description="simulated motor",unit=None,readback=None):
         """prefix: default name of motor record
-        name: mnemonic name"""
+        name: mnemonic name
+        readback: PV name for readback value (RBV)
+        """
         sim_motor.__init__(self,prefix)
         self.name = name
         if self.__prefix__ == "SIM:MOTOR": self.__prefix__ = prefix
         if self.description == "simulated motor": self.description = description
         if unit is not None and self.unit == "mm": self.unit = unit
-        from CAServer import register_object
-        if self.__EPICS_enabled__: register_object(self,self.__prefix__)
+        self.readback = readback
+        self.EPICS_enabled = self.EPICS_enabled
 
     def get_prefix(self):
         return self.__prefix__
@@ -170,19 +172,30 @@ class sim_EPICS_motor(sim_motor):
     def get_EPICS_enabled(self):
         return self.__EPICS_enabled__
     def set_EPICS_enabled(self,value):
-        from CAServer import register_object,unregister_object
         self.__EPICS_enabled__ = value
-        if self.__EPICS_enabled__: register_object(self,self.__prefix__)
-        else: unregister_object(object=self)
+        if self.__EPICS_enabled__:
+            from CAServer import register_object,register_property
+            register_object(self,self.__prefix__)
+            if self.readback: register_property(self,"RBV",self.readback)
+        else:
+            from CAServer import unregister_object,unregister_property
+            unregister_object(object=self)
+            if self.readback: unregister_property(self,"RBV",self.readback)
     EPICS_enabled = property(get_EPICS_enabled,set_EPICS_enabled)
 
 
 if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG,format="%(asctime): %(message)s")
-    m = sim_motor()
-    print("m.value = %r" % m.value)
-    print("m.value = 185.8")
-    print("m.value = 485.8")
-    print("m.moving = False")
-    print("m.moving")
+    motor = sim_EPICS_motor
+    Slit1H = motor("14IDA:Slit1Hsize",name="Slit1H",description="White beam slits H gap",
+      readback="14IDA:Slit1Ht2.C")
+    from CA import caget,caput
+    print('Slit1H.prefix = %r' % Slit1H.prefix)
+    print('Slit1H.readback = %r' % Slit1H.readback)
+    print('Slit1H.EPICS_enabled = %r' % Slit1H.EPICS_enabled)
+    print('caget(Slit1H.prefix+".VAL")')
+    print('caget(Slit1H.readback)')
+    print('caput(Slit1H.readback,Slit1H.VAL)')
+    print('Slit1H.value += 0.001')
+    print('Slit1H.value')

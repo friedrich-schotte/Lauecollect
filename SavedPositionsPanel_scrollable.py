@@ -2,9 +2,9 @@
 """Control panel to save and recall motor positions.
 Author: Friedrich Schotte
 Date created: 2010-12-13
-Date last modified: 2019-05-26
+Date last modified: 2019-05-28
 """
-__version__ = "4.2.2" # issue: AppendCheckItem: empty string:  wxGetStockLabel(): invalid stock item ID
+__version__ = "5.0" # scrollable
 
 from logging import debug,info,warn,error
 import traceback
@@ -920,10 +920,10 @@ if __name__ == '__main__':
     redirect("SavedPositionsPanel_2",format=format)
 
     import autoreload
-    name = ""
+    ##name = ""
     ##name = "beamline_configuration"
     ##name = "sequence_modes"
-    ##name = "high_speed_chopper_modes"
+    name = "high_speed_chopper_modes"
     ##name = "Julich_chopper_modes"
     ##name = "timing_modes"
     ##name = "delay_configuration"

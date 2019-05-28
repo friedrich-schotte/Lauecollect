@@ -9,7 +9,7 @@ line1.collect.delay_configuration = 'hsc=CH-56, pp=Flythru-48, seq=NIH:i1, delay
 line0.updated = '28 Jan 09:48'
 line1.updated = '09 Oct 14:07'
 widths = [500]
-row_height = 54
+row_height = 40
 description_width = 140
 nrows = 17
 line2.collect.delay_configuration = 'delays=pairs(-10us, sorted(log_series(10ns, 563ns, steps_per_decade=4)+[75ns, 133ns]))'

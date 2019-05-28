@@ -16,7 +16,6 @@ from numpy import empty, mean, std, zeros, abs, where, nan , isnan
 import numpy.polynomial.polynomial as poly
 
 from scipy.interpolate import interp1d
-
 from CA import caget, caput
 from CAServer import casput,casget,casdel
 
@@ -32,18 +31,21 @@ class Temperature_Server_IOC(object):
     P_default = persistent_property("P_default",1.000)
     I_default = persistent_property("I_default",0.316)
     D_default = persistent_property("D_default",0.562)
+    oasis_slave = persistent_property("oasis_slave",1)
+    temperature_oasis_switch = persistent_property("T_threshold",83.0)
+    idle_temperature_oasis = persistent_property("idle_temperature_oasis",8.0)
+    temperature_oasis_limit_high = persistent_property("temperature_oasis_limit_high",45.0)
+    oasis_headstart_time = persistent_property("oasis_headstart_time",15.0)
+    lightwave_prefix = persistent_property("lightwave_prefix",'NIH:LIGHTWAVE')
+    oasis_prefix = persistent_property("oasis_prefix",'NIH:CHILLER')
+    set_point_update_period = persistent_property("set_point_update_period",0.5)
+
     running = False
     last_valid_reply = 0
     was_online = False
-    set_point_update_period = 0.5
-    lightwave_prefix = 'NIH:LIGHTWAVE'
-    oasis_prefix = 'NIH:CHILLER'
-    oasis_headstart_time = 15
     ramping_cancelled = False
     idle_temperature = 22.0
-    idle_temperature_oasis = 8.0
-    temperature_oasis_switch = 83.0
-    temperature_oasis_limit_high = 45.0
+
     time_points = []
     temp_points = []
 
@@ -77,6 +79,20 @@ class Temperature_Server_IOC(object):
         casput(self.prefix+".DMOV",value = nan)
         casput(self.prefix+".KILL",value = nan)
 
+        casput(self.prefix+".P_default",value = self.P_default)
+        casput(self.prefix+".I_default",value = self.I_default)
+        casput(self.prefix+".D_default",value = self.D_default)
+
+
+        casput(self.prefix+".oasis_slave",value = self.oasis_slave)
+        casput(self.prefix+".temperature_oasis_switch",value = self.temperature_oasis_switch)
+        casput(self.prefix+".idle_temperature_oasis",value = self.idle_temperature_oasis)
+        casput(self.prefix+".temperature_oasis_limit_high",value = self.temperature_oasis_limit_high)
+        casput(self.prefix+".oasis_headstart_time",value = self.oasis_headstart_time)
+        casput(self.prefix+".lightwave_prefix",value = self.lightwave_prefix)
+        casput(self.prefix+".oasis_prefix",value = self.oasis_prefix)
+        casput(self.prefix+".set_point_update_period",value = self.set_point_update_period)
+
         casput(self.prefix+".oasis_RBV",value = nan)
         casput(self.prefix+".oasis_VAL",value = nan)
 
@@ -89,6 +105,19 @@ class Temperature_Server_IOC(object):
         casmonitor(self.prefix+".TIME_POINTS",callback=self.monitor)
         casmonitor(self.prefix+".TEMP_POINTS",callback=self.monitor)
         casmonitor(self.prefix+".KILL",callback=self.monitor)
+
+        casmonitor(self.prefix+".P_default",callback=self.monitor)
+        casmonitor(self.prefix+".I_default",callback=self.monitor)
+        casmonitor(self.prefix+".D_default",callback=self.monitor)
+
+        casmonitor(self.prefix+".oasis_slave",callback=self.monitor)
+        casmonitor(self.prefix+".temperature_oasis_switch",callback=self.monitor)
+        casmonitor(self.prefix+".idle_temperature_oasis",callback=self.monitor)
+        casmonitor(self.prefix+".temperature_oasis_limit_high",callback=self.monitor)
+        casmonitor(self.prefix+".oasis_headstart_time",callback=self.monitor)
+        casmonitor(self.prefix+".lightwave_prefix",callback=self.monitor)
+        casmonitor(self.prefix+".oasis_prefix",callback=self.monitor)
+        casmonitor(self.prefix+".set_point_update_period",callback=self.monitor)
 
         #############################################################################
         ## Monitor server-writable PVs that come other servers
@@ -180,6 +209,34 @@ class Temperature_Server_IOC(object):
             self.temp_points = value
         if PV_name == self.prefix + ".KILL":
             self.shutdown()
+
+        if PV_name == self.prefix + ".P_default":
+            self.P_default = value
+            self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+        if PV_name == self.prefix + ".I_default":
+            self.I_default = value
+            self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+        if PV_name == self.prefix + ".D_default":
+            self.D_default = value
+            self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+
+        if PV_name == self.prefix + ".oasis_slave":
+            self.oasis_slave = value
+        if PV_name == self.prefix + ".temperature_oasis_switch":
+            self.temperature_oasis_switch = value
+        if PV_name == self.prefix + ".idle_temperature_oasis":
+            self.idle_temperature_oasis = value
+        if PV_name == self.prefix + ".temperature_oasis_limit_high":
+            self.temperature_oasis_limit_high = value
+        if PV_name == self.prefix + ".oasis_headstart_time":
+            self.oasis_headstart_time = value
+        if PV_name == self.prefix + ".lightwave_prefix":
+            self.lightwave_prefix = value
+        if PV_name == self.prefix + ".oasis_prefix":
+            self.oasis_prefix = value
+        if PV_name == self.prefix + ".set_point_update_period":
+            self.set_point_update_period = value
+
 
     def lightwave_monitor(self,PV_name,value,char_value):
         #print('time: %r, PV_name = %r,value= %r,char_value = %r' %(time(),PV_name,value,char_value) )
@@ -413,8 +470,10 @@ class Temperature_Server_IOC(object):
         return value
     def set_set_lightwaveT(self,value):
         from CA import caput, cawait
-        caput(self.lightwave_prefix + '.VAL', value = float(value))
-        cawait(self.lightwave_prefix + '.VAL')
+        from numpy import isnan
+        if value is not isnan:
+            caput(self.lightwave_prefix + '.VAL', value = float(value))
+            cawait(self.lightwave_prefix + '.VAL')
     set_lightwaveT = property(get_set_lightwaveT,set_set_lightwaveT)
 
     def get_oasisT(self):
@@ -427,14 +486,17 @@ class Temperature_Server_IOC(object):
         return value
     def set_set_oasisT(self,value):
         from CA import caput
+        from numpy import isnan
         if self.get_set_oasisT() != float(value):
-            caput(self.oasis_prefix+'.VAL', value = float(value))
+            if value is not isnan:
+                caput(self.oasis_prefix+'.VAL', value = float(value))
     set_oasisT = property(get_set_oasisT,set_set_oasisT)
 
     def set_T(self,value):
         value = float(value)
         if value != self.get_set_lightwaveT() or self.temp_to_oasis(value) != self.get_set_oasisT():
-            self.set_set_oasisT(self.temp_to_oasis(value))
+            if self.oasis_slave:
+                self.set_set_oasisT(self.temp_to_oasis(value))
             self.set_set_lightwaveT(value)
 
     def set_ramp_T(self,value):
@@ -450,13 +512,23 @@ class Temperature_Server_IOC(object):
             self.set_set_lightwaveT(value)
             info('set_set_lightwaveT %r at %r' %(value , time()))
             info(abs(self.get_lightwaveT() - self.get_set_lightwaveT()))
-            if value >= 83:
+            if value >= self.temperature_oasis_switch:
                 t_diff = 3.0
             else:
                 t_diff = 1.0
             while abs(self.get_lightwaveT() - self.get_set_lightwaveT()) > 1.0:
                 sleep(0.05)
             self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+
+    def set_PCOF(self,value):
+        from CA import caput, cawait
+        if self.get_PCOF() != value:
+            caput(self.lightwave_prefix + '.PCOF',value)
+            cawait(self.lightwave_prefix + '.PCOF')
+    def get_PCOF(self):
+        from CA import caget
+        value = caget(self.lightwave_prefix + '.PCOF')
+        return value
 
     def set_ICOF(self,value):
         from CA import caput, cawait
@@ -492,22 +564,25 @@ class Temperature_Server_IOC(object):
     def temp_to_oasis(self,T, mode = 'bistable'):
         if mode == 'bistable':
             if T >= self.temperature_oasis_switch:
-                t = 45.0
+                t = self.temperature_oasis_limit_high
             else:
-                t =8.0
+                t = self.idle_temperature_oasis
         else:
-            oasis_min = t_min= 8.0
-            oasis_max = t_max = 45.0
+            oasis_min = t_min= self.idle_temperature_oasis
+            oasis_max = t_max = self.temperature_oasis_limit_high
             T_max= 120.0
             T_min= -16
             if T <=T_max or T >=T_min:
                 t = ((T-T_min)/(T_max-T_min))*(t_max-t_min) + t_min
             elif T>T_max:
-                t = 45.0
+                t = self.temperature_oasis_limit_high
             elif T<T_min:
-                t = 8
+                t = self.idle_temperature_oasis
 
-        return round(t,1)
+        if self.oasis_slave:
+            return round(t,1)
+        else:
+            return self.idle_temperature_oasis
 
 temperature_server_IOC = Temperature_Server_IOC()
 

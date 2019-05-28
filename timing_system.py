@@ -3,11 +3,11 @@ FPGA Timing System
 
 Author: Friedrich Schotte
 Date created: 2007-04-02
-Date last modified: 2019-03-22
+Date last modified: 2019-05-26
 """
 from logging import debug,info,warn,error
 
-__version__ = "8.5" # prefixes
+__version__ = "8.6" # CA_cached
 
 def Parameter(name,default_value=0.0):
     """A propery object to be used inside a class"""

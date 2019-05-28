@@ -7,7 +7,7 @@ line0.description = 'NIH:S5_T-ramp'
 line1.description = 'NIH:H56_ps'
 line0..timing_modes = .modes = u'Flythru-4'
 line1..timing_modes = .modes = u'Flythru-4'
-row_height = 40
+row_height = 20
 show_apply_buttons = True
 apply_button_label = 'Select'
 show_define_buttons = True

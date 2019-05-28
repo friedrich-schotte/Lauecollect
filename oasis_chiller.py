@@ -53,7 +53,7 @@ Inbound Rules > pythonw > General > Allow the connection
 
 Authors: Friedrich Schotte, Nara Dashdorj, Valentyn Stadnytskyi
 Date created: 2009-05-28
-Date last modified: 2018-10-16
+Date last modified: 2019-05-26
 """
 
 from struct import pack,unpack
@@ -63,7 +63,7 @@ import os
 import platform
 computer_name = platform.node()
 
-__version__ = "2.3" # command scheduler
+__version__ = "2.4" # added PID parameters to monitor; changed parameter numbers for PID parameter objects 208-213 VS
 
 class OasisChillerDriver(object):
     """Oasis thermoelectric chiller by Solid State Cooling Systems"""
@@ -104,12 +104,12 @@ class OasisChillerDriver(object):
     LLM = low_limit
     HLM = high_limit
 
-    P1 = parameter_property(0xD0)
-    I1 = parameter_property(0xD1)
-    D1 = parameter_property(0xD2)
-    P2 = parameter_property(0xD3)
-    I2 = parameter_property(0xD4)
-    D2 = parameter_property(0xD5)
+    P1 = parameter_property(208)
+    I1 = parameter_property(209)
+    D1 = parameter_property(210)
+    P2 = parameter_property(211)
+    I2 = parameter_property(212)
+    D2 = parameter_property(213)
 
     def set_factory_PID(self):
         """Reset PID parameters to factory settings"""
@@ -230,6 +230,7 @@ class OasisChillerDriver(object):
           1=set point, 6=low limit, 7=high limit, 9=coolant temp.
           208-213=PID parameter P1,I1,D1,P2,I2,D2
         """
+        from struct import pack
         code = int("01000000",2) | parameter_number
         command = pack('B',code)
         reply = self.query(command,count=3)
@@ -250,6 +251,8 @@ class OasisChillerDriver(object):
 
     def set_value(self,parameter_number,value):
         """Set a 16-bit value"""
+        from numpy import rint
+        from struct import pack
         code = int("01100000",2) | parameter_number
         command = pack('<BH',code,int(rint(value)))
         reply = self.query(command,count=1)
@@ -385,6 +388,7 @@ class OasisChiller_IOC(object):
         # Set defaults
         casput(self.prefix+".VAL",nan)
         casput(self.prefix+".RBV",nan)
+
         casput(self.prefix+".LLM",nan)
         casput(self.prefix+".HLM",nan)
         casput(self.prefix+".P1",nan)
@@ -402,6 +406,13 @@ class OasisChiller_IOC(object):
         casmonitor(self.prefix+".VAL",callback=self.monitor)
         casmonitor(self.prefix+".LLM",callback=self.monitor)
         casmonitor(self.prefix+".HLM",callback=self.monitor)
+
+        casmonitor(self.prefix+".P1",callback=self.monitor)
+        casmonitor(self.prefix+".I1",callback=self.monitor)
+        casmonitor(self.prefix+".D1",callback=self.monitor)
+        casmonitor(self.prefix+".P2",callback=self.monitor)
+        casmonitor(self.prefix+".I2",callback=self.monitor)
+        casmonitor(self.prefix+".D2",callback=self.monitor)
 
     def update_once(self):
         from CAServer import casput
@@ -438,7 +449,8 @@ class OasisChiller_IOC(object):
                 value = getattr(oasis_chiller_driver,attr)
                 casput(self.prefix+"."+attr,value)
                 casput(self.prefix+".SCANT",time()-t) # post actual scan time for diagnostics
-        else: sleep(1)
+        else:
+            sleep(1)
         self.was_online = online
 
     from collections import deque
@@ -449,7 +461,7 @@ class OasisChiller_IOC(object):
         name = self.poll_properties[self.poll_count % len(self.poll_properties)]
         self.poll_count += 1
         return name
-    
+
     poll_properties = ["RBV","VAL","fault_code","faults"]
     poll_count = 0
 
@@ -460,7 +472,7 @@ class OasisChiller_IOC(object):
         if PV_name == self.prefix+".SCAN":
             oasis_chiller_driver.wait_time = float(value)
             casput(self.prefix+".SCAN",oasis_chiller_driver.wait_time)
-        else: 
+        else:
             attr = PV_name.replace(self.prefix+".","")
             self.command_queue.append([attr,float(value)])
 
@@ -493,6 +505,7 @@ class OasisChiller(EPICS_motor):
     nominal_temperature = alias("VAL") # for backward compatbility
     actual_temperature = alias("RBV") # for backward compatbility
 
+
 oasis_chiller = OasisChiller(prefix="NIH:CHILLER",name="oasis_chiller")
 chiller = oasis_chiller # for backward compatbility
 
@@ -514,7 +527,7 @@ if __name__ == "__main__": # for testing
     import CAServer
     from CAServer import casput,casmonitor,PVs,PV_info
     ##CAServer.DEBUG = True
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
         format="%(asctime)s %(levelname)s: %(message)s")
     self = oasis_chiller_IOC # for debugging
     PV_name = "NIH:CHILLER.VAL"

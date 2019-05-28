@@ -7,7 +7,7 @@ line0.collect.power_configuration = 'power(T0=1.0, N_per_decade=4, N_power=6, re
 line1.collect.power_configuration = 'power(T0=0.33, N_per_decade=4, N_power=10, reverse=1)'
 line0.description = 'NIH:1.0_4_6_0'
 line1.description = 'NIH:0.5_4_10_1'
-nrows = 3
+nrows = 2
 line0.updated = '18 Oct 20:50'
 line1.updated = '18 Oct 20:50'
 description_width = 120

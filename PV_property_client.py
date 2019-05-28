@@ -1,13 +1,15 @@
-"""EPICS Channel Access Process Variable as class property
-Author: Friedrich Schotte
-Date created: 2019-05-18
-Date last modified: 2019-05-21
+"""EPICS Channel Access Process Variable as class property for the client object
+Author: Friedrich Schotte, Valentyn Stadnytskyi
+Date created: 2019-05-18 (originally came from PV_property)
+Date last modified: 2019-05-26
 """
-__version__ = "1.1" # 
+__version__ = "1.2" # added alias for PV_property_client
 
 from numpy import nan
-def PV_property(name,default_value=nan):
-    """EPICS Channel Access Process Variable as class property"""
+def PV_property_client(name,default_value=nan):
+    """EPICS Channel Access Process Variable as class property.
+        this property class doesn't change the name to upper case.
+    """
     def prefix(self):
         prefix = ""
         if hasattr(self,"prefix"): prefix = self.prefix
@@ -16,7 +18,7 @@ def PV_property(name,default_value=nan):
         return prefix
     def get(self):
         from CA import caget
-        value = caget(prefix(self)+name.upper())
+        value = caget(prefix(self)+name)
         if value is None: value = default_value
         if type(value) != type(default_value):
             if type(default_value) == list: value = [value]
@@ -26,5 +28,5 @@ def PV_property(name,default_value=nan):
         return value
     def set(self,value):
         from CA import caput
-        value = caput(prefix(self)+name.upper(),value)
+        value = caput(prefix(self)+name,value)
     return property(get,set)

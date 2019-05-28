@@ -33,7 +33,7 @@ class Temperature_Controller(EPICS_motor):
     setT = alias("command_value") # for backward compatbility with lauecollect
     readT = alias("value") # for backward compatbility with lauecollect
     prefix = alias("__prefix__") # EPICS_motor.prefix not changable
-  
+
 temperature_controller = Temperature_Controller(prefix="NIH:TEMP",name="temperature_controller")
 
 if __name__ == "__main__":

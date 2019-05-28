@@ -4,7 +4,7 @@ Implements the server side of the Channel Access (CA) protocol, version 4.11.
 
 Author: Friedrich Schotte
 Date created: 2009-10-31
-Date last modified: 2019-03-20
+Date last modified: 2019-05-26
 
 based on: 'Channel Access Protocol Specification', version 4.11
 http://epics.cosylab.com/cosyjava/JCA-Common/Documentation/CAproto.html
@@ -51,7 +51,7 @@ variable with three arguments:
 """
 from logging import debug,info,warn,error
 
-__version__ = "1.4.10" # handle empty arrays
+__version__ = "1.5" # register_property
 
 DEBUG = False # Generate debug messages?
 
@@ -79,6 +79,29 @@ def unregister_object(object=None,name=None):
         registered_objects = [(o,n) for (o,n) in registered_objects if not o is object]
     if name is not None:
         registered_objects = [(o,n) for (o,n) in registered_objects if not n == name]
+
+registered_properties = {}
+
+def register_property(object,property_name,PV_name):
+    """Export object as PV under the given name"""
+    global registered_properties
+    start_server()
+    unregister_property(PV_name=PV_name)
+    registered_properties[PV_name] = (object,property_name)
+
+def unregister_property(object=None,property_name=None,PV_name=None):
+    """Undo 'register_object'"""
+    global registered_properties
+    if object is not None and property_name is not None and PV_name is not None:
+        if PV_name in registered_properties:
+            if registered_properties[PV_name] == (object,property_name):
+                del registered_properties[PV_name]
+    elif PV_name is not None:
+        if PV_name in registered_properties: del registered_properties[PV_name]
+    elif object is not None and property_name is not None:
+        for key in registered_properties.keys():
+            if registered_properties[key] == (object,property_name):
+                del registered_properties[key]
 
 def casdel(name):
     """Undo 'casput'"""
@@ -230,6 +253,11 @@ def PV_value_or_object(PV_name):
             ##except: pass
             try: return eval("object"+attribute)
             except: pass
+    if PV_name in registered_properties:
+        object,property_name = registered_properties[PV_name]
+        try: return getattr(object,property_name)
+        except Exception,msg:
+            error("%s: %r.%s: %s" % (PV_name,object,property_name,msg))
     record = object_instance(PV_name)
     if record: return getattr(record,object_property(PV_name))
     if PV_name in PVs.keys(): return PVs[PV_name].value
@@ -296,6 +324,11 @@ def PV_set_value(PV_name,value):
                         continue
                     except Exception,exception:
                         if DEBUG: debug("Tried %s: failed: %s" % (code,exception))
+    if PV_name in registered_properties:
+        object,property_name = registered_properties[PV_name]
+        try: setattr(object,property_name,value)
+        except Exception,msg:
+            error("%s: %r.%s = %r: %s",(PV_name,object,property_name,value,msg))
     record = object_instance(PV_name)
     if record:
         setattr(record,object_property(PV_name),value)
@@ -1450,15 +1483,13 @@ if __name__ == "__main__": # for testing
     )
     DEBUG = False
 
-    PV_name = "NIH:TEST.VAL"
-    def monitor(PV_name,value,char_value):
-            """Handle PV change requests"""
-            warn("%s = %r" % (PV_name,value))
-    casmonitor(PV_name,callback=monitor)
+    from sim_motor import sim_EPICS_motor as motor
+    self = motor("14IDA:Slit1Ht2",name="Slit1H",description="White beam slits H gap",
+      readback="14IDA:Slit1Ht2.C")
+
+    print('register_property(self,"RBV",self.readback)')
+    print('unregister_property(self,"RBV",self.readback)')
     from CA import caget,caput
-    print('PVs.keys()')
-    print('casput(PV_name,1)')
-    print('caget(PV_name)')
-    print('caput(PV_name,2)')
-    print('PVs.keys()')
+    print('caget(self.readback)')
+    print('caput(self.readback,self.VAL)')
 

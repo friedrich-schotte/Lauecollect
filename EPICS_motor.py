@@ -2,19 +2,19 @@
 Python interface to EPICS-controlled motors.
 Author: Friedrich Schotte
 Date created: 2007-11-07
-Date last modified: 2019-02-28
+Date last modified: 2019-05-23
 """
 
 from CA import Record,caget,caput
 from time import time,sleep
 from logging import debug,info,warn,error
 
-__version__ = "3.1.4" # issue: cancelled move timing out
- 
+__version__ = "3.1.5" # 'Temperature' object has no attribute '__last_moving__'
+
 nan = 1e1000/1e1000 # generates Not A Number
 def isnan(x): return x!=x # checks for Not A Number
 
-class EPICS_motor(Record): 
+class EPICS_motor(Record):
   """EPICS-controlled motor
   Using the following process variables:
   VAL - nominal position
@@ -37,9 +37,9 @@ class EPICS_motor(Record):
     readback_slop = 0.001,timeout=20.0,min_step=0):
     """prefix = EPICS motor record
     If is assumed that command value process varialbe is named 'VAL'
-    and the readback proecess variable 'RBV', unless secified otherwise
+    and the readback process variable 'RBV', unless specified otherwise
     by the optional 'command' and 'readback' keywords.
-    
+
     readback slop: A motion is considered finished when the difference
     between the command value and the readback value is smaller than this
     amount.
@@ -47,17 +47,17 @@ class EPICS_motor(Record):
     timeout: The motion is considered finished when the readback value has
     not changed within the readback slop for this amount of time.
 
-    min_step: only if the new position deviates fro mthe current position bey
+    min_step: only if the new position deviates from the current position by
     at least this ammount will a command to move to motor be sent to the
     IOC.
     """
     Record.__init__(self,prefix)
-        
+
     if name is not None: self.__db_name__ = name
-    
+
     self.__command__ = command
     self.__readback__ = readback
-    
+
     self.__readback_slop__ = readback_slop
     self.__timeout__ = timeout
     self.__min_step__ = min_step
@@ -66,6 +66,7 @@ class EPICS_motor(Record):
     self.__new_command_value__ = nan
     self.__motion_started__ = 0
     self.__move_done__ = True
+    self.__last_moving__ = 0
 
   def get_prefix(self):
     from DB import dbget
@@ -247,7 +248,7 @@ class EPICS_motor(Record):
     return asfloat(self.VELO)
   def set_speed(self,value):
     try: value = float(value)
-    except: return 
+    except: return
     self.VELO = value
   speed = property(get_speed,set_speed)
 
@@ -258,7 +259,7 @@ class EPICS_motor(Record):
     return acceleration
   def set_acceleration(self,acceleration):
     try: value = float(value)
-    except: return 
+    except: return
     T = self.speed/acceleration
     self.ACCL = T
   acceleration = property(get_acceleration,set_acceleration)
@@ -268,7 +269,7 @@ class EPICS_motor(Record):
     if value == None: value = nan
     return value
   def set_enabled(self,value):
-    self.CNEN = value 
+    self.CNEN = value
   enabled = property(get_enabled,set_enabled)
 
   def get_homing(self):
@@ -279,7 +280,7 @@ class EPICS_motor(Record):
     else: value = False
     return value
   def set_homing(self,value):
-    self.HOMF = value 
+    self.HOMF = value
   homing = property(get_homing,set_homing)
 
   def get_homed(self):
@@ -313,7 +314,7 @@ class EPICS_motor(Record):
     "modifies the user to dial offset such that the new user value is 'value'"
     self.offset = value - self.dial * self.sign
     # user = dial*sign + offset; offset = user - dial*sign
-    
+
   def get_readback_slop(self):
     """Maxmimum allowed difference between readback value and command value
     for the motion to be considered complete."""
@@ -360,7 +361,7 @@ def asbool(x):
   Return False instead if conversion fails"""
   try: return bool(int(x))
   except: return False
-  
+
 if __name__ == "__main__": # for testing
   from pdb import pm # for debugging
   import logging

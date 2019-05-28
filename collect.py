@@ -2,9 +2,9 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2019-05-17
+Date last modified: 2019-05-23
 """
-__version__ = "1.13.2" # temperature ramp server: renamed temperature_Friedrich -> temperature 
+__version__ = "1.13.2" # from instrumentation import temperature
 
 from logging import debug,info,warn,error
 import traceback

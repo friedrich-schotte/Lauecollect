@@ -1518,22 +1518,7 @@ if __name__ == "__main__": # for testing
         ##filename=logfile,
     )
     DEBUG = False
-    print('DEBUG = %r' % DEBUG)
+    ##print('DEBUG = %r' % DEBUG)
 
-    from time_string import date_time
     PV_name = 'TESTBENCH:TIMING.registers.ch1_trig_count.count'
-    new_thread = True
     
-    def callback0(): info("update")
-    def callback1(name): info("%s" % (name,))
-    def callback2(name,value): info("%s=%r" % (name,value))
-    def callback3(name,value,char_value): info("%s=%r" % (name,value))
-    def callback4(name,value,char_value,t): info("%s %s=%r" % (date_time(t),name,value))
-    
-    print('cainfo(%r)' % PV_name)        
-    print('cainfo(%r,"IP_address")' % PV_name)        
-    print('date_time(cainfo(%r,"timestamp"))' % PV_name)        
-    print('cainfo(%r,["timestamp","value"])' % PV_name)
-    print('if True:')
-    for i in range(0,5):
-        print('    camonitor(PV_name,callback=callback%d,new_thread=%r)' % (i,new_thread))        

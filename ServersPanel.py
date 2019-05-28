@@ -4,9 +4,9 @@ down
 
 Author: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2017-11-13
-Date modified: 2019-05-21
+Date modified: 2019-05-28
 """
-__version__ = "1.0.9" # sleep(0.1) -> sleep(0.5) and refresh_period = 10.0 s
+__version__ = "1.1" # Handle large logfile; clear log
 from servers import servers
 import wx, wx3_compatibility
 from EditableControls import TextCtrl,ComboBox
@@ -503,6 +503,9 @@ class LogPanel(wx.Frame):
     name = "LogPanel"
     attributes = "log","label"
     refresh_period = 1.0
+    levels = ["DEBUG","INFO","WARNING","ERROR"]
+    from persistent_property import persistent_property
+    level = persistent_property("level","DEBUG")
 
     def __init__(self,parent,n):
         self.n = n
@@ -512,17 +515,27 @@ class LogPanel(wx.Frame):
         self.panel = wx.Panel(self)
 
         # Controls
+        from EditableControls import TextCtrl,ComboBox
         style = wx.TE_PROCESS_ENTER|wx.TE_MULTILINE|wx.TE_DONTWRAP
         self.Log = TextCtrl(self.panel,size=(-1,-1),style=style)
         self.Log.Font = wx.Font(pointSize=10,family=wx.TELETYPE,style=wx.NORMAL,
             weight=wx.NORMAL)
+        self.Clear = wx.Button(self.panel,size=(-1,-1),label="Clear Log")
+        self.Level = ComboBox(self.panel,size=(-1,-1),choices=self.levels)
 
         # Callbacks
         self.Bind(wx.EVT_TEXT_ENTER,self.OnLog,self.Log)
+        self.Bind(wx.EVT_BUTTON,self.OnClear,self.Clear)
+        self.Bind(wx.EVT_COMBOBOX,self.OnLevel,self.Level)
+        self.Bind(wx.EVT_TEXT_ENTER,self.OnLevel,self.Level)
 
         # Layout
-        self.layout = wx.BoxSizer()
+        self.layout = wx.BoxSizer(wx.VERTICAL)
         self.layout.Add(self.Log,flag=wx.ALL|wx.EXPAND,proportion=1,border=2)
+        self.controls = wx.BoxSizer(wx.HORIZONTAL)
+        self.layout.Add(self.controls,flag=wx.ALL|wx.EXPAND,proportion=0,border=2)
+        self.controls.Add(self.Clear,flag=wx.ALL|wx.EXPAND,proportion=0,border=2)
+        self.controls.Add(self.Level,flag=wx.ALL|wx.EXPAND,proportion=0,border=2)
         self.panel.SetSizer(self.layout)
         self.Layout()
 
@@ -588,13 +601,49 @@ class LogPanel(wx.Frame):
         if "label" in self.values:
             self.Title = "Log: "+self.values["label"]
         if "log" in self.values:
-            self.Log.Value = self.values["log"]
+            text = self.values["log"]
+            text = self.filter(text)
+            text = last_lines(text)
+            self.Log.Value = text
             # Scroll to the end
             self.Log.ShowPosition(self.Log.LastPosition)
+        self.Level.StringSelection = self.level
 
     def OnLog(self,event):
         self.server.log = self.Log.Value
         self.refresh()
+
+    def OnClear(self,event):
+        self.server.log = ""
+        self.refresh()
+
+    def OnLevel(self,event):
+        self.level = self.Level.StringSelection
+        self.refresh_status()
+
+    def filter(self,text):
+        words_to_filter = []
+        if self.level in self.levels:
+            i = self.levels.index(self.level)
+            words_to_filter = self.levels[0:i]
+        debug("level: %r, filtering %r" % (self.level,words_to_filter))
+        if words_to_filter:
+            lines = text.splitlines()
+            for word in words_to_filter:
+                lines = [line for line in lines if not word in line]
+            text = "\n".join(lines)
+        return text
+
+    
+def last_lines(text,max_line_count=1000):
+    line_count = text.count("\n")
+    if line_count > max_line_count:
+        text = text[-160*max_line_count:]
+        lines = text.splitlines()
+        lines = lines[-max_line_count-2:][1:]
+        text = "\n".join(lines)
+    debug("Reduced line count from from %r to %r" % (line_count,text.count("\n")))
+    return text
 
 
 if __name__ == '__main__':

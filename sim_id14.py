@@ -1,9 +1,9 @@
 """Simulate motors of 14-IDB beamline
 Author: Friedrich Schotte,
 Date created: 2016-06-25
-Date last modified: 2019-04-26
+Date last modified: 2019-05-26
 """
-__version__ = "1.7" # JJ1 slits, KB mirror, Collimator
+__version__ = "1.8" # Slit1H,Slit1V: readback
 
 class sim_id14:
     name = "sim_id14"
@@ -35,10 +35,10 @@ class sim_id14:
         name="ID14A_shutter_auto",description="Shutter 14IDA auto")
 
     # white beam slits (at 28 m) 
-    Slit1H = motor("14IDA:Slit1Ht2",name="Slit1H",description="White beam slits H gap")
-    # readback="14IDA:Slit1Ht2.C"
-    Slit1V = motor("14IDA:Slit1Vt2",name="Slit1V",description="White beam slits V gap")
-    # readback="14IDA:Slit1Vt2.C"
+    Slit1H = motor("14IDA:Slit1Hsize",name="Slit1H",description="White beam slits H gap",
+      readback="14IDA:Slit1Ht2.C")
+    Slit1V = motor("14IDA:Slit1Vsize",name="Slit1V",description="White beam slits V gap",
+      readback="14IDA:Slit1Vt2.C")
 
     # Heatload chopper
     HLC = motor("14IDA:m5",name="HLC",description="Heatload chopper")
