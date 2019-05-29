@@ -1,6 +1,7 @@
-#!/bin/env python
-# -*- coding: utf-8 -*-
+# encoding=utf8
 """
+####!/bin/env python
+# -*- coding: utf-8 -*-
 Four-channel USB Voltage and Thermocouple DAQ driver,
 Resolution: 14-bit
 Sampleling rate: 8000 Hz max
@@ -40,7 +41,7 @@ For example, the command "\0A1" generates the following response: "A1 2450"
 
 Commands:
 "\0A1"
- 
+
       Returns device name: "2450"
 "chn 0 5120\r" Enable analog channel 0 to measure an N type TC as the first scan list member
 "chn 1 514\r"  Enable analog channel 2 to measure +/-100 mV as the second scan list member
@@ -56,12 +57,11 @@ Commands:
 
 Valentyn Stadnytskyi,
 October 2017 - July 2018
-last update: July 2, 2018
+last update: May 29, 2019
 
 """
 
 from numpy import concatenate,zeros,mean,std,uint16, nan
-from CAServer import casput
 from serial import Serial
 from time import time, sleep,gmtime, strftime
 from sys import stdout
@@ -76,7 +76,7 @@ import logging
 from logging import error,warn,info,debug
 
 
-__version__ = '2.0.1' #
+__version__ = '2.0.2' #
 
 class DI245(object):
 
@@ -86,7 +86,7 @@ class DI245(object):
         self.available_ports = []
         self.ser = None
         self.timeout = 2
-    
+
 
     def initialize(self, available_port = []):
         """
@@ -103,17 +103,12 @@ class DI245(object):
             self.dict_DI245['Firmware version'] = int(self.inquire('A2',4)[2:],16)/100.
             self.dict_DI245['Last Calibration date in hex'] = self.inquire('A7',10)[2:]
             self.dict_DI245['Serial Number'] = self.inquire('NZ',12)[2:][:-2]
-  
             for i in self.dict_DI245.keys():
                 print i, self.dict_DI245[i]
             print 'Complete: Initialization of the DI-245 with S\N', self.dict_DI245['Serial Number']
-
-
         else:
             print('no DI-245 available')
 
-        
-    
     def use_com_port(self,N = 0):
         """
         1) connect to the serial port in self.available_ports(N)
@@ -132,12 +127,12 @@ class DI245(object):
             error(traceback.format_exc())
             warn('failed to connect to the requested com port')
 
-    def check_avaiable_ports(self):        
+    def check_avaiable_ports(self):
         import serial.tools.list_ports
         lst = serial.tools.list_ports.comports()
         for element in lst:
             print(element.device,element.description)
-            
+
     def find_com_port(self):
         import serial.tools.list_ports
         lst = serial.tools.list_ports.comports()
@@ -149,7 +144,7 @@ class DI245(object):
                 debug("the DI-245 is available at %r" %(element.device))
                 available_ports.append([element.device,element.serial_number])
         return available_ports
-    
+
     def read(self, N):
         """
         reads N bytes from the serial buffer
@@ -165,7 +160,7 @@ class DI245(object):
             else:
                 sleep(self.timeout)
         return buff
-    
+
     def write(self,command):
         """
         write command to DI-245.
@@ -182,7 +177,7 @@ class DI245(object):
         except:
             error(traceback.format_exc())
             result = False
-        return result    
+        return result
 
     def inquire(self,command,Nbytes = 0):
         """
@@ -192,8 +187,8 @@ class DI245(object):
         return self.read(Nbytes)
 
 
-    
-    def close_port(self):    
+
+    def close_port(self):
         try:
             if self.ser.isOpen():
                 self.ser.close()
@@ -203,7 +198,7 @@ class DI245(object):
         except:
             error(traceback.format_exc())
             result = False
-        return result    
+        return result
 
     #Scanning\data acquisition section
     #an example: chn(0x20)member(0x20)value(0x0D)
@@ -214,12 +209,12 @@ class DI245(object):
         configures channels: maps physical channel list on the scan list with defined gains.
         configures readout rate.
         """
-        
+
         self.scan_lst = scan_lst
         self.phys_ch_lst = phys_ch_lst
         self.gain_lst = gain_lst
-        #This method needs to be rewritten to take a list instead of a set of parameters. This will help with scalability. 
-        
+        #This method needs to be rewritten to take a list instead of a set of parameters. This will help with scalability.
+
         _config_dict_gain = {}
         _config_dict_gain['0.010'] = '00101'
         _config_dict_gain['0.025'] = '00100'
@@ -251,28 +246,28 @@ class DI245(object):
                 result.append(True)
             else:
                 result.append(False)
-                
+
         xrate_config_command = 'xrate 4099 2000 \x0D'
         if self.inquire(xrate_config_command,len(ch_config_command)) == xrate_config_command:
             result.append(True)
         else:
             result.append(False)
         return int(mean(result)), result
-        
-    #this method sends a proper command to start the scan.    
+
+    #this method sends a proper command to start the scan.
     def start_scan(self):
         """
         issues start command "S1" that initializes data stream from the DI 245
         """
         info('DRIVER: scan starts, inWaiting %r' % self.ser.inWaiting())
         self.ser.read(self.ser.inWaiting())
-        read_byte_temp = ""        
+        read_byte_temp = ""
         while read_byte_temp != 'S1':
             self.ser.write('(0x00) S1')
             sleep(1)
             read_byte_temp = self.ser.read(2) #read 2-byte echo response
         info('The configured measurement(s) has(have) started')
-    
+
     def read_number(self, N_of_channels, N_of_points = 1):
         """
         reads N channels(N_of_channels) with N points(N_of_points)
@@ -280,7 +275,7 @@ class DI245(object):
         """
         self.channels_to_read = N_of_channels
         self.datapoints_to_read = N_of_points
-        value_array = zeros((self.channels_to_read,N_of_points)) 
+        value_array = zeros((self.channels_to_read,N_of_points))
         for j in range(self.channels_to_read):
             #value_array[2*j] = time.time()
             tempt_t = time()
@@ -290,7 +285,7 @@ class DI245(object):
             except Exception as e:
                 error('read_byte = %r and error %r' % (read_byte_temp,e))
             read_byte_lst = list(read_byte)
-            sync_byte = read_byte_lst[15] #this is the byte 0 that is issued in DI-245 for sync. 0 stand for the beginning of channel(s) data stream. Hence, every set of readouts  starts with 0. 
+            sync_byte = read_byte_lst[15] #this is the byte 0 that is issued in DI-245 for sync. 0 stand for the beginning of channel(s) data stream. Hence, every set of readouts  starts with 0.
             del(read_byte_lst[15]) #this needs to be used
             del(read_byte_lst[7])  #this needs to be used
             read_byte = ""
@@ -299,7 +294,7 @@ class DI245(object):
             int_val = float(int(read_byte,2))
             value_array[j] = int_val
         return value_array
-        
+
     def waiting(self):
         """
         returns number of bytes waiting in the serail buffer
@@ -311,32 +306,30 @@ class DI245(object):
             error(e)
             result = (nan,nan)
         return result
-    
+
     def stop_scan(self):
         if self.ser.isOpen():
             self.write('S0') #S0\xfd\x7f <- reply
             result = True
         else:
             result = False
-        return result    
+        return result
         #print "aquired points",self.ser.inWaiting()
         #print "measurement ended"
-        
+
     def full_stop(self):
         debug('full stop command executed')
         self.stop_scan()
         self.close_port()
-    
+
 di245_driver = DI245()
 if __name__ == "__main__":
     from tempfile import gettempdir
-    
+
     logging.basicConfig(filename = gettempdir()+'/di_245_driver.log',
                         level=logging.DEBUG,
                         format="%(asctime)s %(levelname)s: %(message)s")
     dev = di245_driver
-    
+
     print('----- The driver for the DI-245 -----')
     print('*dev*  is already created instance')
-        
-			

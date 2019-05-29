@@ -2,9 +2,9 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2019-05-23
+Date last modified: 2019-05-28
 """
-__version__ = "1.13.2" # from instrumentation import temperature
+__version__ = "1.14" # scope trace timestamps
 
 from logging import debug,info,warn,error
 import traceback
@@ -471,6 +471,16 @@ class Collect(object):
             temperature.time_points = []
             temperature.temp_points = []
             self.actual("Temperature stopped")
+
+    @property
+    def pass_acquisition_time(self):
+        sequences = self.sequences
+        N = sequences[0].period if len(sequences) > 0 else 0
+        ##T = sequences[0].tick_period()
+        from timing_system import timing_system
+        T = timing_system.hsct
+        t = N * T
+        return t
 
     @property
     def image_acquisition_time(self):
@@ -961,10 +971,12 @@ class Collect(object):
         if "xray_scope" in self.detector_names:
             filenames = self.xray_scope_trace_filenames
             self.actual("X-ray Scope Start...")
-            filename_dict = dict([(i+1,f) for (i,f) in enumerate(filenames)])
             from instrumentation import xray_scope
+            filename_dict = dict([(i+1,f) for (i,f) in enumerate(filenames)])
             xray_scope.trace_filenames = filename_dict
             xray_scope.trace_acquisition_running = True
+            xray_scope.filenames = list(self.xray_scope_trace_filenames)
+            xray_scope.times = list(self.xray_scope_trace_times)
             self.actual("X-ray Scope Started")
 
     def xray_scope_stop(self):
@@ -982,6 +994,7 @@ class Collect(object):
             filename_dict = dict([(i+1,f) for (i,f) in enumerate(filenames)])
             from instrumentation import laser_scope
             laser_scope.trace_filenames = filename_dict
+            laser_scope.times = self.laser_scope_trace_times
             laser_scope.trace_acquisition_running = True
             self.actual("Laser Scope Started")
 
@@ -992,6 +1005,14 @@ class Collect(object):
             laser_scope.trace_acquisition_running = False
             laser_scope.trace_filenames = {}
             self.actual("Laser Scope Stopped")
+
+    @property
+    def xray_scope_trace_times(self):
+        from numpy import arange
+        N = self.n * self.sequences_per_xray_image
+        trace_numbers = arange(0,N)
+        times = (trace_numbers+1) * self.image_acquisition_time
+        return times
 
     @property
     def xray_scope_trace_filenames(self):
@@ -1025,6 +1046,8 @@ class Collect(object):
         from numpy import array
         trace_sources = array(trace_sources)
         return trace_sources
+
+    laser_scope_trace_times = xray_scope_trace_times
 
     @property
     def laser_scope_trace_filenames(self):
@@ -1392,11 +1415,11 @@ if __name__ == '__main__':
     print('self.timing_system_start()')
     print('self.timing_system_setup()')
     ##print('self.xray_detector_start()')
-    ##print('self.xray_scope_start()')
+    print('self.xray_scope_start()')
     ##print('self.laser_scope_start()')
     ##print('self.diagnostics_start()')
     ##print('self.logging_start()')
-    print('self.temperature_start()')
+    ##print('self.temperature_start()')
     ##print('self.collection_variables_start()')
     ##print('self.update_status_start()')
     print('')
@@ -1405,10 +1428,10 @@ if __name__ == '__main__':
     print('')
     ##print('self.update_status_stop()')
     ##print('self.collection_variables_stop()')
-    print('self.temperature_stop()')
+    ##print('self.temperature_stop()')
     ##print('self.logging_stop()')
     ##print('self.diagnostics_stop()')
-    ##print('self.xray_scope_stop()')
+    print('self.xray_scope_stop()')
     ##print('self.laser_scope_stop()')
     ##print('self.xray_detector_stop()')
     print('self.timing_system_stop()')

@@ -72,9 +72,9 @@ echo Measure.P1.num.Result.Value | nc -w1 id14l-scope.cars.aps.anl.gov 2000
 
 Author: Friedrich Schotte,
 Date created: 2008-03-28
-Date last modified: 2019-05-06
+Date last modified: 2019-05-28
 """
-__version__ = "2.5.3" # software version 8.1 still uses trace filename without hypens
+__version__ = "2.6" # timestamps
 
 from logging import debug,info,warn,error
 import traceback
@@ -142,6 +142,8 @@ class Lecroy_Scope(object):
     trace_filenames = {}
     files_to_save = {}
     save_traces_running = False
+    filenames = []
+    times = []
 
     def __init__(self,name="lecroy_scope"):
         self.name = name

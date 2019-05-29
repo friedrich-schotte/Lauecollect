@@ -2,11 +2,12 @@
 Data base to save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2019-05-24
-Date last modified: 2019-05-26
+Date last modified: 2019-05-28
 """
-__version__ = "1.0.1" # values, show_in_list
+__version__ = "1.0.2" # setattr: handle exception
 
 from logging import debug,info,warn,error
+from traceback import format_exc
 
 class Configuration_Server(object):
     prefix = "NIH:CONF"
@@ -73,19 +74,33 @@ class Configuration_Server(object):
         from configuration_driver import configuration
         for prop in self.global_properties:
             PV_name = (self.prefix+"."+prop).upper()
-            casput(PV_name,getattr(configuration,prop))
-            casmonitor(PV_name,callback=self.monitor)
+            try: value = getattr(configuration,prop)
+            except Exception,msg:
+                error("%s: %s\n%s" % (prop,msg,format_exc()))
+                value = None
+            if value is not None:
+                casput(PV_name,value)
+                casmonitor(PV_name,callback=self.monitor)
         for conf in configuration.configurations:
             for prop in self.configuration_properties:
                 PV_name = (self.prefix+"."+conf.name+"."+prop).upper()
-                casput(PV_name,getattr(conf,prop))
-                casmonitor(PV_name,callback=self.monitor)
-                
-            for motor_num in range(0,conf.n_motors):
-                for prop in self.motor_properties:
-                    PV_name = (self.prefix+"."+conf.name+".MOTOR"+str(motor_num+1)+"."+prop).upper()
-                    casput(PV_name,getattr(conf,prop)[motor_num])
+                try: value = getattr(conf,prop)
+                except Exception,msg:
+                    error("%s.%s: %s\n%s" % (conf,prop,msg,format_exc()))
+                    value = None
+                if value is not None:
+                    casput(PV_name,value)
                     casmonitor(PV_name,callback=self.monitor)
+            for prop in self.motor_properties:
+                for motor_num in range(0,conf.n_motors):
+                    PV_name = (self.prefix+"."+conf.name+".MOTOR"+str(motor_num+1)+"."+prop).upper()
+                    try: value = getattr(conf,prop)[motor_num]
+                    except Exception,msg:
+                        error("%s.%s[%r]: %s\n%s" % (conf,prop,motor_num,msg,format_exc()))
+                        value = None
+                    if value is not None:
+                        casput(PV_name,value)
+                        casmonitor(PV_name,callback=self.monitor)
 
     def monitor(self,PV_name,value,char_value):
         """Handle PV change requests"""
@@ -95,13 +110,25 @@ class Configuration_Server(object):
         for conf in configuration.configurations:
             for prop in self.configuration_properties:
                 if PV_name == (self.prefix+"."+conf.name+"."+prop).upper():
-                    setattr(conf,prop,value)
-                    casput(PV_name,getattr(conf,prop))
+                    try: setattr(conf,prop,value)
+                    except Exception,msg:
+                        error("%s.%s = %r: %s\n%s" % (conf,prop,value,msg,format_exc()))
+                    try: value = getattr(conf,prop)
+                    except Exception,msg:
+                        error("%s.%s: %s\n%s" % (conf,prop,msg,format_exc()))
+                        value = None
+                    if value is not None: casput(PV_name,value)
             for motor_num in range(0,conf.n_motors):
                 for prop in self.motor_properties:
                     if PV_name == (self.prefix+"."+conf.name+".MOTOR"+str(motor_num+1)+"."+prop).upper():
-                        getattr(conf,prop)[motor_num] = value
-                        casput(PV_name,getattr(conf,prop)[motor_num])
+                        try: getattr(conf,prop)[motor_num] = value
+                        except Exception,msg:
+                            error("%s.%s[%r] = %r: %s\n%s" % (conf,prop,motor_num,value,msg,format_exc()))
+                        try: value = getattr(conf,prop)[motor_num]
+                        except Exception,msg:
+                            error("%s.%s[%r]: %s\n%s" % (conf,prop,motor_num,msg,format_exc()))
+                            value = None
+                        if value is not None: casput(PV_name,value)
         
 
 configuration_server = Configuration_Server()

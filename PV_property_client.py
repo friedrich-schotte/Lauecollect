@@ -1,4 +1,9 @@
 """EPICS Channel Access Process Variable as class property for the client object
+Originally designed by F.Schotte and later modified by V.Stadnytskyi.
+
+This version doesn't change PV name to upper case as it was originally done in PV_property.
+
+
 Author: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2019-05-18 (originally came from PV_property)
 Date last modified: 2019-05-26

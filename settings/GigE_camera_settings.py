@@ -1,8 +1,8 @@
-MicroscopeCamera.camera.IP_addr = 'pico14.niddk.nih.gov'
-MicroscopeCamera.ip_address = 'pico7.niddk.nih.gov:2002'
+MicroscopeCamera.camera.IP_addr = 'id14b-prosilica1.cars.aps.anl.gov'
+MicroscopeCamera.ip_address = 'nih-instrumentation.cars.aps.anl.gov:2002'
 MicroscopeCamera.mirror = True
-WideFieldCamera.camera.IP_addr = 'pico3.niddk.nih.gov'
-WideFieldCamera.ip_address = 'pico7.niddk.nih.gov:2001'
+WideFieldCamera.camera.IP_addr = 'id14b-prosilica2.cars.aps.anl.gov'
+WideFieldCamera.ip_address = 'nih-instrumentation.cars.aps.anl.gov:2001'
 WideFieldCamera.use_multicast = False
 Microscope.camera.IP_addr = 'pico22.niddk.nih.gov'
 Microscope.ip_address = '128.231.5.82:2003'

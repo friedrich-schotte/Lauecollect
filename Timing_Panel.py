@@ -3,9 +3,9 @@
 Grapical User Interface for FPGA Timing System.
 Author: Friedrich Schotte
 Date created: 2015-05-27
-Date last modified: 2019-04-24
+Date last modified: 2019-05-29
 """
-__version__ = "5.1" # removed temp_inc,losct_on,xosct_on
+__version__ = "5.1" # larger range for heatload chopper (hlc_choices)
 
 from logging import debug,info,warn,error
 
@@ -23,7 +23,7 @@ class Timing_Panel(BasePanel):
         from numpy import arange,finfo
         eps = finfo(float).eps
         hsct = timing_system.hsct
-        choices = arange(-6*hsct,+6*hsct+eps,hsct)
+        choices = arange(-12*hsct,+12*hsct+eps,hsct)
         return choices
 
     def hsc_choices():

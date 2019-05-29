@@ -180,4 +180,4 @@ line8.Ensemble_SAXS.max_delay = 0.2
 line9.Ensemble_SAXS.max_delay = 0.1
 line10.Ensemble_SAXS.max_delay = 0.012
 line11.Ensemble_SAXS.max_delay = 0.024
-command_rows = [0]
+command_rows = [3]

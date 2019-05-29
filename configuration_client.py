@@ -2,9 +2,9 @@
 Data base to save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2019-05-24
-Date last modified: 2019-05-27
+Date last modified: 2019-05-29
 """
-__version__ = "1.1.1" # default_Value for curent_position
+__version__ = "1.2.2" # item assignment for positions simplified
 
 from logging import debug,info,warn,error
 
@@ -92,13 +92,18 @@ class Configuration(object):
     positions_match  = motor_property("positions_match",[])
 
     class Motor_Property(object):
-        def __init__(self,configuration,name,default_value):
+        def __init__(self,configuration,name,default_value=None):
             self.configuration = configuration
             self.name = name
             self.default_value = default_value
         def __getitem__(self,i):
             if type(i) == slice: value = [x for x in self]
-            else: value = self.configuration.get_motor_value(self.name,i,self.default_value)
+            else:
+                if type(self.default_value) == list:
+                    PV_name = self.configuration.motor_PV_name(self.name,i)
+                    value = self.configuration.array_PV(PV_name)
+                else:
+                    value = self.configuration.get_motor_value(self.name,i,self.default_value)
             return value
         def __setitem__(self,i,value):
             if type(i) == slice:
@@ -108,6 +113,30 @@ class Configuration(object):
         def __iter__(self):
             for i in range(0,len(self)):
                 if i < len(self): yield self[i]
+        def __repr__(self):
+            return "%s(%s,%r)" % (type(self).__name__,self.configuration,self.name)
+
+    class array_PV(object):
+        def __init__(self,PV_name):
+            self.PV_name = PV_name
+        def __getitem__(self,i):
+            if type(i) == slice: value = self.array
+            else: value = self.array[i]
+            return value
+        def __setitem__(self,i,value):
+            if type(i) == slice: self.array = value
+            else:
+                array = self.array
+                array[i] = value
+                self.array = value
+        def get_array(self):
+            return Configuration.get_PV(self.PV_name,[])
+        def set_array(self,value):
+            from CA import caput
+            caput(self.PV_name,value)
+        array = property(get_array,set_array)
+        def __repr__(self):
+            return "%s(%r)" % (type(self).__name__,self.PV_name)
 
     @staticmethod
     def get_global_value(name,default_value=None):
@@ -199,9 +228,8 @@ if __name__ == '__main__': # for testing
 
     self = configuration(name=name)
 
-    print('configuration.prefix')
-    print('configuration.configuration_names')
-    print('self.nrows')
-    print('self.positions[:]')
-    print('self.current_position[:]')
-    print('self.positions_match[:]')
+    print('self.positions[0][0]')
+    print('self.positions[0][:]')
+    print('self.current_position[0]')
+    print('self.positions_match[0][0]')
+    print('self.positions_match[0][:]')

@@ -1,5 +1,11 @@
-#!/usr/bin/env python
+# encoding=utf8
 """
+Hybrid EPICS IOC / direct TCP server for DATAQ 245 device.
+
+
+
+
+
 Four-channel USB Voltage and Thermocouple DAQ,
 Resolution: 14-bit
 Sampleling rate: 8000 Hz max
@@ -67,7 +73,7 @@ from struct import unpack as struct_unpack
 import logging
 from logging import error,warn,info,debug
 import circular_buffer_LL
-from CAServer import casput,casget
+from CAServer import casput,casget, casmonitor
 from DI_245_driver import di245_driver
 from persistent_property import persistent_property
 from thread import start_new_thread
@@ -78,11 +84,11 @@ import msgpack_numpy as m
 
 from socket import *
 
-__version__ = '1.0.6' # Friedrich Schotte: logfile directory
-__date__ = "04-30-18"
+__version__ = '1.0.7' # Friedrich Schotte: logfile directory
+__date__ = "05-29-19"
 
 class DI245_DL(object):
-    CA_prefix = persistent_property('CA_prefix', 'NIH:DI245.')
+    prefix = persistent_property('prefix', 'NIH:DI245')
     scan_lst = persistent_property('scan_lst', [])
     phys_ch_lst = persistent_property('phys_ch_lst', [])
     gain_lst = persistent_property('gain_lst', [])
@@ -93,14 +99,20 @@ class DI245_DL(object):
     SN = persistent_property('SN', '')
     socket = persistent_property('socket', ['',''])
     type_def = persistent_property('type_def', '')
+    broadcast_period = persistent_property('broadcast_period', 10.0)
 
     def __init__(self):
         self.name = 'DI245_syringe_tower'
         self.CA_update_t = 0.3
-        
+
+
+    def monitor(self,PV_name,value,char_value):
+        if PV_name == self.prefix + '.broadcast_period':
+            self.broadcast_period = value
+
 
     def server_init(self):
-        casput(self.CA_prefix+'SOCKET',['',''])
+        casput(self.prefix+'.SOCKET',['',''])
         self.socketserver_init()
         self.CAserver_init()
 
@@ -118,7 +130,7 @@ class DI245_DL(object):
                 info('Trial %r, Connection to 127.0.0.1:%r is successful' % (i,port))
                 self.socket_port = port
                 self.socket = [gethostbyname(gethostname()),self.socket_port]
-                casput(self.CA_prefix+'SOCKET',self.socket)
+                casput(self.prefix+'.SOCKET',self.socket)
 
                 flag = False
                 info('flag in socketserver_init = %r' %flag)
@@ -149,8 +161,8 @@ class DI245_DL(object):
         """
         socket thread
         """
-        self.socket_is_running = True
-        while self.socket_is_running:
+        self.socket_running = True
+        while self.socket_running:
             self.client, self.addr = self.sock.accept()
             self._log_last_call()
             info( 'Client has connected: %r %r' % (self.client, self.addr ))
@@ -177,7 +189,7 @@ class DI245_DL(object):
             elif msg_in[0] == 1:
                 self._send([msg_in[0],time(),'Termination of the server initated',-1])
                 self.full_stop()
-                self.is_running = False
+                self.running = False
             elif msg_in[0] == 2:
                 self._send([msg_in[0],time(),'broadcast on demand request executed',-1])
                 self.broadcast(method = "on demand")
@@ -228,25 +240,37 @@ class DI245_DL(object):
 
     def CAserver_init(self):
         from CAServer import casget, casput
-        self.is_running = False
+        self.running = False
         self.CA_update_t = 0.3
-        casput(self.CA_prefix+'LIVE',self.is_running)
-        casput(self.CA_prefix+'UPDATE_T',self.CA_update_t)
+        casput(self.prefix+'.RUNNING',self.running)
+        casput(self.prefix+'.UPDATE_T',self.CA_update_t)
+        #controls
+        casput(self.prefix+".broadcast_period",self.broadcast_period)
+
+        #indicators
+        casput(self.prefix+".pressure_upstream",nan)
+        casput(self.prefix+".pressure_downstream",nan)
+        casput(self.prefix+".pressure_barometric",nan)
+        casput(self.prefix+".temperature_hutch",nan)
+
+        #monitors
+        casmonitor(self.prefix + ".broadcast_period",callback = self.monitor)
+
         try:
-            casput(self.CA_prefix+'SOCKET',self.socket)
+            casput(self.prefix+'.SOCKET',self.socket)
         except:
             error(traceback.format_exc())
 
     def CAserver_update(self):
         from CAServer import casget, casput
-        casput(self.CA_prefix+'LIVE',self.is_running)
-        casput(self.CA_prefix+'UPDATE_T',self.CA_update_t)
+        casput(self.prefix+'.RUNNING',self.running)
+        casput(self.prefix+'.UPDATE_T',self.CA_update_t)
 
     def CAserver_stop(self):
         from CAServer import casget, casput, casdel
-        casdel(self.CA_prefix+'LIVE')
-        casdel(self.CA_prefix+'UPDATE_T')
-        casdel(self.CA_prefix+'SOCKET')
+        casdel(self.prefix+'.RUNNING')
+        casdel(self.prefix+'.UPDATE_T')
+        casdel(self.prefix+'.SOCKET')
 
     def init(self,SN = 1):
         self.dev = di245_driver
@@ -254,7 +278,7 @@ class DI245_DL(object):
         if self.find_device():
             self.connect_device(0)
             self.configure_device()
-            info('DI245 is found: %r' % self.available_ports)
+            debug('DI245 is found: %r' % self.available_ports)
             self.info_dict = {}
             self.info_dict['scan_lst'] = self.scan_lst
             self.info_dict['phys_ch_lst'] = self.phys_ch_lst
@@ -269,7 +293,6 @@ class DI245_DL(object):
             except:
                 self.info_dict['socket'] = ['','']
 
-            self.run()
             reply = True
         else:
             reply = False
@@ -310,7 +333,7 @@ class DI245_DL(object):
 
 
     def configure_device(self):
-        self.circular_buffer = circular_buffer_LL.server(size = (len(self.scan_lst),self.RingBuffer_size), var_type = 'int16')#4320000
+        self.circular_buffer = circular_buffer_LL.CBServer(size = (len(self.scan_lst),self.RingBuffer_size), var_type = 'int16')#4320000
         print(self.scan_lst,self.phys_ch_lst,self.gain_lst)
         self.dev.config_channels(scan_lst=self.scan_lst,phys_ch_lst=self.phys_ch_lst,gain_lst = self.gain_lst)
 
@@ -326,7 +349,7 @@ class DI245_DL(object):
     def full_stop(self):
         try:
             self.dev.full_stop()
-            self.is_running = False
+            self.running = False
         except:
             warn('dev is not initialized')
 
@@ -343,22 +366,23 @@ class DI245_DL(object):
         pass
 
     def broadcast(self, method = "on demand"):
-
+        dt = self.broadcast_period
+        number = int(dt*50)
         if method == "on demand":
             #debug('Broadcasting on demand')
-            ch1 = mean(((self.circular_buffer.get_last_N(N = 50)[0]-8192.)/8192.)*float(self.gain_lst[0]))/ self.calib[0]
-            casput("NIH:pressure_upstream",ch1)
-            ch2 = mean(((self.circular_buffer.get_last_N(N = 50)[1]-8192.)/8192.)*float(self.gain_lst[1]))/ self.calib[1]
-            casput("NIH:pressure_downstream",ch2)
-            ch3 =  mean(((108.364-88.0461)/2.0**13)*(self.circular_buffer.get_last_N(N = 50)[2]-2.0**13)+88.0461+0.2)
-            casput("NIH:pressure_barometric",ch3)
-            ch4 = mean(self.circular_buffer.get_last_N(N = 50)[3]-8192.)*0.036621+100. + self.calib[3]
-            casput("NIH:temperature_hutch",ch4)
+            ch1 = mean(((self.circular_buffer.get_last_N(N = number)[0]-8192.)/8192.)*float(self.gain_lst[0]))/ self.calib[0]
+            casput(self.prefix+".pressure_upstream",ch1)
+            ch2 = mean(((self.circular_buffer.get_last_N(N = number)[1]-8192.)/8192.)*float(self.gain_lst[1]))/ self.calib[1]
+            casput(self.prefix+".pressure_downstream",ch2)
+            ch3 =  mean(((108.364-88.0461)/2.0**13)*(self.circular_buffer.get_last_N(N = number)[2]-2.0**13)+88.0461+0.2)
+            casput(self.prefix+".pressure_barometric",ch3)
+            ch4 = mean(self.circular_buffer.get_last_N(N = number)[3]-8192.)*0.036621+100. + self.calib[3]
+            casput(self.prefix+".temperature_hutch",ch4)
 
         else:
             debug("unknown method(%r) requested" % method)
 
-    def run(self):
+    def start(self):
         from thread import start_new_thread
         print('start new thread in run')
         start_new_thread(self.measurements, ())
@@ -366,7 +390,7 @@ class DI245_DL(object):
 
     def measurements(self):
         from time import time
-        self.is_running = True
+        self.running = True
         dev.CAserver_update()
         self.dev.ser.flushInput()
         self.dev.ser.flushOutput()
@@ -374,10 +398,8 @@ class DI245_DL(object):
         sleep(3)
         self.start_running = time()
         self.last_broadcast = time()
-        self.broadcast_period = 10
-        while self.is_running:
+        while self.running:
             t = time()
-            if t-time() > self.CA_update_t: self.CAserver_update()
             if self.dev.ser.isOpen:
                 while self.dev.waiting()[0]>3:
                     self.circular_buffer.append(
@@ -386,21 +408,23 @@ class DI245_DL(object):
 
             else:
                 warn('measurements: break')
-                self.is_running = False
+                self.running = False
                 self.end_running = time()
                 dev.CAserver_update()
             if time() - self.last_broadcast > self.broadcast_period:
                 self.broadcast()
                 self.last_broadcast = time()
 
+    def run(self):
+        self.init()
+        self.server_init()
+        self.measurements()
+
+
+dev = DI245_DL()
 
 
 if __name__ == "__main__":
     from tempfile import gettempdir
     logging.basicConfig(filename=gettempdir()+'/di_245_DL.log',
                         level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
-
-    dev = DI245_DL()
-    dev.init()
-    dev.server_init()
-    

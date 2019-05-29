@@ -2,14 +2,14 @@
 Python interface to EPICS-controlled motors.
 Author: Friedrich Schotte
 Date created: 2007-11-07
-Date last modified: 2019-05-23
+Date last modified: 2019-05-28
 """
 
 from CA import Record,caget,caput
 from time import time,sleep
 from logging import debug,info,warn,error
 
-__version__ = "3.1.5" # 'Temperature' object has no attribute '__last_moving__'
+__version__ = "3.1.6" # no debug messages
 
 nan = 1e1000/1e1000 # generates Not A Number
 def isnan(x): return x!=x # checks for Not A Number
@@ -95,10 +95,10 @@ class EPICS_motor(Record):
     else: return caget(self.__command__)
   def set_command_PV(self,value):
     if not ":" in self.__command__:
-      debug("setattr(%r,%r)" % (self.__command__,value))
+      ##debug("setattr(%r,%r)" % (self.__command__,value))
       setattr(self,self.__command__,value)
     else:
-      debug("caput(%r,%r)" % (self.__command__,value))
+      ##debug("caput(%r,%r)" % (self.__command__,value))
       caput(self.__command__,value)
   command_PV = property(get_command_PV,set_command_PV)
 
@@ -122,7 +122,7 @@ class EPICS_motor(Record):
     else: value = self.command_PV
     return asfloat(value)
   def set_command_value(self,value):
-    debug("value = %r" % value)
+    ##debug("value = %r" % value)
     try: value = float(value)
     except: return
     if isnan(value): return
@@ -136,7 +136,7 @@ class EPICS_motor(Record):
     # Enable the motor (in case it was disabled)
     #self.CNEN = 1
     # Initiate the motion by setting a new commond value.
-    debug("command_PV = %r" % value)
+    ##debug("command_PV = %r" % value)
     self.command_PV = value
     self.__last_command_value__ = value
     self.__move_done__ = False

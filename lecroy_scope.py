@@ -32,9 +32,9 @@ Commands are not case-sensitive.
 
 Author: Friedrich Schotte
 Date created: 2008-04-16
-Date last modified: 2019-03-22
+Date last modified: 2019-05-28
 """
-__version__ = "4.5" # auto_acquire
+__version__ = "4.5" # scope trace timestamps
 
 from logging import debug,info,warn,error
 from numpy import nan
@@ -402,7 +402,6 @@ class lecroy_scope(object):
         self.waveform_autosave = "Off" # forces the sequence number to be reset
         self.waveform_autosave = "Wrap"
 
-    filenames = []
     Windows_filenames = []
     temp_filenames = []
 
@@ -692,6 +691,8 @@ class lecroy_scope(object):
     @property
     def id(self): return self.query("LeCroy.XStreamDSO.InstrumentID.Value")
 
+    filenames = value_property("scope.filenames",[])
+    times = value_property("scope.times",[])
     trace_filenames = value_property("scope.trace_filenames",{})
 
     def trace_filename(self,i):
@@ -889,5 +890,8 @@ if __name__ == "__main__": # for testing
     from numpy import diff,average
     print('')
     print('xray_scope.auto_acquire')
+    print('')
+    print('xray_scope.filenames')
+    print('xray_scope.times')
    
 

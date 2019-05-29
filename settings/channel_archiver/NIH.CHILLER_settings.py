@@ -1,3 +1,3 @@
-RBV.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.CHILLER.RBV.txt'
-VAL.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.CHILLER.VAL.txt'
-fault_code.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.CHILLER.fault_code.txt'
+RBV.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.CHILLER.RBV.txt'
+VAL.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.CHILLER.VAL.txt'
+fault_code.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.CHILLER.fault_code.txt'

@@ -1,3 +1,3 @@
-time_window = 10.0
-center_time = 1558633490.679428
+time_window = 7200.0
+center_time = 1558989154.7102964
 show_latest = True

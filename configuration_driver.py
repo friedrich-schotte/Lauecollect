@@ -2,10 +2,9 @@
 Data base save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2013-11-29
-Date last modified: 2019-05-26
+Date last modified: 2019-05-28
 """
-__version__ = "4.1" # configuration.define(row) -> configuration.matching_rows = [row]
-
+__version__ = "4.1.1" # "%s.line%d.%s" %d format: a number is required, not float
 from logging import debug,info,warn,error
 
 import numpy
@@ -686,8 +685,7 @@ class Configuration(object):
         def __getitem__(self,row):
             from DB import db
             if type(row) == slice: value = [x for x in self]
-            else: value = db("%s.line%d.%s" % (self.configuration.name,row,self.name),
-                self.default_value)
+            else: value = db(self.db_key(row),self.default_value)
             return value
         def __setitem__(self,row,value):
             ##debug("configuration.Values[%r] = %r" % (row,value))
@@ -695,10 +693,13 @@ class Configuration(object):
                 for i in range(0,len(value)): self[i] = value[i]
             elif value != self[row]:
                 from DB import dbset
-                dbset("%s.line%d.%s" % (self.configuration.name,row,self.name),value)
+                dbset(self.db_key(row),value)
                 if self.name not in ["description","updated"]:
                     debug("self.configuration.update_timestamp(%r)" % row)
                     self.configuration.update_timestamp(row)
+        def db_key(self,row):
+            key = "%s.line%d.%s" % (self.configuration.name,int(row),self.name)
+            return key
         def __len__(self): return self.configuration.nrows
         def __repr__(self): return "%s.Values(%r,%r)" % \
             (self.configuration.name,self.name,self.default_value)
@@ -778,10 +779,10 @@ if __name__ == '__main__': # for testing
     ##from instrumentation import * # -> globals()
 
     ##name = ""
-    ##name = "beamline_configuration"
+    name = "beamline_configuration"
     ##name = "sequence_modes"
     ##name = "Julich_chopper_modes"
-    name = "heat_load_chopper_modes"
+    ##name = "heat_load_chopper_modes"
     ##name = "timing_modes"
     ##name = "sequence_modes"
     ##name = "delay_configuration" 

@@ -47,3 +47,4 @@ line7.updated = '30 Oct 19:23'
 line7.description = 'ns laser 5:1 (50 mm)'
 command_rows = [3]
 tolerance = [0.001, 0.001, 0.001]
+define_button_label = 'Update'

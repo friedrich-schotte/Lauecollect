@@ -19,7 +19,6 @@ import os
 #from SAXS_WAXS_control import SAXS_WAXS_control, SampleX, SampleY
 #from Ensemble_client import ensemble
 from time import sleep,time
-from thread import start_new_thread
 from persistent_property import persistent_property
 from instrumentation import temperature
 from numpy import nan
@@ -27,6 +26,19 @@ from logging import debug,info,warn,error
 import traceback
 
 import matplotlib.pyplot as plt
+
+import platform
+try:
+    computer_name = platform.node()
+except:
+    error(traceback.format_exc())
+    computer_name = 'unknown'
+import socket
+try:
+    ip_address = socket.gethostbyname(socket.gethostname())
+except:
+    error(traceback.format_exc())
+    ip_address = '0.0.0.0'
 
 class Sample_frozen_optical(object):
     intervention_enabled = persistent_property('intervention_enabled', False)
@@ -40,7 +52,7 @@ class Sample_frozen_optical(object):
 
     def __init__(self):
         self.name = 'sample_frozen_optical'
-        self.CAS_prefix = 'NIH:SCATTERING_OPTICAL'
+        self.prefix = self.CAS_prefix = 'NIH:SCATTERING_OPTICAL'
         self.running = False
         self.orient_dic = {}
         self.orient_dic['vertical'] ={'up': [(532,0),(732,1024)],
@@ -56,8 +68,11 @@ class Sample_frozen_optical(object):
         dx = int(self.box_dimensions*2/2.0)
         dy = int(self.box_dimensions*2/2.0)
 
+        self.x_middle = 512+20
+        self.y_middle = 680
+
         self.orient_dic['on-axis-h'] = {'up':[(0,0),(0,0)],
-                                          'middle':[(512+20-dx,680-dy),(512+20+dx,680+dy)],
+                                          'middle':[(self.x_middle-dx,self.y_middle-dy),(self.x_middle+dx,self.y_middle+dy)],
                                         'down':[(0,0),(0,0)]}
 
         self.orient_dic['on-axis-v'] = {'up':[(0,0),(0,0)],
@@ -81,16 +96,51 @@ class Sample_frozen_optical(object):
 
         self.is_intervention_enabled = self.intervention_enabled
 
-        casput(self.CAS_prefix+".MEAN_TOP",nan)
-        casput(self.CAS_prefix+".MEAN_BOTTOM",nan)
-        casput(self.CAS_prefix+".MEAN_MIDDLE",nan)
-        casput(self.CAS_prefix+".MEAN",nan)
-        casput(self.CAS_prefix+".RBV",nan)
-        casput(self.CAS_prefix+".STDEV",nan)
-        casput(self.CAS_prefix+".VAL",nan)
-        casput(self.CAS_prefix+".ENABLE",nan)
-        casput(self.CAS_prefix+'.RUNNING', nan)
+        self.startup()
 
+    def startup(self):
+        from CAServer import casput,casmonitor
+        from CA import caput,camonitor
+        from numpy import nan
+
+        casput(self.prefix+".MEAN_TOP",nan)
+        casput(self.prefix+".MEAN_BOTTOM",nan)
+        casput(self.prefix+".MEAN_MIDDLE",nan)
+        casput(self.prefix+".MEAN",nan)
+        casput(self.prefix+".RBV",nan)
+        casput(self.prefix+".STDEV",nan)
+        casput(self.prefix+".VAL",nan)
+        casput(self.prefix+".ENABLE",self.intervention_enabled)
+        casput(self.prefix+'.RUNNING', self.running)
+
+        casput(self.prefix+".KILL",value = 'write password to kill the process')
+        casput(self.prefix+".processID",value = os.getpid())
+        casput(self.prefix+".computer_name",value = computer_name)
+        casput(self.prefix+".ip_address",value = ip_address)
+
+        casput(self.prefix+".LIST_ALL_PVS",value = self.get_pv_list())
+
+        # Monitor client-writable PVs.
+        casmonitor(self.prefix+".KILL",callback=self.monitor)
+
+    def monitor(self,PV_name,value,char_value):
+        """Process PV change requests"""
+        from CAServer import casput
+        from CA import caput
+        print("monitor: %s = %r" % (PV_name,value))
+        if PV_name == self.prefix + ".KILL":
+            if value == 'shutdown': #the secret word to shutdown the process is 'shutdown'
+                self.shutdown()
+        if PV_name == self.prefix + ".ENABLE":
+            self.intervention_enabled = value
+
+    def get_pv_list(self):
+        from CAServer import PVs
+        lst = list(PVs.keys())
+        #lst_new = []
+        #for item in lst:
+        #    lst_new.append(item.replace(self.prefix,'').replace('.',''))
+        return lst#lst_new
 
     def get_is_running(self):
         return self.running
@@ -269,12 +319,12 @@ class Sample_frozen_optical(object):
         else:
             mean_value = dict2['mean']-(dict0['mean']/2.)-(dict1['mean']/2.)
             stdev = (dict2['stdev']**2-(dict0['stdev']/2)**2-(dict1['stdev']/2)**2)**0.5
-        self.scattering = round(mean_value,2)
+        self.scattering = round(mean_value,3)
 
 
         if not freeze_intervention.active:
             #if mean_value - mean(self.circular_buffer)  > self.scattering_threshold and len(self.circular_buffer) >5:
-            if mean_value  > (self.scattering_threshold) and len(self.circular_buffer) >5:
+            if self.scattering  > (self.scattering_threshold) and len(self.circular_buffer) >5:
                 if temperature.value < self.frozen_threshold_temperature:
                     flag = True
                 else:
@@ -284,7 +334,7 @@ class Sample_frozen_optical(object):
             elif freeze_intervention.active != True:
                 flag = False
 
-                self.circular_buffer.append(mean_value)
+                self.circular_buffer.append(self.scattering)
                 if len(self.circular_buffer) >10:
                     self.circular_buffer.pop(0)
         else:
@@ -315,17 +365,19 @@ class Sample_frozen_optical(object):
 
 
     def cleanup(self):
+        """orderly cleanup of all channel access server process variables."""
         from CAServer import casdel
-        from optical_image_analyzer import image_analyzer
-        casdel(self.CAS_prefix+'.ENABLED')
-        casdel(self.CAS_prefix+'.VAL')
-        casdel(self.CAS_prefix+".BCKG")
-        casdel(self.CAS_prefix+'.BCKG_NEW')
-        casdel(self.CAS_prefix+'.MEAN_TOP')
-        casdel(self.CAS_prefix+'.MEAN_BOTOM')
-        casdel(self.CAS_prefix+'.MEAN_MIDDLE')
-        casdel(self.CAS_prefix+'.MEAN')
-        casdel(self.CAS_prefix+'.STDEV')
+        lst = self.get_pv_list()
+        for item in lst:
+            casdel(item)
+
+
+    def shutdown(self):
+        from CAServer import casdel
+        print('SHUTDOWN command received')
+        self.running = False
+        self.cleanup()
+        del self
 
 
     ###Libraries for testing and data processing
@@ -541,9 +593,8 @@ class Sample_frozen_optical(object):
 
 
 sample_frozen_optical = Sample_frozen_optical()
-sample_frozen_optical.init()
 sample_frozen_optical.orientation = 'on-axis-h'
-
+sample_frozen_optical.init()
 
 
 

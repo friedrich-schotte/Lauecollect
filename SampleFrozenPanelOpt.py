@@ -10,7 +10,7 @@ from sample_frozen_optical import sample_frozen_optical
 from Panel import BasePanel,PropertyPanel,ButtonPanel,TogglePanel,TweakPanel
 import wx
 
-__version__ = "1.4" # ROI 
+__version__ = "1.4" # ROI
 
 class SampleFrozenPanel(BasePanel):
 
@@ -34,7 +34,7 @@ class SampleFrozenPanel(BasePanel):
         [[TogglePanel,  "XRay detection",    sample_frozen,"running"],{"type":"Off/On"}],
         [[TogglePanel,  "XRay aux intervention",    sample_frozen,"is_intervention_enabled"],{"type":"Off/On"}],
         [[TogglePanel,  "XRay retract inter.",    sample_frozen,"retract_deicing"],{"type":"Off/On"}],
-        [[TogglePanel,  "Optical detection",    sample_frozen_optical,"is_running"],{"type":"Off/On"}],
+        #[[TogglePanel,  "Optical detection",    sample_frozen_optical,"is_running"],{"type":"Off/On"}],
         [[TogglePanel,  "Optical intervention",    sample_frozen_optical,"is_intervention_enabled"],{"type":"Off/Monitoring"}],
         [[PropertyPanel,"XRay image ROIX",             sample_frozen,"ROIX"],{"choices":[1000,900]}],
         [[PropertyPanel,"XRay image ROIY",             sample_frozen,"ROIY"],{"choices":[1000,900]}],
@@ -44,7 +44,7 @@ class SampleFrozenPanel(BasePanel):
         [[PropertyPanel,"Threshold [spots]",sample_frozen,"threshold_N_spts"],{"choices":[1,10,20,50]}],
         [[PropertyPanel,"Threshold [counts]",sample_frozen_optical,"scattering_threshold"],{"choices":[5,10,20,50]}],
         [[PropertyPanel,"Threshold [Temp. in C]",sample_frozen_optical,"frozen_threshold_temperature"],{"choices":[-20,-18,-15,-10]}],
-        
+
     ]
     def __init__(self,parent=None):
         BasePanel.__init__(self,
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 ##        format="%(asctime)s %(levelname)s: %(message)s",
 ##        logfile=logfile,
 ##    )
-    
+
 
     # Needed to initialize WX library
     app = wx.App(redirect=False)

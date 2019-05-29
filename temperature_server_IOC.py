@@ -19,9 +19,6 @@ from scipy.interpolate import interp1d
 from CA import caget, caput
 from CAServer import casput,casget,casdel
 
-import platform
-computer_name = platform.node()
-
 class Temperature_Server_IOC(object):
 
     name = "temperature_server_IOC"
@@ -77,7 +74,7 @@ class Temperature_Server_IOC(object):
         casput(self.prefix+".TEMP_POINTS",self.temp_points)
         casput(self.prefix+".FAULTS"," ")
         casput(self.prefix+".DMOV",value = nan)
-        casput(self.prefix+".KILL",value = nan)
+        casput(self.prefix+".KILL",value = 'write password to kill the process')
 
         casput(self.prefix+".P_default",value = self.P_default)
         casput(self.prefix+".I_default",value = self.I_default)
@@ -96,8 +93,8 @@ class Temperature_Server_IOC(object):
         casput(self.prefix+".oasis_RBV",value = nan)
         casput(self.prefix+".oasis_VAL",value = nan)
 
-        casput(self.prefix+".processID",value = os.getpid())
-        casput(self.prefix+".computer_name",value = computer_name)
+        #PV with a list of all process variable registered at the current Channel Access Server
+        casput(self.prefix+".LIST_ALL_PVS",value = self.get_pv_list())
 
         # Monitor client-writable PVs.
         casmonitor(self.prefix+".VAL",callback=self.monitor)
@@ -167,11 +164,6 @@ class Temperature_Server_IOC(object):
             sleep(1)
         self.running = False
 
-        #self.running = True
-        #while self.running:
-        #    self.update_once()
-        #self.shutdown()
-
     def start(self):
         """Run EPCIS IOC in background"""
         from threading import Thread
@@ -187,6 +179,17 @@ class Temperature_Server_IOC(object):
         self.running = False
         casdel(self.prefix)
         del self
+
+    def get_pv_list(self):
+        from CAServer import PVs
+        lst = list(PVs.keys())
+        #lst_new = []
+        #for item in lst:
+        #    lst_new.append(item.replace(self.prefix,'').replace('.',''))
+        return lst#lst_new
+
+
+
 
     def monitor(self,PV_name,value,char_value):
         """Process PV change requests"""
@@ -208,7 +211,8 @@ class Temperature_Server_IOC(object):
         if PV_name == self.prefix + ".TEMP_POINTS":
             self.temp_points = value
         if PV_name == self.prefix + ".KILL":
-            self.shutdown()
+            if value == 'shutdown':
+                self.shutdown()
 
         if PV_name == self.prefix + ".P_default":
             self.P_default = value
@@ -506,6 +510,7 @@ class Temperature_Server_IOC(object):
 
     def set_adv_T(self,value):
         value = float(value)
+
         if value != self.get_lightwaveT() or self.temp_to_oasis(value) != self.get_set_oasisT() :
             self.set_set_oasisT(self.temp_to_oasis(value))
             self.set_PIDCOF((self.P_default,0.0,self.D_default))
@@ -515,9 +520,13 @@ class Temperature_Server_IOC(object):
             if value >= self.temperature_oasis_switch:
                 t_diff = 3.0
             else:
-                t_diff = 1.0
-            while abs(self.get_lightwaveT() - self.get_set_lightwaveT()) > 1.0:
+                t_diff = 3.0
+            timeout = abs(self.get_lightwaveT() - self.get_set_lightwaveT())*1.5
+            t1 = time()
+            while abs(self.get_lightwaveT() - self.get_set_lightwaveT()) > t_diff:
                 sleep(0.05)
+                if time() - t1 > timeout:
+                    break
             self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
 
     def set_PCOF(self,value):

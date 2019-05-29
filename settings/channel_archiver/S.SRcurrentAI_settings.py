@@ -1,1 +1,1 @@
-VAL.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/S.SRcurrentAI.VAL.txt'
+VAL.filename = '//mx340hs/data/anfinrud_1906/Archive/S.SRcurrentAI.VAL.txt'

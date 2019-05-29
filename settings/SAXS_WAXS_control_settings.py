@@ -1,12 +1,12 @@
 self.insert_sample().running = False
-self.insert_sample().timeout_start = 1558816781.641
+self.insert_sample().timeout_start = 1559047605.888
 cancelled = False
 timeout_period = 10
-timeout_start = 1558816780.242
+timeout_start = 1559047605.443
 x = 0.6319742261192861
 y = -0.3672050807568879
 self.retract_sample().running = False
-self.retract_sample().timeout_start = 1558816777.159
+self.retract_sample().timeout_start = 1558985012.434
 self.pump_turn_off().running = False
 self.pump_turn_off().timeout_start = 1549250188.466
 action = ''
