@@ -2,9 +2,9 @@
 """Controls for control panels
 Author: Friedrich Schotte,
 Date created: 2017-06-20
-Date last modified: 2019-05-22
+Date last modified: 2019-05-28
 """
-__version__ = "1.4.7" # safe isnan 
+__version__ = "1.5" # unit,type
 
 from logging import debug,info,warn,error
 import wx, wx3_compatibility
@@ -14,6 +14,8 @@ class Control(wx.Panel):
     from persistent_property import persistent_property
     value = persistent_property("value","")
     format = persistent_property("format","%s")
+    unit = persistent_property("unit","")
+    type = persistent_property("type","")
     scale = persistent_property("scale",0.0)
     properties = persistent_property("properties",{})
     action = persistent_property("action",{})
@@ -67,11 +69,7 @@ class Control(wx.Panel):
     def OnAction(self,event):
         """Start a home run, if the button is toggled on.
         Cancel a home run, if is is toggled off."""
-        value = getattr(self.control,"Value",True)
-        if self.scale:
-            ##debug("Scaling %s / %r" % (value,self.scale))
-            try: value = eval(value,self.globals,self.locals)/self.scale
-            except: warn("%s / %r failed" % (value,self.scale))
+        value = self.my_value
         info("User requested %s = %r" % (self.name,value))
         if self.value: self.execute("%s = %r" % (self.value,value))
         for choice in self.action:
@@ -79,6 +77,21 @@ class Control(wx.Panel):
                 self.execute(self.action[choice])
                 break
         self.refresh()
+
+    def get_my_value(self):
+        value = getattr(self.control,"Value",True)
+        if self.unit:
+            try: value = value.replace(self.unit,"")
+            except: warn("%s: Failed remove unit %r from %r" % (self.name,self.unit,value))
+        if self.type:
+            try: value = eval(self.type)(value)
+            except: warn("%s: Failed to convert %r to %s" % (self.name,value,self.type))
+        if self.scale:
+            ##debug("Scaling %s / %r" % (value,self.scale))
+            try: value = eval(value,self.globals,self.locals)/self.scale
+            except: warn("%s: Failed to scale %s / %r" % (self.name,value,self.scale))
+        return value
+    my_value = property(get_my_value)
 
     def execute(self,command):
         if not self.executing:
@@ -279,6 +292,7 @@ class Control(wx.Panel):
             except Exception,msg:
                 error("bool(%r): %s" % (value,msg))
                 value=False
+        if self.unit: value += " "+self.unit
         return value
 
     @property

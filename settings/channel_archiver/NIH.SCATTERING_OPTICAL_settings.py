@@ -1,2 +1,2 @@
-MEAN.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.SCATTERING_OPTICAL.MEAN.txt'
-STDEV.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.SCATTERING_OPTICAL.STDEV.txt'
+MEAN.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.SCATTERING_OPTICAL.MEAN.txt'
+STDEV.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.SCATTERING_OPTICAL.STDEV.txt'

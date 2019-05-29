@@ -1,3 +1,6 @@
+Environment.defaults = {'Enabled': False, 'Value': 'offline?'}
+Environment.properties = {'Enabled': [(True, 'control.ensemble_online')]}
+Environment.value = 'control.environment'
 XRayDetector.properties = {
     'Enabled': 'True',
     'Label': '"X-Ray Detector %g mm" % control.DetZ.value',
@@ -27,47 +30,24 @@ XRayDetectorInserted.properties = {
         ('Insert', 'control.det_inserted == False'),
     ],
 }
-CirculateSample.action = {
-    False: 'control.sample_circulating = False',
-    True: 'control.sample_circulating = True'
+ProgramRunning.action = {
+    False: 'control.ensemble_program_running = False',
+    True: 'control.ensemble_program_running = True',
 }
-CirculateSample.defaults = {'Enabled': False}
-CirculateSample.properties = {
+ProgramRunning.defaults = {'Enabled': False, 'Label': 'offline'}
+ProgramRunning.properties = {
     'BackgroundColour': [
-        ('yellow', 'control.sample_circulating'),
-        ('red', 'control.pump_enabled == False')
-    ],
-    'Enabled': [(True, 'control.pump_movable or control.sample_circulating')],
-    'Value': [(True, 'control.sample_circulating == True')],
+        ('green', 'control.ensemble_program_running == True'),
+        ('red', 'control.ensemble_program_running == False')],
+    'Enabled': [(False, 'control.fault == True'),
+                (True, 'control.fault == False')],
+    'Value': [(False, 'control.ensemble_program_running == False'),
+              (True, 'control.ensemble_program_running == True')],
     'Label': [
-        ('Circulate Sample', 'not control.sample_circulating'),
-        ('Cancel Circulate', 'control.sample_circulating')
-    ],
+        ('Fault', 'control.fault == True'),
+        ('Start', 'control.ensemble_program_running == False'),
+        ('Stop', 'control.ensemble_program_running == True')]
 }
-CirculateSampleStep.value = 'control.circulate_step'
-CirculateSampleStep.properties = {'Enabled': 'True'}
-Environment.defaults = {'Enabled': False, 'Value': 'offline?'}
-Environment.properties = {'Enabled': [(True, 'control.ensemble_online')]}
-Environment.value = 'control.environment'
-ExtractSample.action = {
-    False: 'control.sample_extracting = False',
-    True: 'control.sample_extracting = True',
-}
-ExtractSample.defaults = {'Enabled': False}
-ExtractSample.properties = {
-    'BackgroundColour': [
-        ('yellow', 'control.sample_extracting == True'),
-        ('red', 'control.pump_enabled == False')
-    ],
-    'Enabled': [(True, 'control.pump_movable or control.sample_extracting')],
-    'Value': [(True, 'control.sample_extracting == True')],
-    'Label': [
-        ('Extract Sample', 'not control.sample_extracting'),
-        ('Cancel Extract', 'control.sample_extracting')
-    ]
-}
-ExtractSampleStep.value = 'control.extract_step'
-ExtractSampleStep.properties = {'Enabled': 'True'}
 GotoSaved.action = {True: 'control.inserted = True'}
 GotoSaved.defaults = {'Enabled': False}
 GotoSaved.properties = {
@@ -123,88 +103,18 @@ Inserted.properties = {
         ('Insert', 'control.inserted == False'),
     ],
 }
-LoadSample.action = {
-    False: 'control.sample_loading = False',
-    True: 'control.sample_loading = True'
-}
-LoadSample.defaults = {'Enabled': False}
-LoadSample.properties = {
-    'BackgroundColour': [
-        ('yellow', 'control.sample_loading'),
-        ('red', 'control.pump_enabled == False')],
-    'Enabled': [
-        (True, 'control.pump_movable or control.sample_loading')],
-    'Value': [(True, 'control.sample_loading == True')],
-    'Label': [('Load Sample', 'not control.sample_loading'),
-              ('Cancel Load', 'control.sample_loading')]
-}
-LoadSampleStep.value = 'control.load_step'
-LoadSampleStep.properties = {'Enabled': 'True'}
-Mode.defaults = {'Enabled': False, 'Value': 'offline'}
-Mode.properties = {'Enabled': [(True, 'control.timing_system_online == True')]}
-Mode.value = 'control.mode'
-ProgramRunning.action = {
-    False: 'control.ensemble_program_running = False',
-    True: 'control.ensemble_program_running = True',
-}
-ProgramRunning.defaults = {'Enabled': False, 'Label': 'offline'}
-ProgramRunning.properties = {
-    'BackgroundColour': [
-        ('green', 'control.ensemble_program_running == True'),
-        ('red', 'control.ensemble_program_running == False')],
-    'Enabled': [(False, 'control.fault == True'),
-                (True, 'control.fault == False')],
-    'Value': [(False, 'control.ensemble_program_running == False'),
-              (True, 'control.ensemble_program_running == True')],
-    'Label': [
-        ('Fault', 'control.fault == True'),
-        ('Start', 'control.ensemble_program_running == False'),
-        ('Stop', 'control.ensemble_program_running == True')]
-}
-PumpEnabled.action = {
-      False: 'control.pump_on_command = False',
-      True: 'control.pump_on_command = True'
-}
-PumpEnabled.defaults = {'Enabled': False, 'Label': 'offline'}
-PumpEnabled.properties = {
-    'Enabled': [(True, 'control.timing_system_running == True')],
-    'Value': [
-        (False, 'control.pump_on_command == False'),
-        (True, 'control.pump_on_command == True')],
-    'Label': [
-        ('running', 'control.pump_on == True'),
-        ('stopped', 'control.pump_on == False'),
-        ('offline', 'control.pump_on not in [True,False]'),
-    ]
-}
-PumpHomed.action = {
-    False: 'control.pump_homed = True',
-    True: 'control.pump_homed = True',
-}
-PumpHomed.defaults = {'Enabled': False, 'Label': 'offline', 'Value': True}
-PumpHomed.properties = {
-    'Enabled': [
-        (True, 'control.pump_movable == True')
-    ],
-    'Label': [
-        ('Home', 'control.ensemble_online'),
-    ]
-}
-PumpPosition.defaults = {'Enabled': False, 'Value': 'offline'}
-PumpPosition.format = '%.1f'
-PumpPosition.properties = {'Enabled': [(True, 'control.ensemble_online')]}
-PumpPosition.value = 'control.pump_position'
-PumpSpeed.defaults = {'Enabled': False, 'Value': 'offline'}
-PumpSpeed.properties = {'Enabled': [(True, 'control.ensemble_online')]}
-PumpSpeed.value = 'control.pump_speed'
-PumpStep.defaults = {'Enabled': False, 'Value': 'offline'}
-PumpStep.properties = {'Enabled': [(True, 'control.ensemble_online')]}
-PumpStep.value = 'control.pump_step'
-Save.action = {True: 'control.at_inserted_position = True'}
-Save.defaults = {'Enabled': False}
-Save.properties = {
-    'Enabled': [(True, 'control.at_inserted_position == False')]
-}
+Temperature_Setpoint.defaults = {'Enabled': False, 'Value': 'offline'}
+Temperature_Setpoint.type = 'float'
+Temperature_Setpoint.format = '%.1f'
+Temperature_Setpoint.unit = 'C'
+Temperature_Setpoint.properties = {'Enabled': [(True, 'control.temperature_online')]}
+Temperature_Setpoint.value = 'control.temperature_setpoint'
+Temperature.defaults = {'Enabled': False, 'Value': 'offline'}
+Temperature.type = 'float'
+Temperature.format = '%.3f'
+Temperature.unit = 'C'
+Temperature.properties = {'Enabled': [(True, 'control.temperature_online')]}
+Temperature.value = 'control.temperature'
 XRayShutter.defaults = {'Enabled': False, 'Label': 'offline'}
 XRayShutter.properties = {
     'Enabled': 'control.xray_safety_shutters_enabled == True',
@@ -257,4 +167,106 @@ LaserShutterAutoOpen.properties = {
 LaserShutterAutoOpen.action = {
     False: 'control.laser_safety_shutter_auto_open = False',
     True:  'control.laser_safety_shutter_auto_open = True',
+}
+Mode.defaults = {'Enabled': False, 'Value': 'offline'}
+Mode.properties = {'Enabled': [(True, 'control.timing_system_online == True')]}
+Mode.value = 'control.mode'
+PumpEnabled.action = {
+      False: 'control.pump_on_command = False',
+      True: 'control.pump_on_command = True'
+}
+PumpEnabled.defaults = {'Enabled': False, 'Label': 'offline'}
+PumpEnabled.properties = {
+    'Enabled': [(True, 'control.timing_system_running == True')],
+    'Value': [
+        (False, 'control.pump_on_command == False'),
+        (True, 'control.pump_on_command == True')],
+    'Label': [
+        ('running', 'control.pump_on == True'),
+        ('stopped', 'control.pump_on == False'),
+        ('offline', 'control.pump_on not in [True,False]'),
+    ]
+}
+LoadSample.action = {
+    False: 'control.sample_loading = False',
+    True: 'control.sample_loading = True'
+}
+LoadSample.defaults = {'Enabled': False}
+LoadSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'control.sample_loading'),
+        ('red', 'control.pump_enabled == False')],
+    'Enabled': [
+        (True, 'control.pump_movable or control.sample_loading')],
+    'Value': [(True, 'control.sample_loading == True')],
+    'Label': [('Load Sample', 'not control.sample_loading'),
+              ('Cancel Load', 'control.sample_loading')]
+}
+LoadSampleStep.value = 'control.load_step'
+LoadSampleStep.properties = {'Enabled': 'True'}
+ExtractSample.action = {
+    False: 'control.sample_extracting = False',
+    True: 'control.sample_extracting = True',
+}
+ExtractSample.defaults = {'Enabled': False}
+ExtractSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'control.sample_extracting == True'),
+        ('red', 'control.pump_enabled == False')
+    ],
+    'Enabled': [(True, 'control.pump_movable or control.sample_extracting')],
+    'Value': [(True, 'control.sample_extracting == True')],
+    'Label': [
+        ('Extract Sample', 'not control.sample_extracting'),
+        ('Cancel Extract', 'control.sample_extracting')
+    ]
+}
+ExtractSampleStep.value = 'control.extract_step'
+ExtractSampleStep.properties = {'Enabled': 'True'}
+CirculateSample.action = {
+    False: 'control.sample_circulating = False',
+    True: 'control.sample_circulating = True'
+}
+CirculateSample.defaults = {'Enabled': False}
+CirculateSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'control.sample_circulating'),
+        ('red', 'control.pump_enabled == False')
+    ],
+    'Enabled': [(True, 'control.pump_movable or control.sample_circulating')],
+    'Value': [(True, 'control.sample_circulating == True')],
+    'Label': [
+        ('Circulate Sample', 'not control.sample_circulating'),
+        ('Cancel Circulate', 'control.sample_circulating')
+    ],
+}
+CirculateSampleStep.value = 'control.circulate_step'
+CirculateSampleStep.properties = {'Enabled': 'True'}
+PumpHomed.action = {
+    False: 'control.pump_homed = True',
+    True: 'control.pump_homed = True',
+}
+PumpHomed.defaults = {'Enabled': False, 'Label': 'offline', 'Value': True}
+PumpHomed.properties = {
+    'Enabled': [
+        (True, 'control.pump_movable == True')
+    ],
+    'Label': [
+        ('Home', 'control.ensemble_online'),
+    ]
+}
+PumpPosition.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpPosition.format = '%.1f'
+PumpPosition.properties = {'Enabled': [(True, 'control.ensemble_online')]}
+PumpPosition.value = 'control.pump_position'
+PumpSpeed.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpSpeed.properties = {'Enabled': [(True, 'control.ensemble_online')]}
+PumpSpeed.value = 'control.pump_speed'
+PumpStep.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpStep.properties = {'Enabled': [(True, 'control.ensemble_online')]}
+PumpStep.value = 'control.pump_step'
+Save.action = {True: 'control.at_inserted_position = True'}
+Save.defaults = {'Enabled': False}
+Save.properties = {
+    'Enabled': [(True, 'control.at_inserted_position == False')]
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Control panel for SAXS/WAXS Experiments.
-Author: Friedrich Schotte, Valentyn Stadnytskyi
+Author: Friedrich Schotte, Valentyn
 Date created: 2017-06-12
-Date last modified: 2019-05-29
+Date last modified: 2019-05-28
 """
-__version__ = "1.10.1" # Friedrich: cleanup
+__version__ = "1.9" # Temperature
 
 from logging import debug,info,warn,error
 import wx
@@ -116,14 +116,6 @@ class SAXS_WAXS_Control_Panel(wx.Frame):
             name="SAXS_WAXS_Control_Panel.Inserted",globals=globals(),
             size=(160,-1),label="Insert/Retract")
 
-        choices = ["-16.0","22.0","40.0","80.0","120.0"]
-        self.Temperature_Setpoint = Control(panel,type=ComboBox,
-            name="SAXS_WAXS_Control_Panel.Temperature_Setpoint",globals=globals(),
-            size=(80,-1),choices=choices)
-        self.Temperature = Control(panel,type=wx.TextCtrl,
-            name="SAXS_WAXS_Control_Panel.Temperature",globals=globals(),
-            size=(90,-1),style=wx.TE_READONLY)
-
         self.XRayShutter = Control(panel,type=ToggleButton,
             name="SAXS_WAXS_Control_Panel.XRayShutter",globals=globals(),
             size=(60,-1),label="Disabled")
@@ -185,6 +177,8 @@ class SAXS_WAXS_Control_Panel(wx.Frame):
             name="SAXS_WAXS_Control_Panel.PumpSpeed",globals=globals(),
             size=(70,-1))
 
+
+
         # Layout
         flag = wx.ALIGN_CENTRE_HORIZONTAL|wx.ALL
         border = 2
@@ -218,16 +212,33 @@ class SAXS_WAXS_Control_Panel(wx.Frame):
         group.Add (self.Inserted,flag=flag,border=border)
         left_panel.Add (group,flag=flag,border=border)
 
-        group = wx.BoxSizer(wx.VERTICAL)
-        text = wx.StaticText(panel,label="Sample Temperature")
-        group.Add (text,flag=flag,border=border)
-        subgroup = wx.BoxSizer(wx.HORIZONTAL)
-        subgroup.Add (self.Temperature_Setpoint,flag=flag,border=border)
-        subgroup.Add (self.Temperature,flag=flag,border=border)
-        group.Add (subgroup,flag=flag,border=border)
-        left_panel.Add (group,flag=flag,border=border)
+        #Temperature Settings
+        border = 2
+        flag = wx.ALL|wx.EXPAND
+        box = wx.StaticBox(panel, label = "Sample Temperature", style = wx.ALIGN_CENTRE_HORIZONTAL)
+        group = wx.StaticBoxSizer(box,wx.HORIZONTAL)
+
+        #temperature controller
+        choices = ["-16.0","22.0","40.0","80.0","120.0"]
+        self.Temperature_Setpoint = Control(box,type=ComboBox,
+            name="SAXS_WAXS_Control_Panel.Temperature_Setpoint",globals=globals(),
+            size=(75,25),choices=choices)
+        self.Temperature = Control(box,type=wx.TextCtrl,
+            name="SAXS_WAXS_Control_Panel.Temperature",globals=globals(),
+            size=(150,25),style=wx.TE_READONLY)
+
+        #subgroup = wx.BoxSizer(wx.HORIZONTAL)
+        group.Add (self.Temperature_Setpoint,flag=flag,border=border)
+        group.Add (self.Temperature,flag=flag,border=border)
+        #box.Add (subgroup,flag=flag,border=border)
+        box.SetSizer(group)
+
+        left_panel.Add (box,flag=flag,border=border)
+        #box.Layout()
 
         layout.Add (left_panel,flag=flag,border=border)
+
+        border = 2
 
         right_panel = wx.BoxSizer(wx.VERTICAL)
 

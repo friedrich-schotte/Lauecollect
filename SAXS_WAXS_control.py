@@ -1,14 +1,15 @@
  #!/usr/bin/env python
 """Support module for SAXS/WAXS control panel.
-Author: Friedrich Schotte
+Author: Friedrich Schotte, Valentyn Stadnydskyi
 Date created: 2017-06-12
-Date last modified: 2019-03-18
+Date last modified: 2019-05-29
 """
-__version__ = "1.8.1" # changed program filename
+__version__ = "1.8.2" # added temperature control
 
 from logging import debug,info,warn,error
 from instrumentation import *
 from Ensemble_client import ensemble as ensemble_tcp
+from temperature import temperature
 
 class SAXS_WAXS_Control(object):
     name = "SAXS_WAXS_control"
@@ -71,7 +72,7 @@ class SAXS_WAXS_Control(object):
     def get_det_moving(self): return DetZ.moving
     def set_det_moving(self,value): DetZ.moving = value
     det_moving = property(get_det_moving,set_det_moving)
-    
+
     def get_ensemble_homed(self):
         from numpy import product
         homed = product(ensemble.homed[[0,1,2,4,5]])
@@ -172,7 +173,7 @@ class SAXS_WAXS_Control(object):
 
     inserting_sample = action_property("self.insert_sample()",
         stop="self.stop_sample()")
-    
+
     retracting_sample = action_property("self.retract_sample()",
         stop="self.stop_sample()")
 
@@ -252,7 +253,7 @@ class SAXS_WAXS_Control(object):
 
     def get_XY_enabled(self): return SampleX.enabled * SampleY.enabled
     def set_XY_enabled(self,value): SampleX.enabled,SampleY.enabled = True,True
-    XY_enabled = property(get_XY_enabled,set_XY_enabled)    
+    XY_enabled = property(get_XY_enabled,set_XY_enabled)
 
     def get_xray_safety_shutters_open(self):
         return xray_safety_shutters_open.value
@@ -298,7 +299,7 @@ class SAXS_WAXS_Control(object):
 
     def get_ms_on(self): return Ensemble_SAXS.ms_on
     def set_ms_on(self,value): Ensemble_SAXS.ms_on = value
-    ms_on = property(get_ms_on,set_ms_on)    
+    ms_on = property(get_ms_on,set_ms_on)
 
     def get_pump_on(self): return Ensemble_SAXS.pump_on
     def set_pump_on(self,value): Ensemble_SAXS.pump_on = value
@@ -399,6 +400,31 @@ class SAXS_WAXS_Control(object):
             PumpA.moving = False
     sample_circulating = property(get_sample_circulating,set_sample_circulating)
 
+    @property
+    def temperature_online(self):
+        """"""
+        from instrumentation import temperature
+        from numpy import isnan
+        return not isnan(temperature.value)
+
+    def get_temperature_setpoint(self):
+        """sample temperature"""
+        from instrumentation import temperature
+        return temperature.command_value
+    def set_temperature_setpoint(self,value):
+        from instrumentation import temperature
+        temperature.command_value = value
+    temperature_setpoint = property(get_temperature_setpoint,set_temperature_setpoint)
+
+    def get_temperature(self):
+        """sample temperature"""
+        from instrumentation import temperature
+        return temperature.value
+    def set_temperature(self,value):
+        from instrumentation import temperature
+        temperature.value = value
+    temperature = property(get_temperature,set_temperature)
+
 SAXS_WAXS_control = control = SAXS_WAXS_Control()
 
 
@@ -407,9 +433,8 @@ if __name__ == "__main__": # for debugging
     import logging
     logging.basicConfig(level=logging.INFO,
         format="%(asctime)s %(levelname)s: %(message)s")
-    self = SAXS_WAXS_control 
+    self = SAXS_WAXS_control
     print("control.det_inserted = True")
     print("control.det_retracted = True")
     print("control.det_moving = False")
     print("control.det_moving")
-
