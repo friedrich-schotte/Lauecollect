@@ -5,7 +5,7 @@ Author: Friedrich Schotte
 Date created: 2015-05-27
 Date last modified: 2019-05-29
 """
-__version__ = "5.1" # larger range for heatload chopper (hlc_choices)
+__version__ = "5.3" # hsc_delay, cleanup
 
 from logging import debug,info,warn,error
 
@@ -78,10 +78,9 @@ class Timing_Panel(BasePanel):
         [("Sequence generator version",Ensemble_SAXS,"generator_version"),{"read_only":True}],
         [("Heatload chopper phase",Ensemble_SAXS,"hlcnd","time.6"  ),{"choices":hlc_choices}],
         [("Heatload chop. act. phase",Ensemble_SAXS,"hlcad","time.6"  ),{"choices":hlc_choices}],
-        [("ChemMat chopper phase",Ensemble_SAXS,"cmcnd","time.6"  ),{"choices":hlc_choices}],
-        [("ChemMat chop. act. phase",Ensemble_SAXS,"cmcad","time.6"  ),{"choices":hlc_choices}],
-        [("High-speed chopper phase",timing_sequencer,"hsc_delay","time.4"),{"choices":hsc_choices}],
+        [("High-speed chopper phase",Ensemble_SAXS,"hsc_delay","time.4"),{"choices":hsc_choices}],
         [("P0 shift",                timing_sequencer,"p0_shift","time.4"),{}],
+        [("X-ray delay",             Ensemble_SAXS,"xd","time.6"),{}],
     ]
     standard_view = [
         "Delay",

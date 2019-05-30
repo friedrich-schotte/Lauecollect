@@ -116,7 +116,7 @@ class SAXS_WAXS_Control_Panel(wx.Frame):
             name="SAXS_WAXS_Control_Panel.Inserted",globals=globals(),
             size=(160,-1),label="Insert/Retract")
 
-        choices = ["-16.0","22.0","40.0","80.0","120.0"]
+        choices = ["-16.0 C","22.0 C","40.0 C","80.0 C","120.0 C"]
         self.Temperature_Setpoint = Control(panel,type=ComboBox,
             name="SAXS_WAXS_Control_Panel.Temperature_Setpoint",globals=globals(),
             size=(80,-1),choices=choices)

@@ -3,9 +3,9 @@
 Grapical User Interface for FPGA Timing System.
 Author: Friedrich Schotte
 Date created: 2019-03-26
-Date last modified: 2019-03-26
+Date last modified: 2019-05-29
 """
-__version__ = "1.0" 
+__version__ = "1.1" # p0_shift, cleanup
 
 from logging import debug,info,warn,error
 
@@ -48,9 +48,8 @@ class Timing_Calibration_Panel(BasePanel):
             [[timing_system.channels.lcam,     "Laser Camera Trigger",         ],{"update": self.update}],
             [[timing_system.hlcnd,             "Heatload Chopper Phase",       ],{"keep_value": True}],
             [[timing_system.hlcad,             "Heatload Chop. Act. Phase",    ],{"keep_value": True}],
-            [[timing_system.cmcnd,             "ChemMat Chopper Phase",        ],{"keep_value": True}],
-            [[timing_system.cmcad,             "ChemMat Chop. Act. Phase",     ],{"keep_value": True}],
             [[timing_system.channels.hsc.delay,"High-Speed Chopper Phase",     ],{"update": self.update, "keep_value": True}],
+            [[timing_system.p0_shift,          "P0 Shift",                     ],{}],
             [[timing_system.channels.ms,       "X-ray Shutter Delay",          ],{"update": self.update}],
             [[timing_system.channels.ms,       "X-ray Shutter Pulse Length",   ],{"update": self.update,"attribute": "pulse_length"}],
             [[timing_system.channels.xdet,     "X-ray Detector Delay",         ],{"update": self.update}],

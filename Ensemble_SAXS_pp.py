@@ -5,15 +5,15 @@ for the FPGA.
 pump X-ray probe data aquisition.
 Author: Friedrich Schotte
 Date created: 2015-05-27
-Date last modified: 2019-04-26
+Date last modified: 2019-05-29
 """
 import numpy; numpy.seterr(invalid="ignore",divide="ignore") # Turn off IEEE-754 warnings
 from logging import debug,info,warn,error
 from traceback import format_exc
 from time import time
 
-__version__ = "4.20" # sequence.generated_data
-genenerator_version = "4.19.1" 
+__version__ = "4.22" # hsc_delay, cleanup
+genenerator_version = "4.21" 
 
 class Sequence(object):
     def __init__(self,delay=None,**kwargs):
@@ -452,9 +452,10 @@ def parameter_description():
     description = ""
     # Calibration constants and parameters
     from timing_system import timing_system
-    description += "high_speed_chopper_phase=%.12f,"        % timing_system.high_speed_chopper_phase.value
-    description += "high_speed_chopper_phase.offset=%.12f," % timing_system.high_speed_chopper_phase.offset
-    description += "hsc.delay.offset=%.12f,"                % timing_system.hsc.delay.offset
+    ##description += "high_speed_chopper_phase.value=%.12f," % timing_system.high_speed_chopper_phase.value
+    ##description += "high_speed_chopper_phase.offset=%.12f," % timing_system.high_speed_chopper_phase.offset
+    ##description += "hsc.delay.offset=%.12f," % timing_system.hsc.delay.offset
+    description += "xd=%.12f,"  % timing_system.xd
 
     # Channel configuration-based parameters
     for i_channel in range(0,len(timing_system.channels)):
@@ -774,6 +775,9 @@ class EnsembleSAXS(object):
         data = sequencer_packet(registers,counts,description)
         return data,description
 
+    ##from persistent_property import persistent_property
+    ##xd = persistent_property("persistent_property",0.000985971429) # X-ray pulse timing
+
     def register_counts(self,sequence):
         """list of registers and lists of counts
         """
@@ -813,15 +817,16 @@ class EnsembleSAXS(object):
         n = period
 
         # The high-speed chopper determines the X-ray pulse timing. 
-        xd = -timing_system.hsc.delay.offset
+        ##xd = -timing_system.hsc.delay.offset
+        xd = self.xd
         # If the chopper timing shift is more than 100 ns,
         # assume the chopper selects a different bunch with a different timing.
         # (e.g super bunch versus single bunch)
         # However, if the time shift is more than 4 us, assume the tunnel
         # 1-unch selection mode is used so the transmitted X-ray pulse
         # arrives at nominally t=0.
-        phase = timing_system.high_speed_chopper_phase.value
-        if 100e-9 < abs(phase) < 4e-6: xd += phase
+        ##phase = timing_system.high_speed_chopper_phase.value
+        ##if 100e-9 < abs(phase) < 4e-6: xd += phase
 
         it_xray = t0 + arange(0,N*dt,dt)
         t_xray = it_xray*Tbase+xd
@@ -968,15 +973,16 @@ class EnsembleSAXS(object):
         T = n*Tbase # packet period
 
         # The high-speed chopper determines the X-ray pulse timing. 
-        xd = -timing_system.hsc.delay.offset
+        ##xd = -timing_system.hsc.delay.offset
+        xd = self.xd
         # If the chopper timing shift is more than 100 ns,
         # assume the chopper selects a different bunch with a different timing.
         # (e.g super bunch versus single bunch)
         # However, if the time shift is more than 4 us, assume the tunnel
         # 1-unch selection mode is used so the transmitted X-ray pulse
         # arrives at nominally t=0.
-        phase = timing_system.high_speed_chopper_phase.value
-        if 100e-9 < abs(phase) < 4e-6: xd += phase
+        ##phase = timing_system.high_speed_chopper_phase.value
+        ##if 100e-9 < abs(phase) < 4e-6: xd += phase
 
         it_xray = t0 + arange(0,N*dt,dt)
 
@@ -1212,25 +1218,23 @@ class EnsembleSAXS(object):
         timing_system.pulses.count = value
     pulses = property(get_pulses,set_pulses)
 
-    def get_cmcnd(self):
+    def get_xd(self):
         from timing_system import timing_system
-        return timing_system.cmcnd.value
-    def set_cmcnd(self,value):
+        return timing_system.xd
+    def set_xd(self,value):
         from timing_system import timing_system
-        if timing_system.cmcnd.value != value:
-            timing_system.cmcnd.value = value
+        if timing_system.xd != value:
+            timing_system.xd = value
             self.update()
-    cmcnd = property(get_cmcnd,set_cmcnd)
+    xd = property(get_xd,set_xd)
 
-    def get_cmcd(self):
+    def get_hsc_delay(self):
         from timing_system import timing_system
-        return timing_system.cmcd.value
-    def set_cmcd(self,value):
+        return timing_system.hsc.delay.value
+    def set_hsc_delay(self,value):
         from timing_system import timing_system
-        if timing_system.cmcd.command_value != value:
-            timing_system.cmcd.command_value = value
-            self.update()
-    cmcd = property(get_cmcd,set_cmcd)
+        timing_system.hsc.delay.value = value
+    hsc_delay = property(get_hsc_delay,set_hsc_delay)
 
     def __getattr__(self,name):
         """A property"""
@@ -1318,12 +1322,6 @@ if __name__ == "__main__": # for testing
     print('Ensemble_SAXS.running = True')
     print('Ensemble_SAXS.update()')
     print('')
-    ##print('registers,counts = Ensemble_SAXS.register_counts()')
-    ##print('registers,counts = sequence.register_counts')
-    print('t=time(); descriptor = sequence.descriptor; time()-t')
-    print('t=time(); registers,counts = sequence.register_counts; time()-t')
-    from timing_sequence import sequencer_packet
-    print('t=time(); data = sequencer_packet(registers,counts,descriptor); time()-t')
-    print('t=time(); id = sequence.id; time()-t')
-    print('t=time(); data = sequence.data; time()-t')
+    print('Ensemble_SAXS.xd')
+    print('Ensemble_SAXS.hsc_delay')
 

@@ -4,7 +4,7 @@ Author: Friedrich Schotte
 Date created: 2019-05-24
 Date last modified: 2019-05-29
 """
-__version__ = "1.2.2" # item assignment for positions simplified
+__version__ = "1.2.4" # item assignment for all array PVs
 
 from logging import debug,info,warn,error
 
@@ -38,8 +38,12 @@ class Configuration(object):
     prefix = Configuration_Server.prefix
 
     def configuration_property(name,default_value=None):
-        def get(self): return self.get_configuration_value(name,default_value)
-        def set(self,value): self.set_configuration_value(name,value)
+        def PV_name(self): return self.configuration_PV_name(name)
+        def get(self):
+            if type(default_value) == list: value = self.array_PV(PV_name(self))
+            else: value = self.get_PV(PV_name(self),default_value)
+            return value
+        def set(self,value): self.set_PV(PV_name(self),value)
         return property(get,set)
 
     value                = configuration_property("value","")
@@ -128,15 +132,20 @@ class Configuration(object):
             else:
                 array = self.array
                 array[i] = value
-                self.array = value
+                self.array = array
         def get_array(self):
             return Configuration.get_PV(self.PV_name,[])
         def set_array(self,value):
             from CA import caput
             caput(self.PV_name,value)
         array = property(get_array,set_array)
+        def __len__(self): return len(self.array)
+        def __iter__(self):
+            for i in range(0,len(self)):
+                if i < len(self): yield self[i]
         def __repr__(self):
             return "%s(%r)" % (type(self).__name__,self.PV_name)
+        def index(self,value): return self.array.index(value)
 
     @staticmethod
     def get_global_value(name,default_value=None):
@@ -183,6 +192,11 @@ class Configuration(object):
                 except: value = default_value
         return value
 
+    @staticmethod
+    def set_PV(PV_name,value):
+        from CA import caput
+        caput(PV_name,value)
+
     def __repr__(self):
         return "%s(%r)" % (type(self).__name__,self.name)
         
@@ -213,8 +227,8 @@ if __name__ == '__main__': # for testing
 
     ##name = "beamline_configuration"
     ##name = "sequence_modes"
-    ##name = "Julich_chopper_modes"
-    name = "heat_load_chopper_modes"
+    ##name = "heat_load_chopper_modes"
+    name = "Julich_chopper_modes"
     ##name = "timing_modes"
     ##name = "sequence_modes"
     ##name = "delay_configuration" 
@@ -228,8 +242,11 @@ if __name__ == '__main__': # for testing
 
     self = configuration(name=name)
 
-    print('self.positions[0][0]')
-    print('self.positions[0][:]')
-    print('self.current_position[0]')
-    print('self.positions_match[0][0]')
-    print('self.positions_match[0][:]')
+    ##print('self.positions[0][0]')
+    ##print('self.positions[0][:]')
+    ##print('self.current_position[0]')
+    ##print('self.positions_match[0][0]')
+    ##print('self.positions_match[0][:]')
+    print('self.descriptions[:]')
+    print('self.descriptions[5]')
+    print('self.descriptions.index("S-1")')

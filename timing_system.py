@@ -3,11 +3,11 @@ FPGA Timing System
 
 Author: Friedrich Schotte
 Date created: 2007-04-02
-Date last modified: 2019-05-26
+Date last modified: 2019-05-29
 """
 from logging import debug,info,warn,error
 
-__version__ = "8.6" # CA_cached
+__version__ = "8.6.1" # high_speed_chopper defaults to "Julich"
 
 def Parameter(name,default_value=0.0):
     """A propery object to be used inside a class"""
@@ -1175,6 +1175,8 @@ class TimingSystem(object):
     self.clk_shift_reset.count = 1 
     sleep(0.2)
     self.clk_shift_reset.count = 0
+    
+  xd = Parameter("xd",0.000985971429) # X-ray pulse timing
 
   delay = variable_property("delay",stepsize=1e-12) # Ps laser to X-ray delay
   lxd = ps_lxd = delay # For backward compatibility
@@ -1322,7 +1324,7 @@ class TimingSystem(object):
     """ChemMat chopper delay (=phase)"""
     return self.CMCD(self)
 
-  high_speed_chopper = Parameter("chopper","ChemMat")
+  high_speed_chopper = Parameter("chopper","Julich")
   high_speed_chopper_choices = "Julich","ChemMat"
 
   @property

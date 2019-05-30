@@ -920,11 +920,11 @@ if __name__ == '__main__':
     redirect("SavedPositionsPanel_2",format=format)
 
     import autoreload
-    name = ""
+    ##name = ""
     ##name = "beamline_configuration"
     ##name = "sequence_modes"
     ##name = "high_speed_chopper_modes"
-    ##name = "Julich_chopper_modes"
+    name = "Julich_chopper_modes"
     ##name = "timing_modes"
     ##name = "delay_configuration"
     ##name = "power_configuration"
