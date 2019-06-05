@@ -4,7 +4,7 @@ Implements the server side of the Channel Access (CA) protocol, version 4.11.
 
 Author: Friedrich Schotte
 Date created: 2009-10-31
-Date last modified: 2019-05-26
+Date last modified: 2019-06-02
 
 based on: 'Channel Access Protocol Specification', version 4.11
 http://epics.cosylab.com/cosyjava/JCA-Common/Documentation/CAproto.html
@@ -51,7 +51,7 @@ variable with three arguments:
 """
 from logging import debug,info,warn,error
 
-__version__ = "1.5" # register_property
+__version__ = "1.5.1" # EPICS 3.16 compatibility: Read request have data_count=0
 
 DEBUG = False # Generate debug messages?
 
@@ -768,7 +768,7 @@ class UDPHandler(SocketServer.BaseRequestHandler):
             payload_size, = unpack(">H",messages[2:4])
             message = messages[0:16+payload_size]
             messages = messages[16+payload_size:]
-            if DEBUG: debug("%s: UDP packet received: %s\n" % (addr,message_info(message)))
+            ##if DEBUG: debug("%s: UDP packet received: %s\n" % (addr,message_info(message)))
             reply = process_message(self.client_address,message)
             if reply:
                 if DEBUG: debug("%s: returning reply %r" % (addr,message_info(reply)))
@@ -837,9 +837,9 @@ def process_message(address,request):
         minor_version = data_count
         channel_CID = parameter1 # client allocated ID for this transaction.
         channel_name = payload.rstrip("\0")
-        if DEBUG: debug("SEARCH,reply_flag=%r,minor_ver=%r,channel_CID=%r,channel_name=%r\n"
-            % (reply_flag,minor_version,channel_CID,channel_name))
         if PV_exists(channel_name):
+            if DEBUG: debug("SEARCH,reply_flag=%r,minor_ver=%r,channel_CID=%r,channel_name=%r\n"
+                % (reply_flag,minor_version,channel_CID,channel_name))
             return message("SEARCH",8,TCP_port_number,0,0xffffffff,channel_CID,
                 network_data(minor_version,types["SHORT"]))
         # Reply flag: whether failed search response should be returned.
@@ -849,8 +849,9 @@ def process_message(address,request):
                 channel_CID)
     elif command == "VERSION":
         # Client 'greeting' after opening a TCP connection, part 1
-        # There is no response to this command. 
-        if DEBUG: debug("VERSION\n")
+        # There is no response to this command.
+        pass
+        ##if DEBUG: debug("VERSION\n")
     elif command == "CLIENT_NAME":
         # Client 'greeting' after opening a TCP connection, part 2
         # There is no response to this command. 
@@ -900,8 +901,10 @@ def process_message(address,request):
             if PV.channel_SID == channel_SID:
                 status_code = 1 # Normal successful completion
                 val = PV_value(PV_name)
+                data_count = CA_count(val)
+                data = network_data(val,data_type)
                 reply = message("READ_NOTIFY",0,data_type,data_count,status_code,
-                    IOID,network_data(val,data_type))
+                    IOID,data)
                 return reply
     elif command == "EVENT_ADD":
         # Client wants to receive update events for a given process variable.
@@ -920,7 +923,9 @@ def process_message(address,request):
                     subscriber_info(subscription_ID,data_type,data_count)
                 subscriber = PV.subscribers[address]
                 status_code = 1 # Normal successful completion
-                data = network_data(PV_value(PV_name),data_type)
+                val = PV_value(PV_name)
+                data_count = CA_count(val)
+                data = network_data(val,data_type)
                 return message("EVENT_ADD",0,data_type,data_count,
                     status_code,subscription_ID,data)
     elif command == "WRITE_NOTIFY":
@@ -1481,15 +1486,9 @@ if __name__ == "__main__": # for testing
         format="%(asctime)s: %(levelname)s %(message)s",
         ##filename=logfile,
     )
-    DEBUG = False
+    DEBUG = True
 
-    from sim_motor import sim_EPICS_motor as motor
-    self = motor("14IDA:Slit1Ht2",name="Slit1H",description="White beam slits H gap",
-      readback="14IDA:Slit1Ht2.C")
-
-    print('register_property(self,"RBV",self.readback)')
-    print('unregister_property(self,"RBV",self.readback)')
-    from CA import caget,caput
-    print('caget(self.readback)')
-    print('caput(self.readback,self.VAL)')
-
+    PV_name = "TEST:TEST.VAL"
+    casput(PV_name,"test")
+    print('from epics import *; caget(%r)' % PV_name)
+    print('from epics import *; camonitor(%r)' % PV_name)

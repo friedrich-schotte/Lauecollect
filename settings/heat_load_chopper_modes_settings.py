@@ -40,5 +40,5 @@ title = 'Heat-Load Chopper Modes'
 tolerance = [0.002, 1e-07]
 command_row = 3
 show_stop_button = True
-command_rows = [4]
+command_rows = [3]
 row_height = 21

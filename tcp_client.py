@@ -3,10 +3,47 @@
 
 Author: Friedrich Schotte
 Date created: 2016-11-06
-Date last modified: 2019-03-15 
+Date last modified: 2019-06-01
 """
-__version__ = "1.4" # check for black IP address 
+__version__ = "1.5.2" # issue: ignoring unexpected reply '\n\n\n' 
 from logging import debug,info,warn,error
+
+class tcp_client_object(object):
+    name = "tcp_client"
+    from persistent_property import persistent_property
+    ip_address = persistent_property("ip_address","localhost:2000")
+
+    def __init__(self,name=None):
+        if name: self.name = name
+
+    def query(self,command,terminator="\n",count=None):
+        """Evaluate a command in the server and return the result.
+        """
+        from tcp_client import query
+        reply = query(self.ip_address,command,terminator,count)
+        return reply
+
+    def send(self,command):
+        """Evaluate a command in server.
+        """
+        from tcp_client import send
+        send(self.ip_address,command)
+
+    def __repr__(self): return "%s(%r)" % (type(self).__name__,self.name) 
+
+from numpy import nan
+def tcp_property(query_string,default_value=nan):
+    """A propery object to be used inside a class"""
+    def get(self):
+        ## Performs a query and returns the result as a number
+        value = self.query("self."+query_string)
+        dtype = type(default_value)
+        try: value = dtype(eval(value))
+        except: value = default_value
+        return value
+    def set(self,value): self.query("self.%s = %r" % (query_string,value))
+    return property(get,set)
+
 
 connections = {}
 timeout = 5.0
@@ -32,7 +69,7 @@ def query(ip_address_and_port,command,terminator="\n",count=None):
             import socket # for exception
             if not command.endswith("\n"): command += "\n"
             for attempt in range(0,2):
-                if attempt > 0: warn("query %r, retrying..." % command)
+                if attempt > 0: warn("query %.200r, retrying..." % command)
                 try: 
                     c = connection(ip_address_and_port)
                     if c is None: break
@@ -45,7 +82,7 @@ def query(ip_address_and_port,command,terminator="\n",count=None):
                             c.settimeout(0.1)
                         except socket.timeout: break
                     if len(discard) > 0:
-                        warn("query %r, ignoring unexpected reply %r (%d bytes)" %
+                        warn("query %.200r, ignoring unexpected reply %.200r (%d bytes)" %
                             (command,discard[0:80],len(discard)))
                     c.settimeout(3)
                     c.sendall(command)
@@ -57,7 +94,7 @@ def query(ip_address_and_port,command,terminator="\n",count=None):
                             reply += r
                             if len(r) == 0: disconnected = True; break
                         if len(reply) > count:
-                            warn("query %r, count=%d: discarding %d bytes" %
+                            warn("query %.200r, count=%d: discarding %d bytes" %
                                 (command,count,len(reply)-count))
                             reply = reply[0:count]
                         if disconnected: warn("disconnected"); continue
@@ -68,14 +105,14 @@ def query(ip_address_and_port,command,terminator="\n",count=None):
                             if len(r) == 0: break
                         if len(r) == 0: warn("disconnected"); continue
                 except socket.error,msg:
-                    warn("query %r, error %s" % (command,msg))
+                    warn("query %.200r, error %s" % (command,msg))
                     if ip_address_and_port in connections:
                         ##debug("resetting connection to %s" % ip_address_and_port)
                         del connections[ip_address_and_port]
                     continue
                 break    
-            ##if count is not None: debug("query %r, count=%d, got %d bytes" % (command,count,len(reply)))
-            ##elif terminator: debug("query %r, %.23r" % (command,reply))
+            ##if count is not None: debug("query %.200r, count=%d, got %d bytes" % (command,count,len(reply)))
+            ##elif terminator: debug("query %.200r, %.23r" % (command,reply))
         return reply
 
 def disconnect(ip_address_and_port):

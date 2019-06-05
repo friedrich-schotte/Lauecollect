@@ -6,7 +6,7 @@ Author: Friedrich Schotte
 Date created: 2018-10-30
 Date last modified: 2019-03-28
 """
-__version__ = "1.4" # confirm command exection with newline 
+__version__ = "1.4.1" # issue: select: interrupted system call 
 
 from logging import debug,info,warn,error
 import traceback
@@ -84,7 +84,10 @@ class TCP_Server(object):
 
             try: ready_to_read,ready_to_write,in_error = \
                 select.select(read_sockets,write_sockets,except_sockets,self.idle_timeout)
-            except select.error,msg: warn("select: %r" % msg)
+            except select.error,msg:
+                if not 'Interrupted system call' in str(msg):
+                    warn("select: %r" % msg)
+                ready_to_read,ready_to_write,in_error = [],[],[]
 
             if self.listen_socket in ready_to_read:
                 ##debug("Accepting connection...")

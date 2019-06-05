@@ -161,7 +161,7 @@ class Temperature_Server_IOC(object):
         self.startup()
         self.running = True
         while self.running:
-            sleep(1)
+            sleep(0.1)
         self.running = False
 
     def start(self):
@@ -311,7 +311,7 @@ class Temperature_Server_IOC(object):
 
     def run_ramping_once(self):
         """
-        runs ramping trajectory defined by self.time_points and self.temperaturs
+        runs ramping trajectory defined by self.time_points and self.temperatures
         """
         from time_string import date_time
         info("Ramp start time: %s" % date_time(self.start_time))
@@ -323,29 +323,30 @@ class Temperature_Server_IOC(object):
         else:
             min_set_T = nan
             max_set_T = nan
-        for (t,T) in zip(self.times,self.temperatures):
-            dt = self.start_time+t - time()
+        for (t,T, grad_T) in zip(self.times,self.temperatures,self.grad_temperatures):
+            dt = self.start_time + t - time()
             if dt > 0:
                 sleep(dt)
                 current_setT = self.get_setT()
                 debug('t = %r, T = %r,dt = %r' %(t,T,dt))
-
-                self.set_ramp_T(T)
-                if T == max_set_T or T == min_set_T:
-                    self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
+                if len(self.temp_points)>0:
+                    self.set_ramp_T(T)
                 else:
-                    self.set_PIDCOF((self.P_default,0.0,0.0))
-                #coeffs = asarray([  4.33863739e-01,  -5.45776351e-02,   3.90549564e-04])
-                #limit = poly.polyval(T, coefs)
-                # if T > current_setT:
-                #     caput('NIH:LIGHTWAVE.IHLM',limit + 0.2)
-                #     caput('NIH:LIGHTWAVE.ILLM',-4.0)
+                    info("The TEMP_POINTS list is empty. No temperature to set in the temperature trajectory.")
+                # if T == max_set_T or T == min_set_T:
+                    # self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
                 # else:
-                #     caput('NIH:LIGHTWAVE.IHLM',+4.0)
-                #     caput('NIH:LIGHTWAVE.ILLM',limit - 0.2)
+                    # (self.P_default,0.0,0.0)
+                    # if grad_T > 0:
+                        # self.set_PIDCOF((self.proportional_vs_sample_temperature(T,'up'),0.0,0.0))
+                    # elif grad_T < 0:
+                        # self.set_PIDCOF((self.proportional_vs_sample_temperature(T,'down'),0.0,0.0))
+                    # else:
+                        # self.set_PIDCOF((self.P_default,0.0,0.0))
+
                 try:
                     indices = where(self.times >= t+self.oasis_headstart_time)[0][0:1]
-                    debug(indices)
+                    debug('current index in the trajectory = %r' %indices)
                     if len(indices) > 0:
                         idx = indices[0]
                         self.set_set_oasisT(self.oasis_temperatures[idx])
@@ -358,8 +359,6 @@ class Temperature_Server_IOC(object):
         self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
         self.ramping_cancelled = False
         self.ramping = False
-        # caput('NIH:LIGHTWAVE.IHLM',+4.0)
-        # caput('NIH:LIGHTWAVE.ILLM',-4.0)
 
     @property
     def acquiring(self):
@@ -409,6 +408,16 @@ class Temperature_Server_IOC(object):
             from numpy import array
             temperatures = array(temp_points)
         return temperatures
+
+    @property
+    def grad_temperatures(self):
+        from numpy import gradient,array
+        temp_points = self.temp_points[0:self.N_points]
+        if len(temp_points) > 1:
+            grad = gradient(self.temperatures)
+        else:
+            grad = array([0])
+        return grad
 
     @property
     def oasis_temperatures(self):
@@ -592,6 +601,15 @@ class Temperature_Server_IOC(object):
             return round(t,1)
         else:
             return self.idle_temperature_oasis
+    def proportional_vs_sample_temperature(self, temperature = 0.0, direction = ''):
+            T = temperature
+            if direction == 'down':
+                P = 4e-8*T**4 - 1e-5*T**3 + 0.0012*T**2 - 0.0723*T + 3.3001
+            elif direction == 'up':
+                P = 7e-9*T**4 - 3e-6*T**3 + 0.0004*T**2 - 0.0003*T + 1.6942
+            else:
+                P = self.P_default
+            return round(P,3)
 
 temperature_server_IOC = Temperature_Server_IOC()
 

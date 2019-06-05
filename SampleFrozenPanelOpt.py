@@ -34,7 +34,7 @@ class SampleFrozenPanel(BasePanel):
         [[TogglePanel,  "XRay detection",    sample_frozen,"running"],{"type":"Off/On"}],
         [[TogglePanel,  "XRay aux intervention",    sample_frozen,"is_intervention_enabled"],{"type":"Off/On"}],
         [[TogglePanel,  "XRay retract inter.",    sample_frozen,"retract_deicing"],{"type":"Off/On"}],
-        #[[TogglePanel,  "Optical detection",    sample_frozen_optical,"is_running"],{"type":"Off/On"}],
+        [[TogglePanel,  "Optical detection",    sample_frozen_optical,"is_running"],{"type":"Off/On"}],
         [[TogglePanel,  "Optical intervention",    sample_frozen_optical,"is_intervention_enabled"],{"type":"Off/Monitoring"}],
         [[PropertyPanel,"XRay image ROIX",             sample_frozen,"ROIX"],{"choices":[1000,900]}],
         [[PropertyPanel,"XRay image ROIY",             sample_frozen,"ROIY"],{"choices":[1000,900]}],
@@ -61,8 +61,9 @@ if __name__ == '__main__':
     import logging
     from tempfile import gettempdir
     from redirect import redirect
-    redirect('SampleFrozenPanelOpt',level="INFO")
-    logfile = gettempdir()+"/SampleFrozenPanelOpt.log"
+    import autoreload
+    #redirect('SampleFrozenPanelOpt',level="INFO")
+    #logfile = gettempdir()+"/SampleFrozenPanelOpt.log"
 ##    logging.basicConfig(
 ##        level=logging.INFO,
 ##        format="%(asctime)s %(levelname)s: %(message)s",

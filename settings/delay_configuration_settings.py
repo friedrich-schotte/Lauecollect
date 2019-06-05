@@ -11,7 +11,7 @@ line1.updated = '09 Oct 14:07'
 widths = [500]
 row_height = 40
 description_width = 140
-nrows = 17
+nrows = 18
 line2.collect.delay_configuration = 'delays=pairs(-10us, sorted(log_series(10ns, 563ns, steps_per_decade=4)+[75ns, 133ns]))'
 line3.collect.delay_configuration = 'delays=pairs(-10us, [-10.1us]+log_series(316ns, 178ms, steps_per_decade=4))'
 line2.description = 'NIH:H-1_ns'
@@ -50,7 +50,7 @@ line12.updated = '03 Nov 10:56'
 line12.description = 'NIH:TR-LT_Exotic2'
 line13.description = 'NIH:TR-LT_Exotic3'
 line13.collect.delay_configuration = 'delays=[(-10us,circulate=1), -10us, -10us, (-10us,laser=1), 264, 2*264,3*264,4*264,5*264,6*264,7*264,8*264]'
-command_rows = []
+command_rows = [17]
 line14.description = 'UCSF:T-jump\t'
 line14.collect.delay_configuration = 'delays=pairs(-10us, log_series(562ns, 1ms, steps_per_decade=8))'
 line14.updated = '04 Nov 01:15'
@@ -61,3 +61,6 @@ multiple_selections = False
 line16.collect.delay_configuration = 'delays=[-10.1us]+log_series(1us, 1ms, steps_per_decade=1)'
 line16.updated = '2019-02-04 11:39:16'
 line16.description = 'Rob test'
+line17.collect.delay_configuration = 'delays=pairs(-10us, [-10.1us, 0]+log_series(562ns, 10ms, steps_per_decade=4))'
+line17.updated = '2019-06-01 08:19:55'
+line17.description = 'NIH:S-7'

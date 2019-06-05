@@ -4,7 +4,7 @@ Author: Friedrich Schotte
 Date created: 2013-11-29
 Date last modified: 2019-05-28
 """
-__version__ = "4.1.1" # "%s.line%d.%s" %d format: a number is required, not float
+__version__ = "4.1.2" # "%s.line%d.%s" % (..,int(row),..): ValueError: cannot convert float NaN to integer
 from logging import debug,info,warn,error
 
 import numpy
@@ -698,7 +698,9 @@ class Configuration(object):
                     debug("self.configuration.update_timestamp(%r)" % row)
                     self.configuration.update_timestamp(row)
         def db_key(self,row):
-            key = "%s.line%d.%s" % (self.configuration.name,int(row),self.name)
+            try: row = str(int(row))
+            except: row = ""
+            key = "%s.line%s.%s" % (self.configuration.name,row,self.name)
             return key
         def __len__(self): return self.configuration.nrows
         def __repr__(self): return "%s.Values(%r,%r)" % \
@@ -779,11 +781,11 @@ if __name__ == '__main__': # for testing
     ##from instrumentation import * # -> globals()
 
     ##name = ""
-    name = "beamline_configuration"
+    ##name = "beamline_configuration"
     ##name = "sequence_modes"
     ##name = "Julich_chopper_modes"
     ##name = "heat_load_chopper_modes"
-    ##name = "timing_modes"
+    name = "timing_modes"
     ##name = "sequence_modes"
     ##name = "delay_configuration" 
     ##name = "temperature_configuration" 
@@ -796,20 +798,29 @@ if __name__ == '__main__': # for testing
 
     self = configuration(name=name)
     ##self = configuration(name=name,locals=locals(),globals=globals())
-    print("self.name=%r" % self.name)
-    print("self.motor_names[:]")
-    print("self.current_positions[:]")
-    print("self.goto(0)")
+    ##print("self.name=%r" % self.name)
+    ##print("self.motor_names[:]")
+    ##print("self.current_positions[:]")
+    ##print("self.goto(0)")
     ##print("self.define(4)")
-    print("self.matching_description")
-    print("self.closest_description")
-    print("self.command_description")
-    print("self.value")
-    print("self.command_value")
-    print("self.command_rows")
-    print("self.matching_rows")
-    print("self.closest_rows")
-    print("self.apply()")
-    print("self.applied")
-    print("self.motors_applied")
-    
+    ##print("self.matching_description")
+    ##print("self.closest_description")
+    ##print("self.command_description")
+    ##print("self.value")
+    ##print("self.command_value")
+    ##print("self.command_rows")
+    ##print("self.matching_rows")
+    ##print("self.closest_rows")
+    ##print("self.apply()")
+    ##print("self.applied")
+    ##print("self.motors_applied")
+    print("self.descriptions")
+    from CAServer import casput,casget,PV_value
+    from CA import caget,cainfo
+    PV_name = "TEST:TEST.TEST"
+    value = self.descriptions
+    print("casput(PV_name,value)")
+    print("casget(PV_name)")
+    print("caget(PV_name)")
+    print("PV_value(PV_name)")
+    print("PV_value(PV_name) == value")

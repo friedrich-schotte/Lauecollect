@@ -1,0 +1,1 @@
+CustomView = ['RF clock in', 'RF clock in frequencySB clock in', 'Clock manager', 'Clock multiplier', 'Clock divider', 'Clock DFS frequency mode', 'Clock DLL frequency mode', 'Clock multiplier status', 'Internal clock frequency']

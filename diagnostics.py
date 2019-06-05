@@ -1,9 +1,9 @@
 """Data Collection diagnostics
 Author: Friedrich Schotte
 Date created: 2018-10-27
-Date last modified: 2019-01-18
+Date last modified: 2019-05-31
 """
-__version__ = "1.1.1" # import isfinite, average: len(self.image_numbers) > 0
+__version__ = "1.2" # issue: NaNs in log file, using interpolated average, ending time of last image
 
 from logging import debug,info,warn,error
 import traceback
@@ -35,20 +35,58 @@ class Diagnostics(object):
         if image_number in self.images: time = self.images[image_number].finished
         return time
 
+    def is_finished(self,image_number):
+        from numpy import isfinite
+        return isfinite(self.finished(image_number))
+
     def average_values(self,image_number):
         values = [self.average_value(image_number,v) for v in self.variable_names]
         return values
 
-    def average_value(self,image_number,variable):
-        # Make sure to have at least one sample even if none was measured
-        # during the image.
-        samples = []
-        while len(samples) < 1 and len(self.image_numbers) > 0 and image_number >= min(self.image_numbers):
-            samples += self.samples(image_number,variable)
-            image_number -= 1
-            
-        value = nanmean(samples)
-        return value
+    def interpolated_average_value(self,image_number,variable):
+        from numpy import nan,isfinite
+        v0 = nan
+        t0 = (self.started(image_number)+self.finished(image_number))/2
+        if isfinite(t0):
+            t,v = self.image_timed_samples(image_number,variable)
+            v0 = self.interpolate(t,v,t0)
+        return v0
+
+    average_value = interpolated_average_value
+
+    @staticmethod
+    def interpolate(t,v,t0):
+        from numpy import nan
+        v0 = nan
+        if len(v) > 1:
+            from scipy.interpolate import InterpolatedUnivariateSpline
+            f = InterpolatedUnivariateSpline(t,v,k=1)
+            v0 = f([t0])[0]
+        if len(v) == 1: v0 = v[0]
+        return v0
+
+    def image_timed_samples(self,image_number,variable):
+        from numpy import array,where
+        times,values = [],[]
+        if image_number in self.images and variable in self.values:
+            image = self.images[image_number]
+            t1,t2 = image.started,image.finished
+            t = array([sample.time  for sample in self.values[variable]])
+            v = array([sample.value for sample in self.values[variable]])
+            i = list(where((t1 <= t) & (t <= t2))[0])
+            if len(i) < 1: i += list(where(t <= t1)[0][-1:])
+            if len(i) < 1: i += list(where(t >= t2)[0][0:1])
+            if len(i) < 2: i += list(where(t >= t2)[0][0:1])
+            times,values = t[i],v[i]
+        return times,values
+
+    def timed_samples(self,variable):
+        from numpy import array
+        t,v = [],[]
+        if variable in self.values:
+            t = array([sample.time  for sample in self.values[variable]])
+            v = array([sample.value for sample in self.values[variable]])
+        return t,v
 
     def samples(self,image_number,variable):
         values = []
@@ -135,7 +173,7 @@ class Diagnostics(object):
             self.images[i].started = t
             from numpy import isfinite
             if i-1 in self.images and \
-               (not isfinite(self.images[i].finished) or
+               (not isfinite(self.images[i-1].finished) or
                 not self.images[i-1].finished >= self.images[i-1].started):
                 self.images[i-1].finished = t
 
@@ -150,10 +188,10 @@ class Diagnostics(object):
             self.images[i].started  = t
         if not acquiring:
             from numpy import isfinite
-            if i in self.images and \
-               (not isfinite(self.images[i].finished) or
-                not self.images[i].finished >= self.images[i].started):
-                self.images[i].finished  = t
+            if i-1 in self.images and \
+               (not isfinite(self.images[i-1].finished) or
+                not self.images[i-1].finished >= self.images[i-1].started):
+                self.images[i-1].finished  = t
 
     class timestamped_value(object):
         def __init__(self,time,value):

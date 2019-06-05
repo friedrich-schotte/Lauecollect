@@ -2,9 +2,9 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2019-05-28
+Date last modified: 2019-06-01
 """
-__version__ = "1.14" # scope trace timestamps
+__version__ = "1.15.2" # issue: logging hung waiting for one image
 
 from logging import debug,info,warn,error
 import traceback
@@ -295,16 +295,15 @@ class Collect(object):
 
     @property
     def collection_variable_all_values(self):
-        """i: variable index: 0 to len(self.collection_variables)-1"""
         from numpy import array,repeat,tile,vstack
         values_list = []
         for (i,variable) in enumerate(self.collection_variables):
             values_list += [self.variable_values(i)]
-        all_values = values_list[0]
+        all_values = array([values_list[0]])
         for values in values_list[1:]:
             all_values = vstack([
                 tile(all_values,len(values)),
-                repeat(values,len(all_values)),
+                repeat(values,len(all_values[0])),
             ])
         return all_values
 
@@ -733,13 +732,13 @@ class Collect(object):
                     self.acquire(i)
                 self.status("Collection suspended")
 
+        self.play_sound()
         self.update_status_stop()
         self.collection_variables_stop()
         self.temperature_stop()
         self.diagnostics_stop()
         self.timing_system_stop()
         self.collection_variables_dataset_stop()
-        self.play_sound()
         self.sleep(5)
         self.logging_stop()
         self.laser_scope_stop()
@@ -1112,50 +1111,50 @@ class Collect(object):
         diagnostics.running = False
         self.actual("Diagnostics Stopped")
 
-    def logging_start(self):
-        from timing_system import timing_system
-        PV_name = timing_system.image_number.PV_name
-        from CA import camonitor
-        camonitor(PV_name,callback=self.logfile_handle_image_number_update)
-        self.actual("Logging Started")
+    def logging_start(self): self.logging = True
+        
+    def logging_stop(self): self.logging = False
 
-    def logging_stop(self):
-        from timing_system import timing_system
-        PV_name = timing_system.image_number.PV_name
-        from CA import camonitor_clear
-        camonitor_clear(PV_name)
+    from thread_property_2 import thread_property
+
+    @thread_property
+    def logging(self):
+        self.actual("Logging Started")
+        from diagnostics import diagnostics
+        self.logged = {}
+        while not self.logging_cancelled: 
+            for i in range(0,self.n):
+                if not i in self.logged and diagnostics.is_finished(i):
+                    self.logfile_update(i)
+                    self.logged[i] = True
+            self.sleep(1)
         self.actual("Logging Stopped")
 
-    def logfile_handle_image_number_update(self,PV_name,value,formatted_value):
-        image_number = value
-        ##info("image_number %r" % image_number)
-        if image_number > 0: self.logfile_update(image_number-1)
+    def logfile_update(self,i):
+        """Add image information to the end of the data collection log file"""
+        self.logfile_add_line(self.logfile_entry(i))
+
+    def logfile_add_line(self,line):
+        with self.logfile_lock:
+            from os.path import exists
+            if not exists(self.logfile_name): self.initialize_logfile()
+            filenames = line.split("\t")[3:4]
+            self.logfile_delete_filenames(filenames)
+            file(self.logfile_name,"a").write(line)
 
     from thread import allocate_lock
     logfile_lock = allocate_lock()
     
-    def logfile_update(self,i):
-        """Add image information to the end of the data collection log file"""
+    def logfile_entry(self,i):
         from time import time
-        timestamp = time()
-        with self.logfile_lock:
-            from os.path import exists
-            if not exists(self.logfile_name): self.initialize_logfile()
-
-            file(self.logfile_name,"a").write(self.logfile_entry(i,timestamp))
-
-    def logfile_entry(self,i,timestamp=None):
-        from time import time
-        if timestamp is None: timestamp = time()
         from time_string import date_time
         from diagnostics import diagnostics
-        from numpy import isnan
+        from numpy import isnan,isfinite
         from os.path import basename
 
         started  = diagnostics.started(i)
-        if isnan(started): started = timestamp
         finished = diagnostics.finished(i)
-        if isnan(finished): finished = timestamp
+        timestamp = finished if isfinite(finished) else time()
 
         line = []
         line += [date_time(timestamp)]
@@ -1283,6 +1282,14 @@ class Collect(object):
                     break
         return file_basename
 
+    def logfile_delete_scan_point(self,i):
+        """Make sure that there are no duplicate entries in the
+        data collection logfile, in the case an image is recollected.
+        i: 0 to self.n-1
+        """
+        filename = self.xray_image_filename(i)
+        logfile_delete_filename([filename])
+
     def logfile_delete_filenames(self,image_filenames):
         """Make sure that there are no duplicate entries in the
         data collection logfile, in the case an image is recollected.
@@ -1369,14 +1376,14 @@ if __name__ == '__main__':
     ##print('self.collection_order')
     ##print('self.collection_variables')
     ##print('self.collection_variable_counts')
-    print('self.temperatures')
+    ##print('self.temperatures')
     ##print('self.temperature_list')
-    print('self.collection_all_values("Temperature")')
-    from linear_ranges import linear_ranges
-    print('linear_ranges(self.collection_all_values("Temperature"))')
-    from instrumentation import temperature
-    print('temperature.time_points,temperature.temp_points')
-    print('')
+    ##print('self.collection_all_values("Temperature")')
+    ##from linear_ranges import linear_ranges
+    ##print('linear_ranges(self.collection_all_values("Temperature"))')
+    ##from instrumentation import temperature
+    ##print('temperature.time_points,temperature.temp_points')
+    ##print('')
     ##print('self.temperature_list')
     ##print('self.scan_point_list')
     ##print('self.power_list')
@@ -1392,7 +1399,7 @@ if __name__ == '__main__':
     ##print('self.directory')
     ##print('self.n')
     ##print('self.sequences_simple')
-    print('self.sequences')
+    ##print('self.sequences')
     ##print('Sequences(sequences=self.sequences)')
     ##print(r'print self.sequences[0].description.replace(",","\n")')
     ##print('')
@@ -1414,8 +1421,8 @@ if __name__ == '__main__':
     ##print('self.set_collection_variables(0)')
     print('self.timing_system_start()')
     print('self.timing_system_setup()')
-    ##print('self.xray_detector_start()')
-    print('self.xray_scope_start()')
+    print('self.xray_detector_start()')
+    ##print('self.xray_scope_start()')
     ##print('self.laser_scope_start()')
     ##print('self.diagnostics_start()')
     ##print('self.logging_start()')
@@ -1431,9 +1438,9 @@ if __name__ == '__main__':
     ##print('self.temperature_stop()')
     ##print('self.logging_stop()')
     ##print('self.diagnostics_stop()')
-    print('self.xray_scope_stop()')
+    ##print('self.xray_scope_stop()')
     ##print('self.laser_scope_stop()')
-    ##print('self.xray_detector_stop()')
+    print('self.xray_detector_stop()')
     print('self.timing_system_stop()')
     ##print('self.collection_variables_dataset_stop()')
     print('')
@@ -1443,3 +1450,7 @@ if __name__ == '__main__':
     ##print('self.erasing_dataset = True')
     ##print('sum(self.logfile_has_entries(self.xray_image_filenames))')
     ##print('self.logfile_delete_filenames(self.xray_image_filenames)')
+    print('')
+    from instrumentation import rayonix_detector
+    print('rayonix_detector.image_numbers[0:10]')
+    print('rayonix_detector.filenames[0:2]')

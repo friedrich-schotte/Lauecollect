@@ -1,6 +1,6 @@
 ' XStreamDSO ConfigurationVBScript ...
 ' LECROY,WR606Zi,id14l-scope,8.5.1
-' Wednesday, March 20, 2019 12:45:18 AM
+' Saturday, June 01, 2019 3:36:13 PM
 
 On Error Resume Next
 set XStreamDSO = CreateObject("LeCroy.XStreamDSO")
@@ -396,9 +396,9 @@ C4.LabelsText = ""
 C4.LabelsPosition = ""
 C4.ViewLabels = False
 C4.SegmentMode = "Overlay"
-C4.VerScale = 0.05
+C4.VerScale = 0.01
 C4.VerScaleVariable = False
-C4.VerOffset = -0.1325
+C4.VerOffset = -0.0264
 C4.AverageSweeps = 1
 C4.EnhanceResType = "None"
 C4.InterpolateType = "Linear"
@@ -413,22 +413,22 @@ C4.Type = "Length"
 C4.Units = "undef"
 C4.ProbeLabel = ""
 C4.ProbeAttenuation = 1
-C4.Coupling = "DC1M"
+C4.Coupling = "DC50"
 C4.BandwidthLimit = "Full"
 C4.Unit = "V"
 C4.CableCompensation = False
 
 Set C4InputB = C4.InputB
 ' InputB ...
-C4InputB.VerScale = 0.05
+C4InputB.VerScale = 0.01
 C4InputB.VerScaleVariable = False
-C4InputB.VerOffset = -0.1325
+C4InputB.VerOffset = -0.0264
 C4InputB.ProbeAttenuation = 1
 C4InputB.Unit = "V"
 C4InputB.Type = "Length"
 C4InputB.Units = "undef"
 C4InputB.BandwidthLimit = "Full"
-C4InputB.Coupling = "DC1M"
+C4InputB.Coupling = "DC50"
 
 Set Horizontal = Acquisition.Horizontal
 ' Horizontal ...
@@ -439,8 +439,8 @@ Horizontal.SequenceTimeoutEnable = True
 Horizontal.SampleClock = "Internal"
 Horizontal.Maximize = "FixedSampleRate"
 Horizontal.SampleRate = 5000000000
-Horizontal.HorScale = 0.00000001
-Horizontal.HorOffset = -0.0000011106
+Horizontal.HorScale = 0.00000002
+Horizontal.HorOffset = -0.0000003728
 Horizontal.HorOffsetOrigin = 5
 Horizontal.ReferenceClock = "Internal"
 Horizontal.ReferenceClockOut = "10MHz"

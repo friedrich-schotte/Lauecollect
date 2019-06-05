@@ -3,55 +3,89 @@
 formatted text ASCII commands.
 
 Author: Friedrich Schotte
-Date created: Oct 18, 2016
-Date last modified: Oct 19, 2017
+Date created: 2016-01-18
+Date last modified: 2019-06-01
 """
-__version__ = "1.0" # 
+__version__ = "1.0.1" # issue: debug messages too long
 
 from logging import debug,info,warn,error
+import traceback
  
 class TCP_Server(object):
     name = "tcp_server"
     from persistent_property import persistent_property
     port = persistent_property("port",2222)
     
-    def reply(self,query):
+    def __init__(self,
+        name=None,
+        globals=None,
+        locals=None,
+        idle_timeout=1,
+        idle_callback=None
+        ):
+        """
+        name: defines data base entry for number
+        globals: passed on to 'eval' or 'exec' when processing commands
+        locals:  passed on to 'eval' or 'exec' when processing commands
+        idle_timeout: wait time for idle_callback in s
+        """
+        if name: self.name = name
+        self.globals = globals
+        self.locals = locals
+
+    def reply(self,input):
         """Return a reply to a client process
         command: string (without newline termination)
         return value: string (without newline termination)"""
-        if query == "?": reply = "supported commands: ?, hello"
-        elif query == "hello": reply = "Greetings, stranger!"
-        else: reply = "command %r not implemented" % query
+        try:
+            value = eval(input,self.globals,self.locals)
+            reply = self.string(value)
+        except Exception,msg:
+            error_message_eval = "%s\n%s" % (msg,traceback.format_exc())
+            try:
+                exec(input,self.globals,self.locals)
+                info("Executed %.200r" % input)
+                reply = "\n"
+            except Exception,msg:
+                error_message_exec = "%s\n%s" % (msg,traceback.format_exc())
+                error(error_message_eval)
+                error(error_message_exec)
+                reply = error_message_eval+error_message_exec
         return reply
 
-    def get_server_running(self):
+    def string(self,value):
+        """Format python value as string for network stransmission"""
+        if isinstance(value,str) and len(value) > 1024: string = value
+        else: string = repr(value)+"\n"
+        return string
+
+    def get_running(self):
         return getattr(self.server,"active",False)
-    def set_server_running(self,value):
-        if self.server_running != value:
-            if value: self.start_server()
-            else: self.stop_server()
-    server_running = property(get_server_running,set_server_running)
+    def set_running(self,value):
+        if self.running != value:
+            if value: self.start()
+            else: self.stop()
+    running = property(get_running,set_running)
     
     server = None
 
-    def start_server(self):
-        # make a threaded server, listen/handle clients forever
-        try:
-            self.server = self.ThreadingTCPServer(("",self.port),self.ClientHandler)
-            self.server.active = True
-            info("%s: server version %s started, listening on port %d." % (self.name,__version__,self.port))
-            from threading import Thread
-            self.thread = Thread(target=self.run_server)
-            self.thread.start() # Stop with: "self.server.shutdown()"
-        except Exception,msg: error("%s: start_server: %r" % (self.name,msg))
+    def start(self):
+        from threading import Thread
+        self.thread = Thread(target=self.run)
+        self.thread.start()
 
-    def stop_server(self):
+    def stop(self):
         if getattr(self.server,"active",False):
             self.server.server_close()
             self.server.active = False
 
-    def run_server(self):
-        try: self.server.serve_forever()
+    def run(self):
+        try:
+            # make a threaded server, listen/handle clients forever
+            self.server = self.ThreadingTCPServer(("",self.port),self.ClientHandler)
+            self.server.active = True
+            info("%s: server version %s started, listening on port %d." % (self.name,__version__,self.port))
+            self.server.serve_forever()
         except Exception,msg: info("%s: server: %s" % (self.name,msg))
         info("%s: server shutting down" % self.name)
 
@@ -88,7 +122,8 @@ class TCP_Server(object):
                          while self.server.active:
                              try: received = self.request.recv(2*1024*1024)
                              except socket.timeout: continue
-                             except Exception,x: error("%s: %r %r" % (myself.name,x,str(x)))
+                             except Exception,msg:
+                                 error("%s: %s" % (myself.name,msg))
                              if received == "": info("%s: client disconnected" % myself.name)
                              break
                          if received == "": break
@@ -100,26 +135,28 @@ class TCP_Server(object):
                          input_queue = input_queue[end+1:]
                      else: query = input_queue; input_queue = ""
                      query = query.strip("\r ")
-                     error("%s: evaluating query: '%s'" % (myself.name,query))
+                     debug("%s: evaluating query: %.200r" % (myself.name,query))
                      try: reply = myself.reply(query)
-                     except Exception,x: error("%s: %r %r" % (self.name,x,str(x))); reply = ""
+                     except Exception,msg: error("%s: %s" % (myself.name,msg)); reply = ""
                      if reply:
                          reply = reply.replace("\n","") # "\n" = end of reply
                          reply += "\n"
-                         info("%s: sending reply: %r" % (myself.name,reply))
+                         debug("%s: sending reply: %.200r" % (myself.name,reply))
                          self.request.sendall(reply)
                  info("%s: closing connection to %s" % (myself.name,self.client_address[0]))
                  self.request.close()
         return ClientHandler
-        
+
 tcp_server = TCP_Server
+
 
 if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG,
         format="%(asctime)s %(levelname)s: %(message)s")
-    self = TCP_Server() # for debugging
+    x = 1.2
+    self = TCP_Server("test",globals(),locals()) # for debugging
     from tcp_client import query
     print('self.port = %r' % self.port)
-    print('self.server_running = True')
-    print('query("localhost:%s","hello")' % self.port)
+    print('self.running = True')
+    print('query("localhost:%s","x")' % self.port)

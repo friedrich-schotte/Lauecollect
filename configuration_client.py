@@ -2,17 +2,23 @@
 Data base to save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2019-05-24
-Date last modified: 2019-05-29
+Date last modified: 2019-05-31
 """
-__version__ = "1.2.4" # item assignment for all array PVs
+__version__ = "1.3" # monitor
 
 from logging import debug,info,warn,error
+
+class Configuration_Property(property): pass
+class Motor_Property(property): pass
 
 from classproperty import classproperty,ClassPropertyMetaClass
 class Configuration(object):
 ##class Bar(metaclass=ClassPropertyMetaClass): # Python 3+
     """Data base save and recall motor positions"""
     __metaclass__ = ClassPropertyMetaClass # Python 2.7
+
+    from configuration_server import Configuration_Server
+    prefix = Configuration_Server.prefix
 
     def __init__(self,name,**kwargs):
         # kwargs for backward-compatbility
@@ -34,9 +40,6 @@ class Configuration(object):
     def configurations(cls):
         return [configuration(n) for n in configuration.configuration_names]
 
-    from configuration_server import Configuration_Server
-    prefix = Configuration_Server.prefix
-
     def configuration_property(name,default_value=None):
         def PV_name(self): return self.configuration_PV_name(name)
         def get(self):
@@ -44,7 +47,8 @@ class Configuration(object):
             else: value = self.get_PV(PV_name(self),default_value)
             return value
         def set(self,value): self.set_PV(PV_name(self),value)
-        return property(get,set)
+        prop = Configuration_Property(get,set)
+        return prop
 
     value                = configuration_property("value","")
     values               = configuration_property("values",[])
@@ -88,7 +92,7 @@ class Configuration(object):
     def motor_property(name,default_value=None):
         def get(self): return self.Motor_Property(self,name,default_value)
         def set(self,value): get(self)[:] = value
-        return property(get,set)
+        return Motor_Property(get,set)
 
     from numpy import nan
     current_position = motor_property("current_position")
@@ -100,19 +104,19 @@ class Configuration(object):
             self.configuration = configuration
             self.name = name
             self.default_value = default_value
+        def PV_name(self,i): return self.configuration.motor_PV_name(self.name,i)
         def __getitem__(self,i):
             if type(i) == slice: value = [x for x in self]
             else:
                 if type(self.default_value) == list:
-                    PV_name = self.configuration.motor_PV_name(self.name,i)
-                    value = self.configuration.array_PV(PV_name)
-                else:
-                    value = self.configuration.get_motor_value(self.name,i,self.default_value)
+                    value = self.configuration.array_PV(self.PV_name(i))
+                else: value = self.configuration.get_PV(self.PV_name(i),self.default_value)
             return value
         def __setitem__(self,i,value):
             if type(i) == slice:
                 for j in range(0,len(value)): self[j] = value[j]
-            else: self.configuration.set_motor_value(self.name,i,value)
+            else:
+                self.configuration.set_PV(self.PV_name(i),value)
         def __len__(self): return self.configuration.n_motors
         def __iter__(self):
             for i in range(0,len(self)):
@@ -146,6 +150,11 @@ class Configuration(object):
         def __repr__(self):
             return "%s(%r)" % (type(self).__name__,self.PV_name)
         def index(self,value): return self.array.index(value)
+        def __eq__(self,array):
+            if not hasattr(array,"__len__"): return False
+            if len(self) != len(array): return False
+            return all([self[i] == array[i] for i in range(0,len(self))])
+        def __ne__(self,array): return not self == array
 
     @staticmethod
     def get_global_value(name,default_value=None):
@@ -160,18 +169,8 @@ class Configuration(object):
     def global_PV_name(name):
         return (Configuration.prefix+"."+name).upper()    
 
-    def get_configuration_value(self,name,default_value=None):
-        return self.get_PV(self.configuration_PV_name(name),default_value)
-
-    def set_configuration_value(self,name,value):
-        from CA import caput
-        caput(self.configuration_PV_name(name),value)
-
     def configuration_PV_name(self,name):
         return (self.prefix+"."+self.name+"."+name).upper()    
-
-    def get_motor_value(self,name,motor_num,default_value=None):
-        return self.get_PV(self.motor_PV_name(name,motor_num),default_value)
 
     def set_motor_value(self,name,motor_num,value):
         from CA import caput
@@ -196,6 +195,27 @@ class Configuration(object):
     def set_PV(PV_name,value):
         from CA import caput
         caput(PV_name,value)
+
+    def monitor(self,property_name,callback,*args,**kwargs):
+        from CA import camonitor
+        for PV_name in self.PV_names(property_name):
+            def monitor_callback(PV_name,value,formatted_value):
+                callback(*args,**kwargs)
+            monitor_callback.callback = callback
+            monitor_callback.args = args
+            monitor_callback.kwargs = kwargs
+            camonitor(PV_name,callback=monitor_callback,new_thread=True)
+
+    def PV_names(self,property_name):
+        PV_names = []
+        if hasattr(type(self),property_name):
+            prop = getattr(type(self),property_name)
+            if type(prop) == Configuration_Property:
+                PV_names = [self.configuration_PV_name(property_name)]
+            if type(prop) == Motor_Property:
+                PV_names = [self.motor_PV_name(property_name,i)
+                    for i in range(0,self.n_motors)]
+        return PV_names
 
     def __repr__(self):
         return "%s(%r)" % (type(self).__name__,self.name)
@@ -228,8 +248,8 @@ if __name__ == '__main__': # for testing
     ##name = "beamline_configuration"
     ##name = "sequence_modes"
     ##name = "heat_load_chopper_modes"
-    name = "Julich_chopper_modes"
-    ##name = "timing_modes"
+    ##name = "Julich_chopper_modes"
+    name = "timing_modes"
     ##name = "sequence_modes"
     ##name = "delay_configuration" 
     ##name = "temperature_configuration" 
@@ -242,11 +262,26 @@ if __name__ == '__main__': # for testing
 
     self = configuration(name=name)
 
-    ##print('self.positions[0][0]')
+    print('self.positions[0][0]')
     ##print('self.positions[0][:]')
-    ##print('self.current_position[0]')
-    ##print('self.positions_match[0][0]')
+    print('self.current_position[0]')
+    print('self.positions_match[0][0]')
     ##print('self.positions_match[0][:]')
     print('self.descriptions[:]')
-    print('self.descriptions[5]')
-    print('self.descriptions.index("S-1")')
+    ##print('self.descriptions[5]')
+    ##print('self.descriptions.index("S-1")')
+    ##print('self.widths != self.widths')
+    ##print('self.widths == self.widths')
+    ##print('self.are_numeric[:]')
+    def callback(property_name):
+        value = getattr(self,property_name)
+        if hasattr(value,"__getitem__"):
+            value = value[:]
+            for i in range(0,len(value)):
+                if hasattr(value[i],"__getitem__"): value[i] = value[i][:]
+        info("%s = %r" % (property_name,value))
+    print('self.monitor("nrows",callback,"nrows")')
+    print('self.monitor("descriptions",callback,"descriptions")')
+    print('self.monitor("command_rows",callback,"command_rows")')
+    print('self.monitor("current_position",callback,"current_position")')
+    print('self.monitor("positions",callback,"positions")')

@@ -35,5 +35,6 @@ Calibration.cmcnd.step = 1.0229190700529076e-07
 Calibration.ch4_delay.step = 0.001
 Calibration.hlcad.step = 0.0010000056828837224
 Calibration.ch18.step = 1.4207209306290384e-09
-Calibration.ch1.step = 9.945046514403269e-08
+Calibration.ch1.step = 1.4207209306290384e-09
 Calibration.ch6.step = 0.001
+Calibration.ch17.step = 1.4207209306290384e-09

@@ -36,26 +36,29 @@ get_size_bkg - reply is the number of pixels of current the background image, e.
 
 Reference: Rayonix HS detector manual 0.3e
 Chapter 9: The Legacy Remote Mode for HS Detector Control
-Friedrich Schotte, 20 Sep 2013 - 3 Aug 2017
+Author: Friedrich Schotte
+Date created: 2013-09-20
+Date last modified: 2018-06-101
 """
+__version__ = "4.0.1" # default name "rayonix_detector" may be overridden in subclass
+
+from logging import debug,info,warn,error
 
 import socket
 from time import sleep,time
 from thread import allocate_lock
-from logging import debug,info,warn,error
-
-__version__ = "4.0" # cleanup: using tcp_client, Rayonix_Detector for class, rayonix_detector for object
 
 class Rayonix_Detector(object):
   """This is to remote control the MAR CCD detector
   Using remote protocol version 1"""
+  name = "rayonix_detector"
   from persistent_property import persistent_property
   ip_address = persistent_property("ip_address","mx340hs.cars.aps.anl.gov:2222")
   ignore_first_trigger = persistent_property("ignore_first_trigger",True)
 
-  def __init__(self,name="rayonix_detector"):
+  def __init__(self,name=None):
     """name: used for IP address, in case there is more than one detector"""
-    self.name = name
+    if name is not None: self.name = name
     self.timeout = 1.0
     # This is to make the query method multi-thread safe.
     self.lock = allocate_lock()

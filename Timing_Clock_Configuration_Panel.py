@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 """
-Grapical User Interface for FPGA Timing System.
+Configuration panel for the BioCARS FPGA timing system
+Clock settings
+
 Author: Friedrich Schotte
 Date created: 2019-03-2
-Date last modified: 2019-03-26
+Date last modified: 2019-06-01
 """
-__version__ = "1.0" 
+__version__ = "1.0.2" # name
 
 from logging import debug,info,warn,error
 
 from Panel import BasePanel
 class Timing_Clock_Configuration_Panel(BasePanel):
-    name = "Configuration"
+    name = "Timing_Clock_Configuration_Panel"
     title = "Clock Configuration"
     icon = "timing-system"
     
@@ -79,5 +81,5 @@ if __name__ == '__main__':
     redirect("Timing_Clock_Configuration_Panel")
     import wx
     app = wx.App(redirect=False) 
-    panel = System_Clock_Configuration_Panel()
+    panel = Timing_Clock_Configuration_Panel()
     app.MainLoop()

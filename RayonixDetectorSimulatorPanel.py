@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 """Rayonix Detector Simulator
-Friedrich Schotte, Mar 20, 2017 - Aug 14, 2017"""
+Author: Friedrich Schotte
+Date created: 2017-03-20
+Date last modified: 2019-06-01
+"""
 from rayonix_detector_simulator import det
 from Panel import BasePanel,PropertyPanel,ButtonPanel,TogglePanel,TweakPanel
 import wx
 from numpy import inf
 
-__version__ = "1.2.3" # icon
+__version__ = "1.2.4" # label_width, trigger_PV_choices
 
 trigger_PV_choices = [
-    "NIH:TIMING.registers.xdet_state",
-    "NIH:TIMING2.registers.xdet_state",
-    "NIH:TIMING3.registers.xdet_state",
+    "NIH:TIMING.registers.ch7_state.count",
+    "NIH:TESTBENCH.registers.ch7_state.count",
 ]
 
 class RayonixDetectorSimulatorPanel(BasePanel):
@@ -51,7 +53,7 @@ class RayonixDetectorSimulatorPanel(BasePanel):
             icon="Rayonix Detector",
             parameters=self.parameters,
             standard_view=self.standard_view,
-            label_width=90,
+            label_width=120,
             refresh=False,
             live=False,
         )

@@ -4,9 +4,9 @@ Capabilities:
 
 Authors: Valentyn Stadnydskyi, Friedrich Schotte
 Date created: 2019-05-08
-Date last modified: 2019-07-17
+Date last modified: 2019-05-31
 """
-__version__ = "1.2" # added multiple new controls
+__version__ = "1.3" # added monitor,monitor_clear
 
 from logging import debug,warn,info,error
 
@@ -28,6 +28,24 @@ class Temperature(EPICS_motor):
     oasis_headstart_time = PV_property_client("oasis_headstart_time",0.0)
     oasis_prefix = PV_property_client("oasis_prefix",'')
     oasis_slave = PV_property_client("oasis_slave",0.0)
+
+    def monitor(self,callback,new_thread=True):
+        """Have the routine 'callback' be called every the time value
+        of the PV changes.
+        callback: function that takes three parameters:
+        PV_name, value, char_value
+        """
+        from CA import camonitor
+        camonitor(self.prefix+".RBV",callback=callback,new_thread=new_thread)
+
+    def monitor_clear(self,callback=None):
+        """Undo 'monitor'."""
+        from CA import camonitor_clear
+        camonitor_clear(self.prefix+".RBV",callback=callback)
+
+    @property
+    def name(self): return self.prefix+".RBV"
+
 
 temperature = Temperature(prefix="NIH:TEMP",name="temperature")
 
@@ -58,3 +76,8 @@ if __name__ == "__main__":
     print("timing_sequencer.queue_repeat_count = 0 # restart acquistion")
     print("timing_sequencer.queue_active = True  # simulate acquistion")
     print ('')
+
+    def callback(PV_name,value,string_value): info("%s=%r" % (PV_name,value))
+    print ('temperature.monitor(callback)')
+    self = temperature # for debugging
+

@@ -4,14 +4,16 @@ down
 
 Author: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2017-11-13
-Date modified: 2019-05-28
+Date modified: 2019-06-01
 """
-__version__ = "1.1" # Handle large logfile; clear log
+__version__ = "1.2.1" # newline at last line
+
+from logging import debug,info,warn,error
+import traceback
+
 from servers import servers
 import wx, wx3_compatibility
 from EditableControls import TextCtrl,ComboBox
-from logging import debug,info,warn,error
-import traceback
 
 class ServersPanel(wx.Frame):
     name = "ServersPanel"
@@ -631,7 +633,7 @@ class LogPanel(wx.Frame):
             lines = text.splitlines()
             for word in words_to_filter:
                 lines = [line for line in lines if not word in line]
-            text = "\n".join(lines)
+            text = "\n".join(lines)+"\n"
         return text
 
     
@@ -641,7 +643,7 @@ def last_lines(text,max_line_count=1000):
         text = text[-160*max_line_count:]
         lines = text.splitlines()
         lines = lines[-max_line_count-2:][1:]
-        text = "\n".join(lines)
+        text = "\n".join(lines)+"\n"
     debug("Reduced line count from from %r to %r" % (line_count,text.count("\n")))
     return text
 

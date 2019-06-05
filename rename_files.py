@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """This is to rename images files that have been given wrong  during
 data collection. This script also updates Lauecollect logfiles.
-Friedirch Schotte, 27 Jul 2011 - 17 Jul 2017"""
-__version__ = "1.4" # walk
+Author: Friedrich Schotte
+Date created: 2011-07-27
+Date last modified: 2019-06-02
+"""
+__version__ = "1.4.1" # Issues: repeat in old name, empty replacement string
 
 from logging import debug,info,warn,error
 
@@ -94,20 +97,23 @@ def rename(old,new,test_run):
 def replace(string,old,new):
     """Substitute occurences of "old" in string by "new"
     Return value: string with replacements made."""
-    # This makes sure that if "old" is a substring of "new", occurrances of
+    occurances = set(findall(string,old))
+    # Make sure that if "old" is a substring of "new", occurrances of
     # "new" will not be modified.
-    occurances = set(findall(string,old)) - set(findall(string,new))
+    if old in new: occurances -= set(findall(string,new))
     return replace_at(string,old,new,occurances)
     
 def findall(string,sub):
     """Starting indices of all occuenreces of a substring within a string.
     E.g. findall("Allowed Hello Hollow","ll") -> [1,10,16]"""
-    index = 0 - len(sub)
     indices = []
-    while True:
-        index = string.find(sub,index+len(sub))
-        if index == -1: return indices
-        indices += [index]
+    if len(sub) > 0:
+        index = 0 - len(sub)
+        while True:
+            index = string.find(sub,index+len(sub))
+            if index == -1: break
+            indices += [index]
+    return indices
 
 def replace_at(string,old,new,indices):
     """Replace the substring "old" by "new" in a string at specific locations
@@ -132,9 +138,10 @@ if __name__ == "__main__":
         format="%(message)s",
     )
     directories = [
-        "/net/femto-data1/C/Data/2018.10/WAXS/Water/Water-ramp-4",
+        "/net/mx340hs/data/anfinrud_1906/Data/WAXS/RNA-Hairpin/RNA-Hairpin-4BP/RNA-Hairpin-4BP-CG-Stem-End/RNA-Hairpin-4BP-CG-Stem-End-1",
     ]
     replacements = [
-        ["Water-ramp-5","Water-ramp-4"],
+        ["RNA-Hairpin-4BP-CG-Stem-End-1RNA-Hairpin-4BP-CG-Stem-End-1",
+         "RNA-Hairpin-4BP-CG-Stem-End-1"],
     ]
     rename_files(directories,replacements,test_run=True)

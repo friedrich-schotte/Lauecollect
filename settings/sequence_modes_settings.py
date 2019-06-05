@@ -1,5 +1,5 @@
 title = 'Sequence Configuration'
-nrows = 13
+nrows = 14
 row_height = 40
 motor_names = ['Ensemble_SAXS.acquisition_sequence', 'Ensemble_SAXS.sequence']
 names = ['acquisition', 'idle']
@@ -14,8 +14,8 @@ line4.description = 'NIH:i24c1'
 line5.description = 'NIH:i1_no_laser'
 line6.description = 'NIH:TR-SAXS'
 line0.Ensemble_SAXS.acquisition_sequence = 'enable=111'
-line0.Ensemble_SAXS.sequence = 'enable=110'
-line0.updated = '2019-03-29 19:25:05'
+line0.Ensemble_SAXS.sequence = 'enable=111'
+line0.updated = '2019-06-01 07:12:06'
 line1.Ensemble_SAXS.acquisition_sequence = 'enable=[011]*2+[111], circulate=[1]'
 line1.Ensemble_SAXS.sequence = 'enable=[011]*2+[111]'
 line1.updated = '2019-03-24 13:05:27'
@@ -52,7 +52,7 @@ line10.Ensemble_SAXS.acquisition_sequence = 'enable=[111]+[101]*7, circulate=[1]
 line10.Ensemble_SAXS.sequence = 'enable=[111]+[101]*7, circulate=[1]+[0]*7'
 line10.updated = '03 Nov 01:30'
 line10.description = 'NIH:e8'
-command_rows = [11]
+command_rows = [13]
 line11.Ensemble_SAXS.acquisition_sequence = 'enable=[011]*3+[111]'
 line11.updated = '2019-01-30 18:51:28'
 line11.Ensemble_SAXS.sequence = 'enable=[011]*3+[111]'
@@ -61,3 +61,7 @@ line12.Ensemble_SAXS.acquisition_sequence = 'enable=[011]*4+[111]'
 line12.updated = '2019-03-17 00:19:42'
 line12.Ensemble_SAXS.sequence = 'enable=[011]*4+[111]'
 line12.description = 'NIH:i5'
+line13.Ensemble_SAXS.acquisition_sequence = 'enable=[011]*1+[111], circulate=[1]'
+line13.updated = '2019-06-01 22:16:39'
+line13.Ensemble_SAXS.sequence = 'enable=[011]*1+[111]'
+line13.description = 'NIH:i2'

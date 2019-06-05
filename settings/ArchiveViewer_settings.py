@@ -1,2 +1,2 @@
 CustomView = ['Data']
-view = 'Standard'
+view = 'Custom'

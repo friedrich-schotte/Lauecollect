@@ -104,10 +104,10 @@ def set_defaults():
 if __name__ == "__main__":
     from time import time # for timing
     import logging
-    logging.basicConfig(level=logging.INFO,format="%(asctime)s: %(message)s")
+    logging.basicConfig(level=logging.INFO,format="%(asctime)s %(levelname)s %(message)s")
     from sys import argv
     if len(argv) > 1: run(argv[1])
     print('camera.acquiring = True')
     print('camera.monitor()')
     print('run("MicroscopeCamera")')
-    ##run("MicroscopeCamera")
+    print('run("WideFieldCamera")')

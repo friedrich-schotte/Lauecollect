@@ -7,11 +7,11 @@ motor_labels = ['list of temperatures', 'wait', 'Idle\ntemp', 'count']
 widths = [410, 35, 65, 50]
 line0.description = 'NIH:ramp-16_120_0.5_30_20'
 line1.description = 'NIH:ramp-16_100_0.5_30_20'
-line0.collect.temperatures = 'ramp(low=-10,high=120,step=0.5,hold_low=30,hold_high=20)'
+line0.collect.temperatures = 'ramp(low=-16,high=120,step=0.5,hold_low=30,hold_high=20)'
 line1.collect.temperatures = 'ramp(low=-16,high=100.,step=0.5,hold_low=30,hold_high=20)'
 line1.updated = '2019-03-21 12:52:55'
 row_height = 40
-line0.updated = '2019-05-21 18:26:54'
+line0.updated = '2019-05-31 01:58:35'
 description_width = 130
 nrows = 17
 line2.description = 'NIH:NCBD'
@@ -26,9 +26,9 @@ line1.collect.temperature_idle = '22.0'
 line2.collect.temperature_idle = '22.0'
 command_row = 5
 formats = ['%s', '%g', '%g', '%g']
-line3.description = 'NIH:NCBD_Tjump'
-line3.collect.temperatures = '-16,11, 35'
-line3.updated = '2019-03-25 00:49:27'
+line3.description = 'NIH:RNA-4BP'
+line3.collect.temperatures = '-15.35, 20.15, 89.15'
+line3.updated = '2019-06-03 01:51:59'
 line3.collect.temperature_wait = 1.0
 line3.collect.temperature_idle = 22.0
 line0.collect.temperature_count = nan
@@ -54,7 +54,7 @@ line7.collect.temperature_idle = 22.0
 line7.collect.temperature_count = nan
 line7.updated = '29 Oct 02:23'
 line7.description = 'NIH:Thompson'
-command_rows = [0.0]
+command_rows = [3]
 line8.description = 'NIH:Thompson:T-Jump'
 line8.collect.temperatures = '18'
 line8.collect.temperature_idle = 18.0

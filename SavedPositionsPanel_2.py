@@ -2,13 +2,13 @@
 """Control panel to save and recall motor positions.
 Author: Friedrich Schotte
 Date created: 2010-12-13
-Date last modified: 2019-05-26
+Date last modified: 2019-05-30
 """
-__version__ = "4.2.2" # issue: AppendCheckItem: empty string:  wxGetStockLabel(): invalid stock item ID
+__version__ = "4.2.7" # PV arrays in configuration panel
 
 from logging import debug,info,warn,error
 import traceback
-import wx
+import wx,wx3_compatibility
 from numpy import ndarray,isnan
 # Turn off IEEE-754 warnings in numpy 1.6+ ("invalid value encountered in...")
 import numpy; numpy.seterr(invalid="ignore",divide="ignore")
@@ -126,6 +126,7 @@ class SavedPositionsPanel(wx.Frame):
         changes = OrderedDict()
         for name in names:
             code = "self.configuration."+name
+            if not code.endswith("]"): code += "[:]"
             try: value = eval(code)
             except Exception,msg:
                 error("%r: %s\n%s" % (code,msg,traceback.format_exc()))
@@ -235,12 +236,12 @@ class SavedPositionsPanel(wx.Frame):
 
         panel.PositionLabels = []
         for i in range(0,self.configuration.n_motors):
-            label = self.configuration.motor_labels[i]
-            width = self.configuration.widths[i]
+            label = self.configuration.motor_labels[i] if i < len(self.configuration.motor_labels) else ""
+            width = self.configuration.widths[i] if i < len(self.configuration.widths) else 100
             if panel.vertical: width = -1
             button = wx.Button(panel,label=label,size=(width,row_height),
                 id=300+i*100+98)
-            button.Enabled = self.configuration.are_configuration[i]
+            button.Enabled = self.configuration.are_configuration[i] if i < len(self.configuration.are_configuration) else False
             self.Bind(wx.EVT_BUTTON,self.OnShowConfiguration,button)
             grid.Add(button,flip(0,i+3),flag=header_flag)
             panel.PositionLabels += [button]
@@ -269,7 +270,7 @@ class SavedPositionsPanel(wx.Frame):
         for i in range(0,self.configuration.nrows):
             for j in range(0,self.configuration.n_motors):
                 width = self.configuration.widths[j]
-                align = right if self.configuration.are_numeric[j] else left
+                align = right if j < len(self.configuration.are_numeric) and self.configuration.are_numeric[j] else left
                 panel.Positions[i,j] = TextCtrl(panel,size=(width,row_height),
                     style=style|align,id=300+j*100+i)
                 panel.Positions[i,j].BackgroundColour = panel.BackgroundColour
@@ -325,7 +326,7 @@ class SavedPositionsPanel(wx.Frame):
         panel.CurrentPositions = ndarray(self.configuration.n_motors,object)
         for i in range(0,self.configuration.n_motors):
             width = self.configuration.widths[i]
-            align = right if self.configuration.are_numeric[i] else left
+            align = right if i < len(self.configuration.are_numeric) and self.configuration.are_numeric[i] else left
             panel.CurrentPositions[i] = TextCtrl(panel,size=(width,row_height),
                 style=style|align,id=300+i*100+99)
             panel.CurrentPositions[i].BackgroundColour = panel.BackgroundColour
@@ -420,7 +421,7 @@ class SavedPositionsPanel(wx.Frame):
 
     def update(self,changes={}):
         """Update the panel"""
-        debug("Started %r" % self.configuration.name)
+        ##debug("Started %r" % self.configuration.name)
         from numpy import nan
 
         self.Title = self.cache.get("title","")
@@ -492,7 +493,7 @@ class SavedPositionsPanel(wx.Frame):
                 self.panel.Dates[i].BackgroundColour = color
                 for j in range(0,self.configuration.n_motors): 
                     self.panel.Positions[i,j].BackgroundColour = color
-        debug("Finished %r" % self.configuration.name)
+        ##debug("Finished %r" % self.configuration.name)
 
     matching_color = wx.Colour(0,180,0)
     close_color = wx.Colour(255,200,0)
@@ -665,12 +666,12 @@ class ConfigurationPanel(BasePanel):
             [[PropertyPanel,"Rows",self.configuration,"nrows"],{}],
             [[PropertyPanel,"Title",self.configuration,"title"],{}],
             [[PropertyPanel,"Mnemonic",self.configuration,"name"],{}],
-            [[PropertyPanel,"Python code",self.configuration,"motor_names"],{}],
-            [[PropertyPanel,"Column mnemonics",self.configuration,"names"],{}],
-            [[PropertyPanel,"Column labels",self.configuration,"motor_labels"],{}],
-            [[PropertyPanel,"Column widths",self.configuration,"widths"],{}],
-            [[PropertyPanel,"Column formats",self.configuration,"formats"],{}],
-            [[PropertyPanel,"Tolerances",self.configuration,"tolerance"],{}],
+            [[PropertyPanel,"Python code",self.configuration,"motor_names[:]"],{}],
+            [[PropertyPanel,"Column mnemonics",self.configuration,"names[:]"],{}],
+            [[PropertyPanel,"Column labels",self.configuration,"motor_labels[:]"],{}],
+            [[PropertyPanel,"Column widths",self.configuration,"widths[:]"],{}],
+            [[PropertyPanel,"Column formats",self.configuration,"formats[:]"],{}],
+            [[PropertyPanel,"Tolerances",self.configuration,"tolerance[:]"],{}],
             [[PropertyPanel,"Name width",self.configuration,"description_width"],{}],
             [[PropertyPanel,"Row height",self.configuration,"row_height"],{}],
             [[PropertyPanel,"Apply buttons",self.configuration,"show_apply_buttons"],{}],
@@ -924,8 +925,8 @@ if __name__ == '__main__':
     ##name = "beamline_configuration"
     ##name = "sequence_modes"
     ##name = "high_speed_chopper_modes"
-    name = "Julich_chopper_modes"
-    ##name = "timing_modes"
+    ##name = "Julich_chopper_modes"
+    name = "timing_modes"
     ##name = "delay_configuration"
     ##name = "power_configuration"
     ##name = "detector_configuration"

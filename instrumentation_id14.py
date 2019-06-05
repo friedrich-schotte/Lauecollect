@@ -2,9 +2,9 @@
 Instrumentation of the 14-ID beamline
 Author: Friedrich Schotte
 Date created: 2007-12-08
-Data last modified: 2019-05-26
+Data last modified: 2019-05-31
 """
-__version__ = "3.7" # configuration objects
+__version__ = "3.8" # rayonix_detector
 
 from pdb import pm
 from refill import time_to_next_refill
@@ -186,7 +186,8 @@ laser_trace = laser_scope.channel(4)
 
 # X-ray area detector
 from rayonix_detector_continuous import rayonix_detector
-##from rayonix_detector import rayonix_detector
+from rayonix_detector_client import rayonix_detector as rayonix_detector_client
+rayonix_detector = rayonix_detector_client
 ccd = xray_detector = rayonix_detector
 
 # Sample temperature
