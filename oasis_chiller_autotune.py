@@ -1,14 +1,14 @@
 """
 Automatically adjust the set point of the Oasis thermoelectric chiller,
 according to the set point of the ILX LightWave LTD-5948 precision temperature
-controller. AKA slave the chiller to temperature controller
+controller. AKA subordinate the chiller to temperature controller
 
 Authors: Friedrich Schotte, Valentyn Stadnytskyi
 Date created: 2018-02-22
 Date last modified: 2018-05-22
 
 1.1 - changed Tmin to -30 (from -25).
-1.2 - if T < 22, keep oasis at 2*C, if above 22C slave linearly
+1.2 - if T < 22, keep oasis at 2*C, if above 22C subordinate linearly
 1.3 - The autotune happens only if the new set oasis set temperature is
     - different from the previous one. There is no need to submit new set
     - temperature command if it is equal to the current one.

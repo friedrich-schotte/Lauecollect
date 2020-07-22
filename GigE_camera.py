@@ -126,7 +126,7 @@ class GigE_camera(object):
         int_addr, = unpack("I",inet_aton(dot_addr))
         access = 4 if mode == "control" else 2 
         status = PvAPI.PvCameraOpenByAddr (int_addr,access,byref(self.handle))
-        # If failed to connect as 'master', try as 'monitor'.
+        # If failed to connect as 'main', try as 'monitor'.
         ##print "init, first attempt: mode %r, status %r" % (mode,status)
         if mode == "control" and status == 7: # 7:cannot be opened in the specified mode
             self.mode = "read-only"

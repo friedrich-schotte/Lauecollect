@@ -28,7 +28,7 @@ class Temperature_Server_IOC(object):
     P_default = persistent_property("P_default",1.000)
     I_default = persistent_property("I_default",0.316)
     D_default = persistent_property("D_default",0.562)
-    oasis_slave = persistent_property("oasis_slave",1)
+    oasis_subordinate = persistent_property("oasis_subordinate",1)
     temperature_oasis_switch = persistent_property("T_threshold",83.0)
     idle_temperature_oasis = persistent_property("idle_temperature_oasis",8.0)
     temperature_oasis_limit_high = persistent_property("temperature_oasis_limit_high",45.0)
@@ -81,7 +81,7 @@ class Temperature_Server_IOC(object):
         casput(self.prefix+".D_default",value = self.D_default)
 
 
-        casput(self.prefix+".oasis_slave",value = self.oasis_slave)
+        casput(self.prefix+".oasis_subordinate",value = self.oasis_subordinate)
         casput(self.prefix+".temperature_oasis_switch",value = self.temperature_oasis_switch)
         casput(self.prefix+".idle_temperature_oasis",value = self.idle_temperature_oasis)
         casput(self.prefix+".temperature_oasis_limit_high",value = self.temperature_oasis_limit_high)
@@ -107,7 +107,7 @@ class Temperature_Server_IOC(object):
         casmonitor(self.prefix+".I_default",callback=self.monitor)
         casmonitor(self.prefix+".D_default",callback=self.monitor)
 
-        casmonitor(self.prefix+".oasis_slave",callback=self.monitor)
+        casmonitor(self.prefix+".oasis_subordinate",callback=self.monitor)
         casmonitor(self.prefix+".temperature_oasis_switch",callback=self.monitor)
         casmonitor(self.prefix+".idle_temperature_oasis",callback=self.monitor)
         casmonitor(self.prefix+".temperature_oasis_limit_high",callback=self.monitor)
@@ -224,8 +224,8 @@ class Temperature_Server_IOC(object):
             self.D_default = value
             self.set_PIDCOF((self.P_default,self.I_default,self.D_default))
 
-        if PV_name == self.prefix + ".oasis_slave":
-            self.oasis_slave = value
+        if PV_name == self.prefix + ".oasis_subordinate":
+            self.oasis_subordinate = value
         if PV_name == self.prefix + ".temperature_oasis_switch":
             self.temperature_oasis_switch = value
         if PV_name == self.prefix + ".idle_temperature_oasis":
@@ -508,7 +508,7 @@ class Temperature_Server_IOC(object):
     def set_T(self,value):
         value = float(value)
         if value != self.get_set_lightwaveT() or self.temp_to_oasis(value) != self.get_set_oasisT():
-            if self.oasis_slave:
+            if self.oasis_subordinate:
                 self.set_set_oasisT(self.temp_to_oasis(value))
             self.set_set_lightwaveT(value)
 
@@ -597,7 +597,7 @@ class Temperature_Server_IOC(object):
             elif T<T_min:
                 t = self.idle_temperature_oasis
 
-        if self.oasis_slave:
+        if self.oasis_subordinate:
             return round(t,1)
         else:
             return self.idle_temperature_oasis

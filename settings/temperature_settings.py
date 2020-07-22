@@ -30,5 +30,5 @@ temp_points = [-16, -16, 120, 120, -16, -16, 120, 120, -16]
 time_points = []
 idle_temperature = 22.0
 idle_temperature_oasis = 8.0
-CustomView = ['Temp Points', 'Time Points', 'P default', 'I default', 'D default', 'Lightwave prefix,temperature', 'oasis slave (on/off)', 'Oasis threshold T', 'Oasis idle temperature (low limit) (C)', 'Oasis temperature limit high (C)', 'Oasis headstart time (s)', 'Oasis prefix']
+CustomView = ['Temp Points', 'Time Points', 'P default', 'I default', 'D default', 'Lightwave prefix,temperature', 'oasis subordinate (on/off)', 'Oasis threshold T', 'Oasis idle temperature (low limit) (C)', 'Oasis temperature limit high (C)', 'Oasis headstart time (s)', 'Oasis prefix']
 view = 'Standard'
