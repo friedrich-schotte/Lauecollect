@@ -27,7 +27,7 @@ class Temperature(EPICS_motor):
     temperature_oasis_limit_high = PV_property_client("temperature_oasis_limit_high",0.0)
     oasis_headstart_time = PV_property_client("oasis_headstart_time",0.0)
     oasis_prefix = PV_property_client("oasis_prefix",'')
-    oasis_slave = PV_property_client("oasis_slave",0.0)
+    oasis_subordinate = PV_property_client("oasis_subordinate",0.0)
 
     def monitor(self,callback,new_thread=True):
         """Have the routine 'callback' be called every the time value
