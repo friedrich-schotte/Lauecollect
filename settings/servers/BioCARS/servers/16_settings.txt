@@ -1,5 +1,5 @@
 auto_start = True
-command = 'from temperature_system_IOC import *; run("BioCARS")'
+command = 'from IOC import *; run("BioCARS.temperature_system")'
 format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
 label = 'Temperature System'
 log_level = 'DEBUG'

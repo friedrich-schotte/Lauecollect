@@ -4,10 +4,10 @@ chiller
 
 Authors: Friedrich Schotte, Philip Anfinrud
 Date created: 2021-11-26
-Date last modified: 2022-05-01
-Revision comment: Corrected typos
+Date last modified: 2022-07-02
+Revision comment: Renamed temperature_system_driver
 """
-__version__ = "1.6.4"
+__version__ = "1.7"
 
 import logging
 
@@ -17,10 +17,10 @@ from reference import reference
 
 
 @cached_function()
-def temperature_system(name): return Temperature_System(name)
+def temperature_system_driver(name): return Temperature_System_Driver(name)
 
 
-class Temperature_System:
+class Temperature_System_Driver:
     from alias_property import alias_property
     from monitored_property import monitored_property
     from db_property import db_property
@@ -290,7 +290,7 @@ if __name__ == "__main__":
     msg_format = "%(asctime)s %(levelname)s %(module)s, line %(lineno)d: %(funcName)s: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
-    self = temperature_system("BioCARS")
+    self = temperature_system_driver("BioCARS")
 
 
     @handler

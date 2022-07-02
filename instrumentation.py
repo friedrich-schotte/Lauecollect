@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2014-03-14
-Date last modified: 2022-06-29
-Revision comment: configurations: Updated comment
+Date last modified: 2022-07-02
+Revision comment: Renamed temperature_system_driver
 """
-__version__ = "2.12.1"
+__version__ = "2.13.1"
 
 from instrumentation_id14 import *
 
@@ -31,6 +31,9 @@ from temperature_scan_client import temperature_scan_client
 from motor_scan import motor_scan
 from motor_scan_driver import motor_scan_driver
 from motor_scan_client import motor_scan_client
+from temperature_system import temperature_system
+from temperature_system_driver import temperature_system_driver
+from temperature_system_client import temperature_system_client
 
 # Still needed?
 from configuration_tables import configuration_tables as configurations

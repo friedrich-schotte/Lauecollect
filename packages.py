@@ -324,10 +324,8 @@ def module_version(module_name):
 
 
 def pip_version(module_name):
-    version = ""
-
     from importlib import metadata
-
+    version = ""
     project_name = package_name(module_name)
     for dist in metadata.distributions():
         name = dist.metadata["Name"]
