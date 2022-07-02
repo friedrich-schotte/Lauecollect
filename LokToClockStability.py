@@ -8,13 +8,18 @@ Setup: On the laser diagnostics oscilloscope, define the Measurement 2 as
 P2:delay(C1). (Trigger to the rising edge of the first pulse at half maximum)
 C1 is the trace the shows the seed laser beam.
 
-Author: Friedrich Schotte, NIH, 9 Aug 2010 - 11 Mar 2016
+Author: Friedrich Schotte
+Date created: 2010-08-09
+Date last modified: 2020-07-09
+Revision comment: Using laser_scope, Python 3
 """
-from numpy import *
-from thread import start_new_thread
-from id14 import id14b_scope
+__version__ = "1.5.2" 
 
-__version__ = "1.5.1" # 1/bcf -> timing_system.bct
+from numpy import (array, zeros, concatenate,
+    isnan, isinf, floor, ceil, rint,
+    average, amin, amax, nanmin, nanmax, std,
+)
+
 
 # Default settings
 title = "Lok-to-Clock Stability"
@@ -27,8 +32,8 @@ active = False # collecting data?
 cancelled = False
 
 def delay():
-    from id14 import id14l_scope,losct,psd1,timing_system
-    delay_measurement = id14l_scope.measurement(2)
+    from id14 import laser_scope,losct,psd1,timing_system
+    delay_measurement = laser_scope.measurement(2)
     period = 5*timing_system.bct
     # the fine-resolution part of the losct delay is not implemented yet.
     # The step size of losct is not actally 2.8 ns but actually 11.3 ns
@@ -81,9 +86,9 @@ class Log(object):
         
         if not exists(self.filename):
             if not exists(dirname(self.filename)): makedirs(dirname(self.filename))
-            logfile = file(self.filename,"ab")
+            logfile = open(self.filename,"a")
             logfile.write("#date time\tdelay[s]\n")
-        logfile = file(self.filename,"ab")
+        logfile = open(self.filename,"a")
         logfile.write("%s\t%s\n" % (date_string(t),repr(dt)))
         logfile.close()
         self.timestamp = getmtime(self.filename)
@@ -103,8 +108,8 @@ class Log(object):
             if abs(current_timestamp - self.timestamp) > 2 or \
                 self.filename != self.loaded_filename:
                 if self.timestamp != 0:
-                    print "log file changed by %g s" % \
-                        (current_timestamp - self.timestamp)
+                    print("log file changed by %g s" % \
+                        (current_timestamp - self.timestamp))
                 status("Reading %s..." % self.filename)
                 try:
                     logfile = table(self.filename,separator="\t")
@@ -112,8 +117,8 @@ class Log(object):
                     self.DT = logfile.delay
                     self.timestamp = current_timestamp
                     self.loaded_filename = self.filename
-                except Exception,details:
-                    print "%s unreadable: %s" % (self.filename,details)
+                except Exception as details:
+                    print("%s unreadable: %s" % (self.filename,details))
                     if self.loaded_filename != self.filename:
                         self.T,self.DT = zeros(0),zeros(0)
                         self.timestamp = current_timestamp
@@ -316,7 +321,7 @@ class TimingChart (wx.Frame):
         """
         from os.path import basename,dirname
         dlg = wx.FileDialog(self,"Select Logfile",
-            style=wx.SAVE,
+            style=wx.FD_SAVE,
             defaultFile=basename(self.logfile),defaultDir=dirname(self.logfile),
             wildcard="Text files (*.txt;*.log)|*.txt;*.log|"
             "All Files (*.*)|*.*")
@@ -369,14 +374,14 @@ class TimingChart (wx.Frame):
         
         if mtime(self.settings_file()) != self.settings_timestamp:
             if exists(self.settings_file()):
-                ##print "reading %r" % self.settings_file()
-                self.State = file(self.settings_file()).read()
+                ##print("reading %r" % self.settings_file())
+                self.State = open(self.settings_file()).read()
             self.settings_timestamp = mtime(self.settings_file())
             self.saved_state = self.State
         elif self.saved_state != self.State or not exists(self.settings_file()):
             if not exists(self.settings_dir()): makedirs(self.settings_dir())
-            ##print "writing %r" % self.settings_file()
-            file(self.settings_file(),"wb").write(self.State)
+            ##print("writing %r" % self.settings_file())
+            open(self.settings_file(),"w").write(self.State)
             self.settings_timestamp = mtime(self.settings_file())
             self.saved_state = self.State
 
@@ -396,7 +401,7 @@ class TimingChart (wx.Frame):
             line = line.strip(" \n\r")
             if line != "":
                 try: exec("self."+line)
-                except: print "ignoring "+line; pass
+                except: print("ignoring "+line); pass
     State = property(GetState,SetState)
 
     def settings_file(self):
@@ -405,7 +410,6 @@ class TimingChart (wx.Frame):
 
     def settings_dir(self):
         "pathname of the file used to store persistent parameters"
-        from os.path import dirname
         path = module_dir()+"/settings"
         return path
 
@@ -563,7 +567,7 @@ def module_path():
     from sys import path
     from os import getcwd
     from os.path import basename,exists
-    from inspect import getmodulename,getfile
+    from inspect import getfile
     # 'getfile' retreives the source file name name compiled into the .pyc file.
     pathname = getfile(lambda x: None)
     if exists(pathname): return pathname
@@ -572,7 +576,7 @@ def module_path():
     pathname = pathname.replace("\\","/")
     filename = basename(pathname)
     dirs = [dir for dir in [getcwd()]+path if exists(dir+"/"+filename)]
-    if len(dirs) == 0: print "pathname of file %r not found" % filename
+    if len(dirs) == 0: print("pathname of file %r not found" % filename)
     dir = dirs[0] if len(dirs) > 0 else "."
     pathname = dir+"/"+filename
     return pathname
@@ -589,12 +593,13 @@ def mtime(filename):
 
 def main():
     global app,win
-    start_new_thread (measure,())
-    app = wx.PySimpleApp(0)
+    from threading import Thread
+    thread = Thread(target=measure)
+    thread.start()
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     win = TimingChart()
     app.MainLoop()
     
 
 if __name__ == "__main__":
     main()
-    ##start_new_thread (main,()) # use for debugging

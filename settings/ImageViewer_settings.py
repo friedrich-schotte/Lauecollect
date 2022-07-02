@@ -1,1 +1,0 @@
-images = ['/data/pub/junk/new_fpga/xray_images/Test-1_001.mccd']

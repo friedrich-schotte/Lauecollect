@@ -1,0 +1,4 @@
+EPICS_enabled = True
+description = 'High-speed chopper X'
+prefix = '14IDB:m1'
+target = 36.78

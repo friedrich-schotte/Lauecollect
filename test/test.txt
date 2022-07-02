@@ -1,5 +1,0 @@
-# This is a test.
-#A	B
-1	11
-2	12
-3	13

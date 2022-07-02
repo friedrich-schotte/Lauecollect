@@ -1,0 +1,7 @@
+prefix = '14IDB:m153'
+description = 'Alio Y'
+target = 0.468125
+EPICS_enabled = True
+max_dial = 5.0
+min_dial = -7.8
+speed = 5.0

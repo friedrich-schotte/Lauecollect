@@ -1,0 +1,10 @@
+auto_update_timestamps = True
+command_rows = []
+command_row = 0
+description_width = 42
+motor_labels = ['transmission']
+motor_names = ['acquisition.power_configuration']
+names = ['list']
+nrows = 0
+title = 'Power Configuration'
+widths = [82]

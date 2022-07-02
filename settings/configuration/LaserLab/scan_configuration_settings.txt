@@ -1,0 +1,14 @@
+auto_update_timestamps = True
+command_rows = []
+command_row = 0
+description_width = 42
+formats = ['%s', '%d', '%d', '%s']
+motor_labels = ['list of values', 'return', 'relative', 'motor']
+motor_names = ['acquisition.scan_points', 'acquisition.scan_return', 'acquisition.scan_relative', 'acquisition.scan_motor_name']
+multiple_selections = False
+names = ['points', 'return', 'relative', 'motors']
+nrows = 0
+row_height = 23
+sort_column_labels = ['Name']
+title = 'Scan Configuration'
+widths = [81, 44, 51, 52]

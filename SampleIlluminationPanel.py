@@ -37,7 +37,7 @@ class SampleIlluminationPanel(wx.Frame):
         box.Add (controls,flag=wx.ALL,border=5)
         buttons = wx.BoxSizer(wx.HORIZONTAL)
         buttons.Add (OnButton,flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,border=5)
-        buttons.AddSpacer((5,5))
+        buttons.AddSpacer(5)
         buttons.Add (OffButton,flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,border=5)
         box.Add(buttons,flag=wx.ALL,border=5)
         panel.SetSizer(box)
@@ -76,7 +76,7 @@ class SampleIlluminationPanel(wx.Frame):
 
 
 if __name__ == '__main__':
-    # Needed to initialize WX library
-    if not "app" in globals(): app = wx.App(redirect=False)
+
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     panel = SampleIlluminationPanel()
     app.MainLoop()

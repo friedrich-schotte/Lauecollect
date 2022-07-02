@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 """
 CA Strip Chart Test Server
 by Valentyn Stadnytskyi

@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from syringe_pump import *; run_server()'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Hamilton Syringe Pump'
+log_level = 'DEBUG'
+logfile_basename = 'syringe_pump'
+machine_name = 'INSTRUMENTATION'
+mnemonic = 'syringe_pump'
+test_code = 'value is not None and not isnan(value)'
+value_code = 'caget("NIH:syringe_pump.V")'

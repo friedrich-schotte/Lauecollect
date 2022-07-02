@@ -20,20 +20,21 @@ Ramsay RSG1000B RF Signal Generator, DB-9 male serial port
 
 Authors: Friedrich Schotte
 Date created: 2018-01-22
-Date last modified: 2018-01-23
+Date last modified: 20102-06-15
+Revision comment: Always initializing VAL and COMM
 """
 
 from logging import error,warn,info,debug
 
-__version__ = "1.0"
+__version__ = "1.0.2"
 
 class RamseyRFDriver(object):
     """Ramsay RSG1000B RF Signal Generator"""
     name = "Ramsey_RF"
     timeout = 1.0
     baudrate = 9600
-    id_query = "{255"
-    id_reply = "\r\n"
+    id_query = b"{255"
+    id_reply = b"\r\n"
     id_reply_length = 2
 
     wait_time = 0 # bewteen commands 
@@ -45,8 +46,8 @@ class RamseyRFDriver(object):
         return valid
 
     # Make multithread safe
-    from thread import allocate_lock
-    __lock__ = allocate_lock()
+    from threading import Lock
+    __lock__ = Lock()
     
     port = None
 
@@ -74,9 +75,9 @@ class RamseyRFDriver(object):
         with self.__lock__: # multithread safe
             for i in range(0,2):
                 try: reply = self.__query__(command,count=count)
-                except Exception,msg:
+                except Exception as msg:
                     warn("query: %r: attempt %s/2: %s" % (command,i+1,msg))
-                    reply = ""
+                    reply = b""
                 if reply: return reply
                 self.init_communications()
             return reply
@@ -133,7 +134,7 @@ class RamseyRFDriver(object):
                     info("%s: lost connection" % self.port.name)
                     self.port = None 
                 else: info("Device is still responsive.")
-            except Exception,msg:
+            except Exception as msg:
                 debug("%s: %s" % (Exception,msg))
                 self.port = None 
 
@@ -153,21 +154,21 @@ class RamseyRFDriver(object):
                            self.port = port
                            info("Discovered device at %s based on reply %r" % (self.port.name,reply))
                            break
-                    except Exception,msg: debug("%s: %s" % (Exception,msg))
+                    except Exception as msg: debug("%s: %s" % (Exception,msg))
                 if self.port is not None: break
 
     def get_RF_on(self):
         """Is radiofrequency output enabled?"""
         debug("Reading radiofrequency output state")
-        reply = self.query("GO") # ' RF OFF\r\n'
-        value = "RF ON" in reply
-        if not "RF " in reply:
+        reply = self.query(b"GO") # ' RF OFF\r\n'
+        value = b"RF ON" in reply
+        if not b"RF " in reply:
             warn("Reading radiofrequency output state unreadable")
             from numpy import nan
             value = nan
         return value
     def set_RF_on(self,value):
-        if value != self.RF_on: self.query("O",count=1)
+        if value != self.RF_on: self.query(b"O",count=1)
     RF_on = property(get_RF_on,set_RF_on)
     VAL = RF_on
         
@@ -200,6 +201,8 @@ class RamseyRF_IOC(object):
         casput(self.prefix+".SCAN",self.SCAN)
         casput(self.prefix+".DESC","State")
         casput(self.prefix+".EGU","")
+        casput(self.prefix+".VAL",nan)
+        casput(self.prefix+".COMM","")
         # Monitor client-writable PVs.
         casmonitor(self.prefix+".SCAN",callback=self.monitor)
         casmonitor(self.prefix+".VAL",callback=self.monitor)
@@ -282,7 +285,7 @@ if __name__ == "__main__": # for testing
     from pdb import pm
     import logging
     logging.basicConfig(level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s: %(message)s")
+        format="%(asctime)s %(levelname)s %(module)s, line %(lineno)d: %(message)s")
     self = Ramsey_RF_driver # for debugging
     print('Ramsey_RF_driver.init_communications()')
     print("Ramsey_RF_driver.port_name")

@@ -1,0 +1,4 @@
+EGU = 'mm'
+DESC = 'Y'
+DRBV = 11.512
+DVAL = 0.001

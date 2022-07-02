@@ -1,0 +1,7 @@
+NominalPixelSize = 0.00465
+Orientation = 0
+Mirror = False
+ImageWindow.Center = (643, 514)
+x_scale = -1.0
+y_scale = 1.0
+z_scale = -1.0

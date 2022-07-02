@@ -9,8 +9,8 @@ __version__ = "1.3.1"
 camera = GigE_camera("id14b-prosilica3.cars.aps.anl.gov")
 #camera = GigE_camera("id14b-prosilica3.biocarsvideo.net")
 
-# Needed to initialize WX library
-if not "app" in globals(): app = wx.PySimpleApp(redirect=False)
+
+app = wx.GetApp() if wx.GetApp() else wx.App()
 
 def show():
     global viewer

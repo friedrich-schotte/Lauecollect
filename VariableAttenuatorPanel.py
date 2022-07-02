@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-# Friedrich Schotte, 16 Nov 2014
-from inspect import getfile
-from os.path import dirname
-def f(): pass
-dir=dirname(getfile(f))
-execfile(dir+"/LaserAttenuatorLaserXrayHutch.py")
+if __name__ == '__main__':
+    import LaserAttenuatorLaserXrayHutch as module
+    exec(open(module.__file__).read())

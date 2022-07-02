@@ -101,7 +101,7 @@ class TranslationPanel (wx.Frame):
         layout.Add (wx.StaticText(panel,label="Holding current:"),(4,0),flag=a)
         box = wx.BoxSizer()
         box.Add (self.DriveEnabled)
-        box.AddSpacer((5,5))
+        box.AddSpacer(5)
         box.Add (self.DriveDisabled)
         layout.Add (box,(4,1),flag=a)
 
@@ -113,16 +113,16 @@ class TranslationPanel (wx.Frame):
         layout.Add (wx.StaticText(panel,label="Operation Mode:"),(6,0),flag=a)
         box = wx.BoxSizer()
         box.Add (self.OpeningMode)
-        box.AddSpacer ((10,10))
+        box.AddSpacer(10)
         box.Add (self.OpeningTimeLabel)
-        box.AddSpacer ((10,10))
+        box.AddSpacer(10)
         box.Add (self.OpeningTime)
         layout.Add (box,(6,1),flag=a)
 
         layout.Add (wx.StaticText(panel,label="Open/Close digital input:"),(7,0),flag=a)
         box = wx.BoxSizer()
         box.Add (self.OpenCloseEnabled,flag=a)
-        box.AddSpacer ((10,10))
+        box.AddSpacer(10)
         box.Add (self.OpenCloseStatus,flag=a)
         layout.Add (box,(7,1),flag=a)
 
@@ -395,8 +395,8 @@ class TranslationPanel (wx.Frame):
         self.show_settings()
 
 if __name__ == '__main__': 
-    # Needed to initialize WX library
-    if not "app" in globals(): app = wx.PySimpleApp(redirect=False)
+
+    app = wx.GetApp() if wx.GetApp() else wx.App()
 
     panel = TranslationPanel()
     app.MainLoop()

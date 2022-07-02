@@ -1,0 +1,15 @@
+auto_update_timestamps = True
+command_rows = []
+description_width = 180
+motor_labels = ['Detectors']
+motor_names = ['acquisition.detector_configuration']
+names = ['detectors']
+nrows = 0
+row_height = 20
+show_in_list = True
+title = 'Detector Configuration'
+widths = [309]
+line0.acquisition.detector_configuration = ''
+line0.description = ''
+line0.detectors = 'xray_detector, xray_scope, laser_scope'
+line0.updated = '2020-06-23 18:31:38'

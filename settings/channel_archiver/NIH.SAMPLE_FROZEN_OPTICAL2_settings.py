@@ -1,1 +1,0 @@
-MEAN.filename = '//femto/C/All Projects/APS/Experiments/2019.05/Test/Archive/NIH.SAMPLE_FROZEN_OPTICAL2.MEAN.txt'

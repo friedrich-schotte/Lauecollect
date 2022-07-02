@@ -1,0 +1,3 @@
+target = 263.01687078475953
+prefix = 'LaserZ'
+description = 'simulated motor'

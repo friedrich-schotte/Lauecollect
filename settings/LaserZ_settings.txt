@@ -1,0 +1,4 @@
+prefix = '14IDB:m31'
+description = 'Laser Z'
+EPICS_enabled = True
+target = -0.425

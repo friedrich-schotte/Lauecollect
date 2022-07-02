@@ -1,0 +1,19 @@
+delay = 'delays=[(laser_on=0)]+log_series(1us, 1ms, steps_per_decade=1)'
+power = ''
+temperature_wait = 1.0
+description = 'X-ray 36um (H) x 39um (V), Flythru-24, 15-bunches'
+directory = '/System/Volumes/Data/Mirror/femto-data2/C/Data/2020.08/Test/WAXS/Test1'
+collection_order = 'Delay'
+scan_points = ''
+scan_return = 1.0
+scan_relative = 1.0
+scan_motor = ''
+scan_origin = -0.84
+detector_configuration = 'xray_detector, xray_scope, laser_scope'
+finish_series = False
+finish_series_variable = 'Delay'
+__n_collect__ = 24
+temperature_idle = 22.0
+temperature = 'ramp(low=20,high=24,step=0.5,hold=2,repeat=1)'
+temperatures = ''
+diagnostics = 'ring_current, bunch_current, temperature'

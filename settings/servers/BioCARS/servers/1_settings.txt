@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from sim_id14 import *; sim_id14.run()'
+format_code = '"Not running" if value is None else "Running"'
+label = '14-ID Simulator'
+log_level = 'DEBUG'
+logfile_basename = 'sim_id14'
+machine_name = 'ID14B4'
+mnemonic = 'sim_id14'
+test_code = 'value is not None'
+value_code = 'caget("14IDB:m3.VAL")'

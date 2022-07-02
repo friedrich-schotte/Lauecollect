@@ -1,1 +1,0 @@
-title = 'Microscope [advanced] (-30 deg)'

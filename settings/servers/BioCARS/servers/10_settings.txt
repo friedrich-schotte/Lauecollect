@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from GigE_camera_IOC import *; run("MicroscopeCamera")'
+format_code = '"Not Running" if value is None else str(value)'
+label = 'Microscope Camera'
+log_level = 'INFO'
+logfile_basename = 'MicroscopeCamera_IOC'
+machine_name = 'ID14B4'
+mnemonic = 'MicroscopeCamera'
+test_code = 'value is not None and "not found" not in value'
+value_code = 'caget("NIH:CAMERA.MICROSCOPECAMERA.STATE")'

@@ -1,0 +1,2 @@
+comment = u'Please write your comments here. But what if I will change it? \\nm\nand other comments\nto add new line press enter'
+root = u'/net/mx340hs/data/anfinrud_1908/Logbook/Beamline_snapshot/'

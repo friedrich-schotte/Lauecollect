@@ -1,0 +1,7 @@
+prefix = '14IDB:m150'
+description = 'Alio Z'
+target = 0.4000000000000007
+EPICS_enabled = True
+min_dial = -60.0
+max_dial = 10.0
+speed = 100.0

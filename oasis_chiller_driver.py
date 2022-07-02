@@ -21,7 +21,7 @@ Command byte: bit 7: remote control active (1 = remote control,0 = local control
                         01000: [8] Faults (followed by 1 byte)
                         01001: [9] Actual temperature (followed by 2 bytes: temperature in C * 10)
 
-The 2-byte value is a 16-bit binary number enoding the temperature in units
+The 2-byte value is a 16-bit binary number encoding the temperature in units
 of 0.1 degrees Celsius (range 0-400 for 0-40.0 C)
 
 The fault byte is a bit map (0 = OK, 1 = Fault):
@@ -43,350 +43,135 @@ Cabling:
 "NIH-Instrumentation" MacBook Pro -> 3-port USB hub ->
 "ICUSB232 SM3" UBS-Serial cable -> Oasis chiller
 
-Setup to run IOC:
-Windows 7 > Control Panel > Windows Firewall > Advanced Settings > Inbound Rules
-> New Rule... > Port > TCP > Specific local ports > 5064-5070
-> Allow the connection > When does the rule apply? Domain, Private, Public
-> Name: EPICS CA IOC
-Inbound Rules > python > General > Allow the connection
-Inbound Rules > pythonw > General > Allow the connection
-
 Authors: Friedrich Schotte, Nara Dashdorj, Valentyn Stadnytskyi
 Date created: 2009-05-28
-Date last modified: 2018-10-15 Valentyn Stadnytskyi
+Date last modified: 2021-12-03
+Revision comment: Issue: Conflicting file names:
+    settings/oasis_chiller_settings.txt
+    settings/Oasis_Chiller_settings.txt
+    (SMB file server cannot serve both files to a Windows client)
+    Default timeout too short
 """
+__version__ = "3.0.5"
 
-from struct import pack,unpack
-from numpy import nan,rint,isnan
-from logging import error,warn,info,debug
-import sys
-if sys.version[0] == '3':
-    from _thread import allocate_lock
-else:
-    from thread import allocate_lock
-__lock__ = allocate_lock()
-__version__ = "2.1" # fault code
+from logging import warning, info, debug
+from struct import pack, unpack
 
-class OasisChillerDriver(object):
+
+def parameter_property(parameter_number, scale_factor=1.0):
+    """A 16-bit parameter"""
+
+    def fget(self): return self.get_16bit_value(parameter_number) / scale_factor
+
+    def fset(self, value): self.set_16bit_value(parameter_number, value * scale_factor)
+
+    return property(fget, fset)
+
+
+class Oasis_Chiller_Driver(object):
     """Oasis thermoelectric chiller by Solid State Cooling Systems"""
-    name = "oasis_chiller"
-    timeout = 1.0
+    from persistent_property import persistent_property
+
+    name = "oasis_chiller_driver"
+
+    timeout = persistent_property("timeout", 1.0)
+    wait_time = persistent_property("wait_time", 1.0)  # between commands
+
     baudrate = 9600
-    id_query = "A"
+    id_query = b"A"
     id_reply_length = 3
 
-    wait_time = 0 # bewteen commands
     last_reply_time = 0.0
-    last_command_execution_time = 0.0
 
-    # Make multithread safe
-
-
-    ser = None
-
-    def __init__(self):
-        pass
-
-    def init(self):
-        self.init_communications()
-
-    def close(self):
-        self.ser.close()
-        self.ser = None
-
-    def init_communications(self):
-        """To do before communncating with the controller"""
-        from os.path import exists
-        from serial import Serial
-        import serial.tools.list_ports
-        if self.ser is not None:
-            try:
-                info("Checking whether device is still responsive...")
-                self.ser.write(self.id_query)
-                debug("%s: Sent %r" % (self.ser.name,self.id_query))
-                reply = self.read(count=self.id_reply_length)
-                if not self.id_reply_valid(reply):
-                    debug("%s: %r: invalid reply %r" % (self.ser.name,self.id_query,reply))
-                    info("%s: lost connection" % self.ser.name)
-                    self.ser = None
-                else: info("Device is still responsive.")
-            except Exception as msg:
-                debug("%s: %s" % (Exception,msg))
-                self.ser = None
-
-        if self.ser is None:
-            devices = serial.tools.list_ports.comports()
-            debug('devices: %r' % devices)
-            for item in devices:
-                debug('device: %r' % item)
-                try:
-                    ser = Serial(item.device,baudrate=self.baudrate)
-                    ser.write(self.id_query)
-                    debug("%s: Sent %r" % (ser.name,self.id_query))
-                    reply = self.read(count=self.id_reply_length,ser=ser)
-                    if self.id_reply_valid(reply):
-                       self.ser = ser
-                       info("Discovered device at %s based on reply %r" % (self.ser.name,reply))
-                       break
-                except Exception as msg:
-                    debug("%s: %s" % (Exception,msg))
-                if self.ser is not None: break
-
-    def query(self,command = None,count=1,ser = None):
-        """Send a command to the controller and return the reply"""
-        from time import time
-        from time import sleep
-        if ser is None:
-            ser = self.ser
-
-        if ser is not None:
-            t1 = time()
-            self.write(command)
-            i = 0
-            while self.waiting(ser)[0] != count:
-                if i >int(self.timeout/0.015):
-                    break
-                sleep(0.015)
-                i+=1
-            reply = self.read(ser = ser,count=count)
-            t2 = time()
-            self.last_command_execution_time = t2-t1
-            self.last_reply_time = time()
-        else:
-            reply = ''
-        return reply
-
-    def write(self,command,ser = None):
-        """Send a command to the controller"""
-        if ser is None:
-            ser = self.ser
-        if ser is not None:
-            self.flush(ser = ser)
-            ser.write(command)
-            debug("%s: Sent %r" % (ser.name,command))
-
-    def read(self,count=None, ser = None):
-        """Read a reply from the controller,
-        terminated with the given terminator string"""
-        from time import time
-        ##debug("read count=%r,ser=%r" % (count,ser))
-        if ser is None:
-            ser = self.ser
-        if ser is not None:
-            #print("in wait:" + str(self.ser.inWaiting()))
-            debug("Trying to read %r bytes from %s..." % (count,ser.name))
-            ser.timeout = self.timeout
-            reply = ser.read(count)
-            debug("%s: Read %r" % (ser.name,reply))
-            self.last_reply_time = time()
-        else: reply = ""
-        return reply
-
-    def flush(self, ser = None):
-        if ser is not None:
-            ser.flushInput()
-            ser.flushOutput()
-
-    def waiting(self, ser = None):
-        if ser is None:
-            ser = self.ser
-        if ser is not None:
-            value = (driver.ser.in_waiting,driver.ser.out_waiting)
-        else:
-            value = None
-        return value
-
-    def id_reply_valid(self,reply):
-        valid = reply.startswith("A") and len(reply) == 3
-        debug("Reply %r valid? %r" % (reply,valid))
+    def id_reply_valid(self, reply):
+        valid = reply.startswith(b"A") and len(reply) == 3
+        debug("Reply %r valid? %r" % (reply, valid))
         return valid
 
+    # Make multithreading safe
+    from threading import Lock
+    __lock__ = Lock()
 
-    def get_nominal_temperature(self):
-        """Temperature set point"""
-        debug("Getting nominal temperature...")
-        value = self.get_value(1)/10.
-        if not isnan(value): debug("Nominal temperature %r C" % value)
-        else: warn("Nominal temperature unreadable")
-        return value
+    port = None
 
-    def set_nominal_temperature(self,value): self.set_value(1,value*10)
-    nominal_temperature = property(get_nominal_temperature,set_nominal_temperature)
+    nominal_temperature = parameter_property(1, scale_factor=10.0)
+    actual_temperature = parameter_property(9, scale_factor=10.0)
+    low_limit = parameter_property(6, scale_factor=10.0)
+    high_limit = parameter_property(7, scale_factor=10.0)
+
     VAL = nominal_temperature
-
-    @property
-    def actual_temperature(self):
-        """Temperature read value"""
-        debug("Getting actual temperature...")
-        value = self.get_value(9)/10.
-        if not isnan(value): debug("Actual temperature %r C" % value)
-        else: warn("Actual temperature unreadable")
-        return value
     RBV = actual_temperature
-
-    def get_low_limit(self):
-        """Not supported early firmware (serial number 1)"""
-        debug("Getting low limit...")
-        value = self.get_value(6)/10.
-        if not isnan(value): info("Low limit %r C" % value)
-        else: warn("Low limit unreadable (old firmware?)")
-        return value
-    def set_low_limit(self,value): self.set_value(6,value*10)
-    low_limit = property(get_low_limit,set_low_limit)
     LLM = low_limit
-
-    def get_high_limit(self):
-        """Not supported early firmware (serial number 1)"""
-        debug("Getting high limit...")
-        value = self.get_value(7)/10.
-        if not isnan(value): info("High limit %r C" % value)
-        else: warn("High limit unreadable (old firmware?)")
-        return value
-    def set_high_limit(self,value): self.set_value(7,value*10)
-    high_limit = property(get_high_limit,set_high_limit)
     HLM = high_limit
 
-
-    def get_PID(self):
-        """get PID parameters"""
-        from time import sleep
-        dic = {}
-        res_dic = {}
-        try:
-            dic['p1'] = ('\xd0',3)
-        except:
-            dic['p1'] = nan
-        try:
-            dic['i1'] = ('\xd1',3)
-        except:
-            dic['p1'] = nan
-        try:
-            dic['d1'] = ('\xd2',3)
-        except:
-            dic['p1'] = nan
-        try:
-            dic['p2'] = ('\xd3',3)
-        except:
-            dic['p1'] = nan
-        try:
-            dic['i2'] = ('\xd4',3)
-        except:
-            dic['p1'] = nan
-        try:
-            dic['d2'] = ('\xd5',3)
-        except:
-            dic['p1'] = nan
-        for key in dic.keys():
-            res = self.query(command = dic[key][0], count = dic[key][1])
-            if res is not nan:
-                res_dic[key] = unpack('H',res[1]+res[2])
-            else:
-                res = nan
-            sleep(0.1)
-        return res_dic
+    P1 = parameter_property(208, scale_factor=1.0)  # 16
+    I1 = parameter_property(209, scale_factor=1.0)  # 17
+    D1 = parameter_property(210, scale_factor=1.0)  # 18
+    P2 = parameter_property(211, scale_factor=1.0)  # 19
+    I2 = parameter_property(212, scale_factor=1.0)  # 20
+    D2 = parameter_property(213, scale_factor=1.0)  # 21
 
     def set_factory_PID(self):
-        pid_dic = {}
-        #factory settings: good settings
-        pid_dic['p1'] = 90
-        pid_dic['i1'] = 32
-        pid_dic['d1'] = 2
-        pid_dic['p2'] = 50
-        pid_dic['i2'] = 35
-        pid_dic['d2'] = 3
-        dic = {}
-        dic['p1'] = '\xf0'
-        dic['i1'] = '\xf1'
-        dic['d1'] = '\xf2'
-        dic['p2'] = '\xf3'
-        dic['i2'] = '\xf4'
-        dic['d2'] = '\xf5'
-        for key in pid_dic.keys():
-            byte_temp =  pack('h',round(pid_dic[key],0))
-            self.query(command = dic[key]+byte_temp,count = 1)
-            sleep(0.1)
-
-    def set_PID(self, pid_in = {}):
-        """
-        sets PID parameters.
-        input as dictionary with keys p1,i1,d1,p2,i2,d2
-        """
-        try:
-            dic = {}
-            dic['p1'] = '\xf0'
-            dic['i1'] = '\xf1'
-            dic['d1'] = '\xf2'
-            dic['p2'] = '\xf3'
-            dic['i2'] = '\xf4'
-            dic['d2'] = '\xf5'
-            for key in pid_in.keys():
-                byte_temp =  pack('h',round(pid_in[key],0))
-                self.query(command = dic[key]+byte_temp,count = 1)
-                sleep(0.1)
-        except:
-            error('Oasis driver set_PID wrong input dictionary structure')
+        """Reset PID parameters to factory settings"""
+        self.P1 = 90
+        self.I1 = 32
+        self.D1 = 2
+        self.P2 = 50
+        self.I2 = 35
+        self.D2 = 3
 
     @property
     def port_name(self):
         """Serial port name"""
-        if self.ser is None: value = ""
-        else: value = self.ser.name
+        if self.port is None:
+            value = ""
+        else:
+            value = self.port.name
         return value
+
     COMM = port_name
 
     @property
-    def connected(self): return self.ser is not None
+    def connected(self):
+        return self.port is not None
 
     @property
     def online(self):
-        if self.ser is None: self.init_communications()
-        online = self.ser is not None
-        if online: debug("Device online")
-        else: warn("Device offline")
+        if self.port is None:
+            self.discover_port()
+        online = self.port is not None
+        if online:
+            debug("Device online")
+        else:
+            warning("Device offline")
         return online
 
     @property
     def fault_code(self):
         """Report faults as number
-        bit 0: Tank Level Low
-        bit 2: Temperature above alarm range
-        bit 4: RTD Fault
-        bit 5: Pump Fault
-        bit 7: Temperature below alarm range
+        0: no fault
+        1: Tank Level Low
+        2: Temp above alarm range
+        5: RTD Fault
+        6: Pump Fault
+        8: Temp below alarm range
         """
-        from numpy import nan
-        debug("Getting faults...")
-        code = int("01001000",2)
-        command = pack('B',code)
-        reply = self.query(command,count=2)
-        fault_code = nan
-        # The reply is 0xC8 followed by a faults status byte.
-        if len(reply) != 2:
-            if len(reply)>0:
-                warn("%r: expecting 2-byte reply, got %r" % (command,reply))
-            elif self.connected:
-                warn("%r: expecting 2-byte reply, got no reply" % command)
-        else:
-            reply_code,fault_code = unpack('<BB',reply)
-            if reply_code != code:
-                warn("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
-                     (reply,code,bin(code),reply_code,bin(reply_code)))
-                fault_code = nan
-        if fault_code == 2.0**7:
+        fault_code = self.faults_byte
+        if fault_code == 2.0 ** 7:
             fault_code = 8
-        elif fault_code == 2.0**6:
+        elif fault_code == 2.0 ** 6:
             fault_code = 7
-        elif fault_code == 2.0**5:
+        elif fault_code == 2.0 ** 5:
             fault_code = 6
-        elif fault_code == 2.0**4:
+        elif fault_code == 2.0 ** 4:
             fault_code = 5
-        elif fault_code == 2.0**3:
+        elif fault_code == 2.0 ** 3:
             fault_code = 4
-        elif fault_code == 2.0**2:
+        elif fault_code == 2.0 ** 2:
             fault_code = 3
-        elif fault_code == 2.0**1:
+        elif fault_code == 2.0 ** 1:
             fault_code = 2
-        elif fault_code == 2.0**0:
+        elif fault_code == 2.0 ** 0:
             fault_code = 1
         elif fault_code == 0:
             fault_code = 0
@@ -398,75 +183,220 @@ class OasisChillerDriver(object):
     @property
     def faults(self):
         """Report list of faults as string"""
-        debug("Getting faults...")
-        code = int("01001000",2)
-        command = pack('B',code)
-        reply = self.query(command,count=2)
-        faults = " "
-        # The reply is 0xC8 followed by a faults status byte.
-        if len(reply) != 2:
-            if len(reply)>0:
-                warn("%r: expecting 2-byte reply, got %r" % (command,reply))
-            elif self.connected:
-                warn("%r: expecting 2-byte reply, got no reply" % command)
-        else:
-            reply_code,bits = unpack('<BB',reply)
-            if reply_code != code:
-                warn("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
-                     (reply,code,bin(code),reply_code,bin(reply_code)))
-            else:
-                fault_names = {0:"Tank Level Low",2:"Temperature above alarm range",
-                    4:"RTD Fault",5:"Pump Fault",7:"Temperature below alarm range"}
-                faults = ""
-                for i in range(0,8):
-                    if (bits >> i) & 1:
-                        if i in fault_names: faults += fault_names[i]+", "
-                        else: faults += str(i)+", "
-                faults = faults.strip(", ")
-                if faults == "": faults = "none"
+        from numpy import isnan
+
+        faults = ""
+        bits = self.faults_byte
+        if not isnan(bits):
+            for i in range(0, 8):
+                if (bits >> i) & 1:
+                    if i in self.fault_names:
+                        faults += self.fault_names[i] + ", "
+                    else:
+                        faults += str(i) + ", "
+            faults = faults.strip(", ")
+            if faults == "":
+                faults = "none"
+        if faults == "":
+            faults = " "
         debug("Faults %s" % faults)
         return faults
 
-    def get_value(self,parameter_number):
-        """Read a 16-bit value
-        parameter_number: 1-15 (1=set point, 6=low limit, 7=high limit, 9=coolant temp.)
+    fault_names = {
+        0: "Tank Level Low",
+        2: "Temp above alarm range",
+        4: "RTD Fault",
+        5: "Pump Fault",
+        7: "Temp below alarm range",
+    }
+
+    @property
+    def faults_byte(self):
+        return self.get_8bit_value(8)
+
+    def get_8bit_value(self, parameter_number):
+        """Read an 8-bit value
+        parameter_number: 0-255
+          8 = fault
         """
-        code = int("01000000",2) | parameter_number
-        command = pack('B',code)
-        reply = self.query(command = command,ser = self.ser,count=3)
+        from numpy import nan
+
+        code = int("01000000", 2) | parameter_number
+        command = pack('B', code)
+        reply = self.query(command, count=2)
+        # The reply is 0xC8 followed by a faults status byte.
+        count = nan
+        if len(reply) != 2:
+            if len(reply) > 0:
+                warning("%r: expecting 2-byte reply, got %r" % (command, reply))
+            elif self.connected:
+                warning("%r: expecting 2-byte reply, got no reply" % command)
+        else:
+            reply_code, count = unpack('<BB', reply)
+            if reply_code != code:
+                warning("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
+                        (reply, code, bin(code), reply_code, bin(reply_code)))
+                count = nan
+        return count
+
+    def get_16bit_value(self, parameter_number):
+        """Read a 16-bit value
+        parameter_number: 0-255
+          1=set point, 6=low limit, 7=high limit, 9=coolant temp.
+          208-213=PID parameter P1,I1,D1,P2,I2,D2
+        """
+        from struct import pack
+        from numpy import nan
+
+        code = int("01000000", 2) | parameter_number
+        command = pack('B', code)
+        reply = self.query(command, count=3)
         # The reply is 0xC1 followed by 1 16-bit binary count on little-endian byte
         # order. The count is the temperature in degrees Celsius, times 10.
         if len(reply) != 3:
-            if len(reply)>0:
-                warn("%r: expecting 3-byte reply, got %r" % (command,reply))
+            if len(reply) > 0:
+                warning("%r: expecting 3-byte reply, got %r" % (command, reply))
             elif self.connected:
-                warn("%r: expecting 3-byte reply, got no reply" % command)
+                warning("%r: expecting 3-byte reply, got no reply" % command)
             return nan
-        reply_code,count = unpack('<BH',reply)
+        reply_code, count = unpack('<BH', reply)
         if reply_code != code:
-            warn("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
-                 (reply,code,bin(code),reply_code,bin(reply_code)))
+            warning("reply %r: expecting 0x%X(%s), got 0x%X(%s)" %
+                    (reply, code, bin(code), reply_code, bin(reply_code)))
             return nan
         return count
 
-    def set_value(self,parameter_number,value):
+    def set_16bit_value(self, parameter_number, value):
         """Set a 16-bit value"""
-        code = int("01100000",2) | parameter_number
-        command = pack('<BH',code,int(rint(value)))
-        reply = self.query(command = command,ser = self.ser, count=1)
+        from numpy import rint
+        from struct import pack
+        code = int("01100000", 2) | parameter_number
+        command = pack('<BH', code, int(rint(value)))
+        reply = self.query(command, count=1)
         if len(reply) != 1:
-            warn("expecting 1, got %d bytes" % len(reply)); return
-        reply_code, = unpack('B',reply)
-        if reply_code != code: warn("expecting 0x%X, got 0x%X" % (code,reply_code))
+            warning("expecting 1, got %d bytes" % len(reply))
+            return
+        reply_code, = unpack('B', reply)
+        if reply_code != code:
+            warning("expecting 0x%X, got 0x%X" % (code, reply_code))
+
+    def query(self, command, count=1):
+        """Send a command to the controller and return the reply"""
+        with self.__lock__:  # multithreading safe
+            for i in range(0, 2):
+                try:
+                    reply = self.__query__(command, count)
+                except Exception as msg:
+                    warning("query: %r: attempt %s/2: %s" % (command, i + 1, msg))
+                    reply = ""
+                if reply:
+                    return reply
+                self.discover_port()
+            return reply
+
+    def __query__(self, command, count=1):
+        """Send a command to the controller and return the reply"""
+        from time import time
+        from sleep import sleep
+        sleep(self.last_reply_time + self.wait_time - time())
+        self.write(command)
+        reply = self.read(count=count)
+        self.last_reply_time = time()
+        return reply
+
+    def flush(self):
+        if self.port is not None:
+            self.port.flushInput()
+            self.port.flushOutput()
+
+    def write(self, command):
+        """Send a command to the controller"""
+        if self.port is not None:
+            self.flush()
+            self.port.write(command)
+            debug("%s: Sent %r" % (self.port.name, command))
+
+    def read(self, count=None, port=None):
+        """Read a reply from the controller,
+        terminated with the given terminator string"""
+        # debug("read count=%r,port=%r" % (count,port))
+        if port is None:
+            port = self.port
+        if port is not None:
+            # print("in wait:" + str(self.port.inWaiting()))
+            debug("Trying to read %r bytes from %s..." % (count, port.name))
+            port.timeout = self.timeout
+            reply = port.read(count)
+            debug("%s: Read %r" % (port.name, reply))
+        else:
+            reply = ""
+        return reply
+
+    discover_time = 0
+
+    def discover_port(self):
+        """To do before communicating with the controller"""
+        from serial_ports import serial_ports
+        from serial import Serial
+        from time import time
+
+        if self.port is not None:
+            try:
+                info("Checking whether device is still responsive...")
+                self.port.write(self.id_query)
+                debug("%s: Sent %r" % (self.port.name, self.id_query))
+                reply = self.read(count=self.id_reply_length)
+                if not self.id_reply_valid(reply):
+                    debug("%s: %r: invalid reply %r" % (self.port.name, self.id_query, reply))
+                    info("%s: lost connection" % self.port.name)
+                    self.port = None
+                else:
+                    info("Device is still responsive.")
+            except Exception as msg:
+                debug("%s: %s" % (Exception, msg))
+                self.port = None
+
+        if self.port is None:
+            if time() - self.discover_time > 1.0:
+                for port_name in serial_ports():
+                    debug(f"Trying port {port_name}...")
+                    try:
+                        port = Serial(port_name)
+                        try:
+                            port.baudrate = self.baudrate
+                        except OSError as x:
+                            warning(f"{port_name}: Baud rate {self.baudrate}: {x}")
+                        port.timeout = self.timeout
+                        port.write(self.id_query)
+                        debug("%s: Sent %r" % (port.name, self.id_query))
+                        reply = self.read(count=self.id_reply_length, port=port)
+                        if self.id_reply_valid(reply):
+                            self.port = port
+                            info("Discovered device at %s based on reply %r" % (self.port.name, reply))
+                            break
+                    except Exception as x:
+                        debug(f"{x}")
+                    if self.port is not None:
+                        break
+                    self.discover_time = time()
 
 
-driver = OasisChillerDriver()
+oasis_chiller_driver = Oasis_Chiller_Driver()
 
 
-
-if __name__ == "__main__": # for testing
+if __name__ == "__main__":
     import logging
-    from time import sleep, time
-    logging.basicConfig(level=logging.INFO,
-        format="%(asctime)s %(levelname)s: %(message)s")
-    self = driver #for debugging
+
+    msg_format = "%(asctime)s %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.DEBUG, format=msg_format)
+
+    self = oasis_chiller_driver  # for debugging
+    print('self.discover_port()')
+    print("self.port_name")
+    print("self.nominal_temperature = 40")
+    print("self.nominal_temperature = 5")
+    print("self.actual_temperature")
+    print("self.low_limit")
+    print("self.high_limit")
+    print("self.fault_code")
+    print("self.faults")

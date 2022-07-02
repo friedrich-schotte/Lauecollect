@@ -1,0 +1,4 @@
+description = 'Horiz. mirror jack 2'
+prefix = '14IDC:m13'
+target = -0.0073741894531251136
+EPICS_enabled = True

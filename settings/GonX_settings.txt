@@ -1,0 +1,7 @@
+prefix = '14IDB:m152'
+description = 'Alio X'
+target = -0.08
+EPICS_enabled = True
+max_dial = 6.0
+min_dial = -5.5
+speed = 5.0

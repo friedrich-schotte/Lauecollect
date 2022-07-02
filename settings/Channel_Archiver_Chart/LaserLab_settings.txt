@@ -1,0 +1,4 @@
+PV_name = 'BigBox:RH'
+show_latest = True
+center_time = 1595796462.0330102
+time_window = 21600.0

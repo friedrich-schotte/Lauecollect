@@ -320,7 +320,7 @@ class TimingChart (wx.Frame):
         """
         from os.path import basename,dirname
         dlg = wx.FileDialog(self,"Select Logfile",
-            style=wx.SAVE,
+            style=wx.FD_SAVE,
             defaultFile=basename(self.logfile),defaultDir=dirname(self.logfile),
             wildcard="Text files (*.txt;*.log)|*.txt;*.log|"
             "All Files (*.*)|*.*")
@@ -594,7 +594,7 @@ def mtime(filename):
 def main():
     global app,win
     start_new_thread (measure,())
-    app = wx.PySimpleApp(0)
+    app = wx.App(0)
     win = TimingChart()
     app.MainLoop()
     

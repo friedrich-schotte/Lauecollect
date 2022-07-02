@@ -1,0 +1,23 @@
+delay = ''
+description = 'X-ray 36um (H) x 39um (V), Flythru-24, 15-bunches'
+finish_series = False
+finish_series_variable = 'Delay'
+basename = 'Test-1'
+power = ''
+temperature_wait = 1.0
+temperature_idle = 22.0
+temperature = 'ramp(low=20,high=24,step=0.5,hold=2,repeat=1)'
+scan_points = ''
+scan_return = 1.0
+scan_relative = 1.0
+scan_motor = ''
+temperatures = ''
+collection_order = 'Repeat=200'
+cancelled = False
+directory = '/net/mx340hs/data/pub/Rob/Alio/Alio-17'
+diagnostics = 'ring_current, bunch_current, temperature'
+logfile_basename = 'Test-1.log'
+scan_origin = -0.84
+detector_configuration = 'xray_detector, xray_scope.C1, laser_scope.C4'
+__n_collect__ = 24
+scan_period = 3600

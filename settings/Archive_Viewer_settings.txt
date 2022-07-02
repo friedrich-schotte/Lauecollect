@@ -1,0 +1,3 @@
+BioCARS.CustomView = None
+LaserLab.CustomView = None
+LaserLab.view = 'Standard'

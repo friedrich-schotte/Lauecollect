@@ -1,0 +1,2 @@
+axis1.speed = 1.0
+axis1.target = 1.0

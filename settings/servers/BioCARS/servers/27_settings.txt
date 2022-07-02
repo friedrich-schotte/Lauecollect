@@ -1,0 +1,10 @@
+auto_start = True
+command = "from lecroy_scope_server import *; run_server( 'timing_scope')"
+format_code = '"IOC offline" if value is None else "Offline" if isnan(value) else "Online"'
+label = 'Timing Scope Server'
+log_level = 'INFO'
+logfile_basename = 'timing_scope_server'
+machine_name = 'ID14B-TSCOPE'
+mnemonic = 'timing_scope'
+test_code = 'value is not None'
+value_code = 'caget("NIH:TIMING_SCOPE.ACQUIRING_WAVEFORMS")'

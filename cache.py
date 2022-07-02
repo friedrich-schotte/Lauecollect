@@ -1,32 +1,40 @@
 """Caching
 Author: Friedrich Schotte
 Date created: 2018-10-24
-Date last modified: 2018-10-31
+Date last modified: 2020-06-30
+Revision comment: Fixed: Issue: line 221, in makedirs: File exists
 """
-__version__ = "1.0.1" # only update file if changed
+__version__ = "1.0.4"
 
-from logging import debug,info,warn,error
+from logging import debug, info, warning, error
+from traceback import format_exc
 
 class Cache(object):
     def __init__(self,name="cache"):
         self.name = name
         
     def set(self,key,data):
-        """Temporarily store binary data for fast restreival
+        """Temporarily store binary data for fast retrieval
         key: string"""
         if data != self.get(key) or not self.exists(key):
-            from os.path import exists,dirname
-            from os import makedirs
             filename = self.filename(key)
-            if not exists(dirname(filename)): makedirs(dirname(filename))
-            try: file(filename,"wb").write(data)
-            except Exception,msg: warn("%s: %s" % (filename,msg))
+            from os.path import dirname,exists
+            directory = dirname(filename)
+            if not exists(directory): 
+                from os import makedirs
+                try: makedirs(directory)
+                except:
+                    if not exists(directory):
+                        warning("%s" % format_exc())
+            if exists(directory): 
+                try: open(filename,"wb").write(data)
+                except: warning("%s" % format_exc())
 
     def get(self,key):
         """Retreive temporarily stored binary data
         key: string"""
         filename = self.filename(key)
-        try: data = file(filename,"rb").read()
+        try: data = open(filename,"rb").read()
         except: data = ""
         return data
 

@@ -1,6 +1,0 @@
-CH2.temperature.filename = '//mx340hs/data/anfinrud_1903/Archive/NIH.DI245.CH2.temperature.txt'
-CH4.temperature.filename = '//mx340hs/data/anfinrud_1903/Archive/NIH.DI245.CH4.temperature.txt'
-pressure_upstream.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.DI245.pressure_upstream.txt'
-pressure_downstream.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.DI245.pressure_downstream.txt'
-temperature_hutch.filename = '//mx340hs/data/anfinrud_1906/Archive/NIH.DI245.temperature_hutch.txt'
-pressure_barometric.filename = '/net/mx340hs/data/anfinrud_1906/Archive/NIH.DI245.pressure_barometric.txt'

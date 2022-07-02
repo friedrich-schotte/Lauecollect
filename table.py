@@ -1,21 +1,26 @@
 """The 'table' class is to work with multi-column formatted ASCII files.
 It provides a record array interface.
-Friedrich Schotte, 22 Aug 2009 - 3 Aug 2017
+Author: Friedrich Schotte
+Date created: 2009-08-22
+Date last modified: 2021-05-06
+Revision comment: Fixed: Issue: numpy 1.20 compatbility: isinstance(x.dtype, dtype)
 """
 from __future__ import division # int/int = float
-from numpy import recarray
-from logging import debug
+from logging import debug,info,warning,error
+
+__version__ = "6.9.12" 
+
 try: from status import status
 except ImportError:
     def status(*args): pass
 try: from collections import OrderedDict
 except ImportError: OrderedDict = dict
 
-__version__ = "6.9.9" # dtype: numpy.dtype, recarray.__getattribute__
-
 # Data members of 'table' in addition to recarray.
 attributes = ["filename","separator","format","unitcell","info",
               "file_timestamp","filesize","default_dtype"]
+
+from numpy import recarray
 
 class table(recarray):
     """Extension of record array with easier to use API."""
@@ -112,13 +117,13 @@ class table(recarray):
         Floating point valued columns are initialized to with NaNs,
         integer valued columns with zeros."""
         ##debug("reset(self,rows=%r,columns=%r,dtype=%r)" % (rows,columns,dtype))
-        from numpy import array,product,nan,int8
+        from numpy import product,int8
         import numpy # for numpy.dtype
 
         if columns is not None and dtype is not None:
-            dtype = zip(columns,[dtype]*len(columns))
+            dtype = list(zip(columns,[dtype]*len(columns)))
         if columns is not None and dtype is None:
-            dtype = zip(columns,[float]*len(columns))
+            dtype = list(zip(columns,[float]*len(columns)))
         if dtype is None or dtype == []: dtype = [("__dummy__",float)]
         ##debug("reset: rows=%r, dtype=%r" % (rows,dtype))
         # The data type can only be changed safely when the size is zero.
@@ -146,7 +151,7 @@ class table(recarray):
         If the new size is larger than the current, missing values are filled
         with NaNs, in the case of floating point values, or zeros in the
         case of integer values"""
-        from numpy import atleast_1d,all,minimum,maximum,indices
+        from numpy import atleast_1d,all,minimum,indices
         shape = tuple(atleast_1d(shape))
         if all(self.shape == shape): return
         ##debug("resize: resizing from %r to %r" % (self.shape,shape))
@@ -205,7 +210,7 @@ class table(recarray):
         elif format in ["PICKLE","PKL"]: self.read_pickle(filename)
         elif format in ["TEXT","TXT"]: self.read_text(filename,separator)
         else:
-            print "%s: Unknown format %r. Assuming text" % (filename,format)
+            error("%s: Unknown format %r. Assuming text" % (filename,format))
             self.read_text(filename,separator)
 
     def read_multifile(self,filenames,format="",separator=None):
@@ -227,8 +232,7 @@ class table(recarray):
     @staticmethod
     def guess_format(filename):
         "Try to guess the map file format based in extension of the file name"
-        from os.path import basename,splitext
-        name = basename(filename)
+        from os.path import splitext
         ext = splitext(filename)[1].lower()
         if ext in [".mtz"]: return "MTZ"
         if ext in [".cif","mmcif"]: return "CIF"
@@ -243,7 +247,7 @@ class table(recarray):
         """Read a file in HDF5 format."""
         import tables
         h5file = tables.openFile(filename)
-        columns = h5file.root._v_children.keys()
+        columns = list(h5file.root._v_children.keys())
         data = {}
         for column in columns: data[column] = h5file.getNode("/"+column)
         dtype = [(column,data[column].dtype) for column in columns]
@@ -265,14 +269,14 @@ class table(recarray):
         # by "write_NetCDF" to preserve the order of the columns,
         # which is not preserved in 'f.variables.keys()'
         if hasattr(f,"columns"): columns = f.columns.split(",")
-        else: columns = f.variables.keys()
+        else: columns = list(f.variables.keys())
         data = {}
         for column in columns: data[column] = f.variables[column].data
         shape = data[columns[0]].shape
         types = [data[column].dtype for column in columns]
         # Ignore byte order ("<" = little endian, ">" = big endian) in data type
         types = [type.descr[0][1].strip("><") for type in types]
-        dtype = zip(columns,types)
+        dtype = list(zip(columns,types))
         self.reset(dtype=dtype,rows=shape)
         for column in columns: self[column] = data[column]
         self.filename = filename
@@ -287,7 +291,7 @@ class table(recarray):
         columns = [str(column).strip() for column in mdict["columns"]]
         rows = mdict[columns[0]].shape
         types = [mdict[column].dtype for column in columns]
-        self.reset(rows=rows,dtype=zip(columns,types))
+        self.reset(rows=rows,dtype=list(zip(columns,types)))
         for column in columns: self[column] = mdict[column]
         self.filename = filename
         self.format = "MATLAB"
@@ -314,8 +318,7 @@ class table(recarray):
         The values are converted to numeric if possible, otherwise returned as
         strings."""
         ##debug("Reading file")
-        import codecs
-        text = codecs.open(filename,encoding="utf-8",mode="rb").read()
+        text = open(filename).read()
         self.fromtext(text,separator=separator)
         self.filename = filename
         self.format = "text"
@@ -385,7 +388,7 @@ class table(recarray):
         elif format in ["TEXT","TXT"]: self.save_text(filename)
         elif format in ["NETCDF","NC"]: self.save_NetCDF(filename)
         else:
-            print "%s: Unknown format %r. Generating text file" % (filename,format)
+            error("%s: Unknown format %r. Generating text file" % (filename,format))
             self.save_text(filename)
             
     write = save # Make "write" an alias for "save".
@@ -470,14 +473,14 @@ class table(recarray):
         text = self.astext
         # Update the file only if needed. This way, the file_timestamp does not change
         # when the contents of the file remains unchanged.
-        try: file_content = file(filename).read()
+        try: file_content = open(filename).read()
         except IOError: file_content = None
         if text != file_content:
             # Write formatted text to file.
             # Make sure not to leave the file in an "unfinished" state at
             # any time.
             self.makedir(filename)
-            file(filename+".tmp","wb").write(text)
+            open(filename+".tmp","wb").write(text)
             from os import rename,remove; from os.path import exists
             if exists(filename): remove(filename)
             rename(filename+".tmp",filename)
@@ -498,7 +501,7 @@ class table(recarray):
         """Convert a tab or space-separated multicolumn formatted test
         to a 'table' object, replacing the current contents of the table.
         """
-        from numpy import nan,inf,isnan,isinf,array,float32,float64,int32,int16,int8
+        from numpy import nan,inf,array,int16,int8
 
         ##debug("Splitting into lines")
         lines = UNIX_text(text).split("\n")
@@ -521,15 +524,15 @@ class table(recarray):
 
         # Second pass: Read data
         ##debug("Text to binary: pass 2")
-        info = OrderedDict()
+        info_dict = OrderedDict()
         for line in lines:
             if line == header_line:
                 pass # skip header line
             elif line.startswith("#"):
                 # Interpret comment lines as key/value pairs to be put into
-                # the table's info dictionary.
+                # the table's info_dict dictionary.
                 # '# input_dir: "//Femto/C/Data/2010.02"'
-                # -> info["input_dir"] = "//Femto/C/Data/2010.02"
+                # -> info_dict["input_dir"] = "//Femto/C/Data/2010.02"
                 comment = line[1:].strip()
                 if ":" in comment: n = comment.find(":")
                 elif "=" in comment: n = comment.find("")
@@ -537,23 +540,23 @@ class table(recarray):
                 keyword,value = comment[0:n].strip(),comment[n+1:].strip()
                 try: value = eval(value)
                 except: pass
-                if keyword: info[keyword] = value
+                if keyword: info_dict[keyword] = value
             elif line == "": pass # skip empty lines
             else:
                 fields = split(line,separator)
                 for col in range(0,Ncol):
                     try: val = fields[col]
                     except IndexError: val = ""
-                    if isinstance(val,unicode):
+                    if isstring(val) and type(val) != str:
                         try: val = str(val)
                         except UnicodeEncodeError: pass
-                    if isinstance(val,basestring):
+                    if isstring(val):
                         try: val = int(val)
                         except ValueError: pass
-                    if isinstance(val,basestring):
+                    if isstring(val):
                         try: val = float(val)
                         except ValueError: pass
-                    if isinstance(val,basestring):
+                    if isstring(val):
                         if val in ("NaN","nan","-1.#IND","N.A."): val = nan
                         elif val in ("Inf","inf","1.#INF"): val = inf
                         elif val in ("-Inf","-inf","-1.#INF"): val = -inf
@@ -585,8 +588,9 @@ class table(recarray):
                 labels[i] = (labels[i],asstr(labels[i]))
             else: labels[i] = asstr(labels[i])
         
-        self.reset(rows=Nrow,dtype=zip(labels,types))
-        self.info = info
+        dtype = list(zip(labels,types))
+        self.reset(rows=Nrow,dtype=dtype)
+        self.info = info_dict
         for col in range(0,Ncol): self[labels[col]] = data[col]
 
         self.to2D()
@@ -612,7 +616,7 @@ class table(recarray):
         shape = max(indices)+1,self.rows
         indices0 = [where(columns == col)[0][0] for col in unique(columns)]
         dtypes = [self[columns[i]].dtype for i in indices0]
-        dtype = zip(unique(columns),dtypes)
+        dtype = list(zip(unique(columns),dtypes))
         data = table(dtype=dtype,shape=shape)
         for i in range(0,len(self.columns)):
             if indices[i] >= 0:
@@ -625,12 +629,11 @@ class table(recarray):
         if self.ndim > 1: return self.to_text_2D()
         if len(self.columns) == 0: return ""
         
-        from numpy import isnan,isinf
         text = ""
         # Generate info header
         for keyword in self.info:
             value = self.info[keyword]
-            if not isinstance(value,basestring): value = repr(value)
+            if not isstring(value): value = repr(value)
             if value != "": text += "# %s: %s\n" % (keyword,value)
             else: text += "# %s\n" % keyword
         # Generate column header line.
@@ -650,7 +653,6 @@ class table(recarray):
         
     def to_text_2D(self):
         """Convert to formatted text, as tab-separated columns"""
-        from numpy import isnan,isinf
         text = ""
         # Generate info header
         for keyword in self.info:
@@ -687,7 +689,7 @@ class table(recarray):
 
     def add_columns(self,names,values=None,dtypes=None):
         """Append a new column to the table."""
-        from numpy import asarray,array,copy,nan,issubdtype
+        from numpy import asarray,array
         import numpy
         from collections import OrderedDict
 
@@ -710,7 +712,7 @@ class table(recarray):
         if len(new_dtype) > 1: # Remove dummy column if present.
             if "__dummy__" in new_dtype: del new_dtype["__dummy__"]
 
-        new_dtype = numpy.dtype(zip(new_dtype.keys(),new_dtype.values()))
+        new_dtype = numpy.dtype(list(new_dtype.items()))
 
         if new_dtype != self.dtype: 
             # Save content, change size, restore content.
@@ -775,7 +777,7 @@ class table(recarray):
         dtypes = array(self.dtype.descr)[:,1]
         n = min(len(labels),len(new_labels))
         labels[0:n] = new_labels[0:n]
-        self.dtype = zip(labels,dtypes)
+        self.dtype = list(zip(labels,dtypes))
     columns = property(get_columns,set_columns)
 
     def has_column(self,name):
@@ -828,7 +830,7 @@ class table(recarray):
         """name: column label"""
         ##debug("assign_column(%r,%r)" % (name,value))
         self.add_column(name,dtype=array_dtype(value))
-        from numpy import atleast_1d,asanyarray
+        from numpy import atleast_1d
         value = atleast_1d(value)
         table_shape,value_shape = common_shape(self.shape,value.shape)
         value = resize_array(value,value_shape)
@@ -874,12 +876,7 @@ class table(recarray):
         if is_string_array(item): self.assign_columns(item,value); return
         self.make_dtype_compatible(value)
         value = make_dtype_compatible(value,self)
-        try: recarray.__setitem__(self,item,value); return
-        except IndexError,exception: extype = IndexError # data[["H","K","L"]]
-        except ValueError,exception: extype = ValueError # data["H","K","L"]
-        ##debug("recarray.__setitem__: %s: %s" % (extype,exception))
-        # Handle cases 'data[["H","K","L"]] = ...' and 'data["H","K","L"] = ...'
-        raise extype,exception
+        recarray.__setitem__(self,item,value); return
 
     def __getitem__(self,item):
         """Called when 'table[item]' is used.
@@ -890,23 +887,23 @@ class table(recarray):
         # e.g. "H","K","L".
         if is_string_array(item): return self.subtable(item)
         try: return adjust_type(recarray.__getitem__(self,item))
-        except ValueError,exception: pass
-        if isstring(item):
-            # Allow data["phi"] for data["phi[deg]"].
-            for column_name in self.columns:
-                if matches(item,column_name):
-                    ##debug("%r matches %r" % (item,column_name))
-                    return self[column_name]
-            # Allow data["H,K,L"] -> 3 x Ncol array
-            if "," in item:
-                names = item.split(",")
-                from numpy import array 
-                return array([self[n] for n in names])
-            # Was the intent to add a new column?
-            return self.new_column(self,item)
-        # Allow data["H","K","L"] -> table with columns "H","K","L"
-        if is_string_array(item): return self.subtable(item)
-        raise ValueError,exception
+        except ValueError: 
+            if isstring(item):
+                # Allow data["phi"] for data["phi[deg]"].
+                for column_name in self.columns:
+                    if matches(item,column_name):
+                        ##debug("%r matches %r" % (item,column_name))
+                        return self[column_name]
+                # Allow data["H,K,L"] -> 3 x Ncol array
+                if "," in item:
+                    names = item.split(",")
+                    from numpy import array 
+                    return array([self[n] for n in names])
+                # Was the intent to add a new column?
+                return self.new_column(self,item)
+            # Allow data["H","K","L"] -> table with columns "H","K","L"
+            if is_string_array(item): return self.subtable(item)
+            raise
 
     def __delitem__(self,item):
         """Called when 'del table[item]' is used.
@@ -1005,7 +1002,7 @@ def split(s,separator=None):
 def isarray(x):
     """Is x an array-like object? numpy array, list or tuple"""
     if not hasattr(x,"__len__"): return False
-    if issubclass(type(x),basestring): return False
+    if isstring(x): return False
     return True
 
 def is_string_array(x):
@@ -1027,7 +1024,8 @@ def array_dtype(a):
 
 def isstring(x):
     """Is x a string type or unicode string type object?"""
-    return issubclass(type(x),basestring)
+    string_types = type(''),type(u''),type(b'')
+    return isinstance(x,string_types)
 
 def istable(x):
     """Is x a string type or unicode string type object?"""
@@ -1038,9 +1036,11 @@ def adjust_type(x):
     """Convert array of strings to 'chararray' (as table.name would return.)
     and record arrays to table objects."""
     ##debug("adjust_type: type(x) = %r" % type(x))
-    from numpy import issubdtype,chararray,ndarray
+    from numpy import issubdtype,dtype,chararray,ndarray
     # Make sure that coloumns containing strings are returned as chararray.
-    if hasattr(x,"dtype") and issubdtype(x.dtype,str): x = x.view(chararray)
+    if hasattr(x,"dtype") and isinstance(x.dtype, dtype):
+        if issubdtype(x.dtype,dtype(str).type): 
+            x = x.view(chararray)
     # Convert record arrays to "table" objects.
     if type(x) == ndarray and x.dtype.descr[0][0] != "": x = x.view(table)
     return x
@@ -1059,7 +1059,7 @@ def matches(name,column_name):
 
 def make_shape_compatible(array,shape):
     """Resize array so that it cam be broadcast to the shape 'shape'"""
-    from numpy import ndarray,nan
+    from numpy import ndarray
     old_shape = array.shape
     new_shape = compatible_shape(array.shape,shape)
     new_array = ndarray(new_shape,array.dtype)
@@ -1182,8 +1182,7 @@ def common_dtypes(tables_in):
             dtype = table_in[column].dtype
             if not column in dtype_dict: dtype_dict[column] = dtype
             else: dtype_dict[column] = common_dtype(dtype_dict[column],dtype)
-    columns,dtypes = dtype_dict.keys(),dtype_dict.values()
-    dtype = zip(columns,dtypes)
+    dtype = list(dtype_dict.items())
     return dtype
 
 def common_dtype(dtype1,dtype2):
@@ -1226,8 +1225,8 @@ def samerow(a):
 
 def tostr(value):
     """Convert value to a string in a portable, system-independent way"""
-    from numpy import isnan,isinf,isinf
-    if isinstance(value,basestring): return value
+    from numpy import isnan,isinf
+    if isstring(value): return value
     elif isnan(value): return "nan"
     elif isinf(value) and value>0: return "inf"
     elif isinf(value) and value<0: return "-inf"
@@ -1235,8 +1234,8 @@ def tostr(value):
 
 def asstr(value):
     """Represent a unicode string as a UTF-8 encoded 8-bit string"""
-    import codecs
-    return codecs.encode(value,"utf-8")
+    if type(value) != str: value = value.encode("utf-8")
+    return value
 
 def UNIX_text(text):
     """Convert line breaks from DOS/Windows or Macintosh to UNIX convention.
@@ -1275,11 +1274,11 @@ def filesize(filename):
 if __name__ == "__main__": # example for testing
     import logging; logging.basicConfig(level=logging.DEBUG)
     from pdb import pm
-    filename = "//Femto/C/All Projects/APS/Experiments/2013.03/Analysis/Laue/"\
+    print('self = table(columns=["a","b"],data=[[0.],["x"]])')
+    filename = "/net/femto/C/All Projects/APS/Experiments/2013.03/Analysis/Laue/"\
         "PYP/PYP-E46Q-H/PYP-E46Q-H1-288K/PYP-E46Q-H1-288K.log"
-    from configurations import parameters
-    self = table(text=parameters)
-    name = "choices"
-    ##print('data = table(filename,separator="\\t")')
-    print('self[%r]' % name)
-    print('self.%s' % name)
+    print('from os.path import exists; exists(filename)')
+    print('self = table(filename,separator="\\t")')
+    print('from configurations import parameters')
+    print('self = table(text=parameters)')
+    print('self.choices')

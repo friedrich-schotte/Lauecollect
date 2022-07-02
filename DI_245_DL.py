@@ -1,10 +1,7 @@
-# encoding=utf8
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 Hybrid EPICS IOC / direct TCP server for DATAQ 245 device.
-
-
-
-
 
 Four-channel USB Voltage and Thermocouple DAQ,
 Resolution: 14-bit
@@ -59,7 +56,10 @@ Commands:
                command.
 "\0S0"         Stop the scanning processes
 
-Valentyn Stadnytskyi Nov 2017
+Author: Valentyn Stadnytskyi
+Date created: 2017-11-01
+Date last modified: 2020-01-16
+Revision comment: F. Schotte: DataBase requires root = 'TEMP' (was '$TEMPDIR')
 """
 
 from numpy import concatenate,zeros,mean,std,uint16, nan
@@ -71,12 +71,14 @@ import os.path
 from pdb import pm
 from struct import unpack as struct_unpack
 import logging
-from logging import error,warn,info,debug
-import circular_buffer_LL
+from logging import error,warning,info,debug
+from circular_buffer_numpy.circular_buffer import CircularBuffer
 from CAServer import casput,casget, casmonitor
-from DI_245_driver import di245_driver
-from persistent_property import persistent_property
-from thread import start_new_thread
+from dataq_di_245 import Driver
+#from persistent_property import persistent_property
+from ubcs_auxiliary.saved_property import DataBase, SavedProperty
+from ubcs_auxiliary.threading import new_thread
+
 
 
 import msgpack
@@ -84,25 +86,38 @@ import msgpack_numpy as m
 
 from socket import *
 
-__version__ = '1.0.7' # Friedrich Schotte: logfile directory
-__date__ = "05-29-19"
+__version__ = '1.0.8'
+__date__ = "2020-01-16"
 
 class DI245_DL(object):
-    prefix = persistent_property('prefix', 'NIH:DI245')
-    scan_lst = persistent_property('scan_lst', [])
-    phys_ch_lst = persistent_property('phys_ch_lst', [])
-    gain_lst = persistent_property('gain_lst', [])
-    RingBuffer_size = persistent_property('RingBuffer_size', 0)
-    calib = persistent_property('calib', [])
-    time_out = persistent_property('time_out', 0)
-    cjc_value = persistent_property('cjc_value', '')
-    SN = persistent_property('SN', '')
-    socket = persistent_property('socket', ['',''])
-    type_def = persistent_property('type_def', '')
-    broadcast_period = persistent_property('broadcast_period', 10.0)
+    db = DataBase(root = 'TEMP', name = 'DI245_IOC')
+    prefix = SavedProperty(db,'prefix', 'NIH:DI245').init()
+    scan_lst = SavedProperty(db,'scan_lst', ['0','1','2','3']).init()
+    phys_ch_lst = SavedProperty(db,'phys_ch_lst', ['0','1','2','3']).init()
+    gain_lst = SavedProperty(db,'gain_lst', ['5','5','5','5']).init()
+    RingBuffer_size = SavedProperty(db,'RingBuffer_size', 4320000).init()
+    calib = SavedProperty(db,'calib',  [0.559, 2.7, 3.2, -1.2, 0]).init()
+    time_out = SavedProperty(db,'time_out', 0).init()
+    cjc_value = SavedProperty(db,'cjc_value', '').init()
+    SN = SavedProperty(db,'SN', '').init()
+    socket = SavedProperty(db,'socket', ['128.231.5.82', 2032]).init()
+    type_def = SavedProperty(db,'type_def', '').init()
+    broadcast_period = SavedProperty(db,'broadcast_period', 10.0).init()
+##    prefix = persistent_property('prefix', 'NIH:DI245')
+##    scan_lst = persistent_property('scan_lst', ['0','1','2','3'])
+##    phys_ch_lst = persistent_property('phys_ch_lst', ['0','1','2','3'])
+##    gain_lst = persistent_property('gain_lst', ['5','5','5','T-thrmc'])
+##    RingBuffer_size = persistent_property('RingBuffer_size', 0)
+##    calib = persistent_property('calib', [])
+##    time_out = persistent_property('time_out', 0)
+##    cjc_value = persistent_property('cjc_value', '')
+##    SN = persistent_property('SN', '')
+##    socket = persistent_property('socket', ['',''])
+##    type_def = persistent_property('type_def', '')
+##    broadcast_period = persistent_property('broadcast_period', 10.0)
 
-    def __init__(self):
-        self.name = 'DI245_syringe_tower'
+    def __init__(self, name = 'DI245_syringe_tower'):
+        self.name = name
         self.CA_update_t = 0.3
 
 
@@ -137,6 +152,8 @@ class DI245_DL(object):
             except Exception as e:
                 i+=1
                 error(e)
+                if i ==10:
+                    flag=False
         self.server_command_dict = {}
         self.server_command_dict[-2] = '-2:dev_info(in: None, out: dict)'
         self.server_command_dict[-1] = '-1:type_def(in:None, out: dict)'
@@ -155,7 +172,7 @@ class DI245_DL(object):
         self._run()
 
     def _run(self):
-        start_new_thread(self._server_thread,())
+        new_thread(self._server_thread)
 
     def _server_thread(self):
         """
@@ -194,15 +211,15 @@ class DI245_DL(object):
                 self._send([msg_in[0],time(),'broadcast on demand request executed',-1])
                 self.broadcast(method = "on demand")
             elif msg_in[0] == 3:
-                self._send([msg_in[0],time(),np.mean(self.circular_buffer.get_last_N(N = int(msg_in[1])),axis = 1),
-                            np.std(self.circular_buffer.get_last_N(N = int(msg_in[1])), axis = 1)])
+                self._send([msg_in[0],time(),np.mean(self.circular_buffer.get_last_N(N = int(msg_in[1])),axis = 0),
+                            np.std(self.circular_buffer.get_last_N(N = int(msg_in[1])), axis = 0)])
             elif msg_in[0] == 4:
                 self._send([msg_in[0],time(),pointer_temp,self.circular_buffer.get_all()])
             elif msg_in[0] == 5 and msg_in[1] != '':
                 if pointer_temp>msg_in[1]:
                     temp_n = pointer_temp-msg_in[1]
                 else:
-                    temp_n = self.circular_buffer.size[1]+pointer_temp-msg_in[1]
+                    temp_n = self.circular_buffer.length+pointer_temp-msg_in[1]
                 self._send([msg_in[0],time(),pointer_temp,self.circular_buffer.get_last_N(N = temp_n)])
             elif msg_in[0] == 6:
                 dev.set_calib()
@@ -273,7 +290,7 @@ class DI245_DL(object):
         casdel(self.prefix+'.SOCKET')
 
     def init(self,SN = 1):
-        self.dev = di245_driver
+        self.driver = Driver()
 
         if self.find_device():
             self.connect_device(0)
@@ -287,7 +304,7 @@ class DI245_DL(object):
             self.info_dict['calib'] = self.calib
             self.info_dict['time_out'] = self.time_out
             self.info_dict['cjc_value'] = self.cjc_value
-            self.info_dict['SN'] = self.SN
+            self.info_dict['SN'] = self.driver.description['Serial Number']
             try:
                 self.info_dict['socket'] = [gethostbyname(gethostname()),self.socket_port]
             except:
@@ -303,7 +320,7 @@ class DI245_DL(object):
 
     def stop(self):
         self.full_stop()
-        del self.dev
+        del self.driver
 
     def setup_first_time(self):
         #self.SN = '57D81C13'
@@ -316,7 +333,7 @@ class DI245_DL(object):
         self.calib = [0.025,0,0.025,0,0] # [scale_up, offset_up, scale_down, offset_down, time] 50 mV per atm factory setting
 
     def find_device(self):
-        self.available_ports = di245_driver.find_com_port()
+        self.available_ports = self.driver.available_ports
         if len(self.available_ports) != 0:
             reply = True
         else:
@@ -325,7 +342,7 @@ class DI245_DL(object):
 
     def connect_device(self, N = 0):
         if len(self.available_ports) > 0:
-            self.dev.initialize()
+            self.driver.init()
             res = True
         else:
             res = False
@@ -333,32 +350,35 @@ class DI245_DL(object):
 
 
     def configure_device(self):
-        self.circular_buffer = circular_buffer_LL.CBServer(size = (len(self.scan_lst),self.RingBuffer_size), var_type = 'int16')#4320000
-        print(self.scan_lst,self.phys_ch_lst,self.gain_lst)
-        self.dev.config_channels(scan_lst=self.scan_lst,phys_ch_lst=self.phys_ch_lst,gain_lst = self.gain_lst)
+        self.circular_buffer = CircularBuffer(shape=(self.RingBuffer_size,len(self.scan_lst)), dtype='int16')#4320000
+        print('{},{},{}'
+            .format(self.scan_lst,self.phys_ch_lst,self.gain_lst))
+        self.driver.config_channels(scan_lst=self.scan_lst,phys_ch_lst=self.phys_ch_lst,gain_lst = self.gain_lst)
 
 
     def read_number(self):
-        value_array = self.dev.read_number(N_of_channels = len(self.scan_lst), N_of_points = 1)
+        value_array = self.driver.read_number(N_of_channels = len(self.scan_lst), N_of_points = 1)
         return value_array
 
 
     def stop_scan(self):
-        self.dev.stop_scan()
+        self.driver.stop_scan()
 
     def full_stop(self):
+        from time import sleep
         try:
-            self.dev.full_stop()
+            self.driver.full_stop()
             self.running = False
         except:
-            warn('dev is not initialized')
+            warning('dev is not initialized')
+        sleep(0.5)
 
     def set_calib(self):
         from time import time
-        a = mean(((self.circular_buffer.get_last_N(N = 300)[0]-8192.)/8192.)*float(self.gain_lst[0]))
-        b = mean(((self.circular_buffer.get_last_N(N = 300)[1]-8192.)/8192.)*float(self.gain_lst[1]))
-        c = mean(((self.circular_buffer.get_last_N(N = 300)[2]-8192.)/8192.)*float(self.gain_lst[2]))
-        d = -3.2 #-3.2 (-2.2 agains another tempmeter)
+        a = mean(((self.circular_buffer.get_last_N(N = 300)[:,0]-8192.)/8192.)*float(self.gain_lst[0]))
+        b = mean(((self.circular_buffer.get_last_N(N = 300)[:,1]-8192.)/8192.)*float(self.gain_lst[1]))
+        c = mean(((self.circular_buffer.get_last_N(N = 300)[:,2]-8192.)/8192.)*float(self.gain_lst[2]))
+        d = -1.2 #-3.2 (-2.2 agains another tempmeter)
         self.calib = [a,b ,c ,d , time()]
 
     def save_to_a_file(self):
@@ -370,49 +390,48 @@ class DI245_DL(object):
         number = int(dt*50)
         if method == "on demand":
             #debug('Broadcasting on demand')
-            ch1 = mean(((self.circular_buffer.get_last_N(N = number)[0]-8192.)/8192.)*float(self.gain_lst[0]))/ self.calib[0]
+            ch1 = mean(((self.circular_buffer.get_last_N(N = number)[:,0]-8192.)/8192.)*float(self.gain_lst[0]))/ self.calib[0]
             casput(self.prefix+".pressure_upstream",ch1)
-            ch2 = mean(((self.circular_buffer.get_last_N(N = number)[1]-8192.)/8192.)*float(self.gain_lst[1]))/ self.calib[1]
+            ch2 = mean(((self.circular_buffer.get_last_N(N = number)[:,1]-8192.)/8192.)*float(self.gain_lst[1]))/ self.calib[1]
             casput(self.prefix+".pressure_downstream",ch2)
-            ch3 =  mean(((108.364-88.0461)/2.0**13)*(self.circular_buffer.get_last_N(N = number)[2]-2.0**13)+88.0461+0.2)
+            casput(self.prefix+".pressure_difference",ch1-ch2)
+            ch3 =  mean(((108.364-88.0461)/2.0**13)*(self.circular_buffer.get_last_N(N = number)[:,2]-2.0**13)+88.0461+0.2)
             casput(self.prefix+".pressure_barometric",ch3)
-            ch4 = mean(self.circular_buffer.get_last_N(N = number)[3]-8192.)*0.036621+100. + self.calib[3]
+            ch4 = mean(self.circular_buffer.get_last_N(N = number)[:,3]-8192.)*0.036621+100. + self.calib[3]
             casput(self.prefix+".temperature_hutch",ch4)
 
         else:
             debug("unknown method(%r) requested" % method)
 
     def start(self):
-        from thread import start_new_thread
         print('start new thread in run')
-        start_new_thread(self.measurements, ())
+        new_thread(self.measurements)
 
 
     def measurements(self):
         from time import time
         self.running = True
-        dev.CAserver_update()
-        self.dev.ser.flushInput()
-        self.dev.ser.flushOutput()
-        self.dev.start_scan()
-        sleep(3)
+        self.CAserver_update()
+        self.driver.flush()
+        self.driver.start_scan()
+        sleep(0.1)
         self.start_running = time()
         self.last_broadcast = time()
         while self.running:
             t = time()
-            if self.dev.ser.isOpen:
-                while self.dev.waiting()[0]>3:
+            if self.driver.port.isOpen:
+                while self.driver.waiting[0]>3:
                     self.circular_buffer.append(
-                        self.dev.read_number(N_of_channels = 4, N_of_points = 1))
+                        self.driver.read_number(N_of_channels = 4, N_of_points = 1).T)
                 sleep(0.04)
 
             else:
-                warn('measurements: break')
+                warning('measurements: break')
                 self.running = False
                 self.end_running = time()
                 dev.CAserver_update()
             if time() - self.last_broadcast > self.broadcast_period:
-                self.broadcast()
+                #self.broadcast()
                 self.last_broadcast = time()
 
     def run(self):
@@ -420,11 +439,19 @@ class DI245_DL(object):
         self.server_init()
         self.measurements()
 
+    def nonblocking_run(self):
+        self.init()
+        self.server_init()
+        self.start()
 
-dev = DI245_DL()
+
+
 
 
 if __name__ == "__main__":
     from tempfile import gettempdir
-    logging.basicConfig(filename=gettempdir()+'/di_245_DL.log',
-                        level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+    logging.basicConfig(filename=gettempdir()+'/di_245_DL_2.log',
+                        level=logging.DEBUG, format="%(asctime)s %(levelname)s: %(message)s")
+    print('----To start IOC in IDLE via non-blocking run----')
+    print('dev = DI245_DL(name = "DI245_COVID")')
+    print('dev.nonblocking_run()')

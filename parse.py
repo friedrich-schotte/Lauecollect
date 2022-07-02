@@ -324,7 +324,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2013 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.6'
+__version__ = '1.6.6.1' # debug
 
 # yes, I now have two problems
 import re
@@ -628,7 +628,7 @@ class Parser(object):
         self.__search_re = None
         self.__match_re = None
 
-        log.debug('format %r -> %r' % (format, self._expression))
+        ##log.debug('format %r -> %r' % (format, self._expression))
 
     def __repr__(self):
         if len(self._format) > 20:

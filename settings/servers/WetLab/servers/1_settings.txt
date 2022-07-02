@@ -1,0 +1,10 @@
+auto_start = True
+command = 'import GigE_camera_server; GigE_camera_server.run("Microscope")'
+format_code = 'value'
+label = 'Lab Microscope'
+log_level = 'DEBUG'
+logfile_basename = 'Microscope_server'
+machine_name = 'PICO1'
+mnemonic = 'Microscope'
+test_code = '"offline" not in value and "not found" not in value'
+value_code = 'Camera("Microscope").state'

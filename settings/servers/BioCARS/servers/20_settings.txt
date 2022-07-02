@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from rayonix_detector_simulator import *; rayonix_detector_simulator.run_server()'
+format_code = '"Not running" if value is None else "Running"'
+label = 'Rayonix Detector Simulator'
+log_level = 'DEBUG'
+logfile_basename = 'rayonix_detector_simulator'
+machine_name = 'ID14B4'
+mnemonic = 'rayonix_detector_simulator'
+test_code = 'value is not None'
+value_code = 'caget("NIH:RAYONIX_SIM.ONLINE")'

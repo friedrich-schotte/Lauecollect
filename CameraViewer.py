@@ -3,27 +3,25 @@
 Designed for Prosilia GigE cameras.
 Author: Friedrich Schotte
 Date created: 2008-02-05
-Date last modified: 2018-11-20
+Date last modified: 2020-06-09
+Revision comment: Cleanup: isstring
 """
+__version__ = "6.4.4" 
+from logging import debug,info,warning,error
 
-import wx, wx3_compatibility
+import wx
 import wx.lib.colourselect
 from os import makedirs
-from os.path import exists,join,dirname,basename,splitext
-from time import time
-from math import sqrt,atan2,sin,cos,pi,log10,log
+from os.path import exists,dirname,basename,splitext
+from math import sqrt,atan2,sin,cos,pi,log10
 from numpy import nan,isnan
 # Turn off IEEE-754 warnings in numpy 1.6+ ("invalid value encountered in...")
 import numpy; numpy.seterr(invalid="ignore",divide="ignore")
 from EditableControls import ComboBox,TextCtrl
-from Panel import BasePanel,PropertyPanel,TogglePanel,TweakPanel
-from logging import debug,warn
+from Panel import BasePanel,PropertyPanel
 
 class CameraViewer(wx.Frame):
-    """Grapical User Interface for Prosilia GigE cameras.
-    Author: Friedrich Schotte"""
-    __version__ = "6.3.4" # wx 4.0 compatibility: color transparency
-
+    icon = "camera"
     from persistent_property import persistent_property
     title = persistent_property("CameraViewer_{name}.title","Camera Viewer")
     zoom_level = persistent_property("CameraViewer_{name}.zoom_level",1.0)
@@ -54,7 +52,7 @@ class CameraViewer(wx.Frame):
 
         # Icon
         from Icon import SetIcon
-        SetIcon(self,"camera")
+        SetIcon(self,self.icon)
         # Menus
         menuBar = wx.MenuBar()
         menu = wx.Menu()
@@ -146,7 +144,7 @@ class CameraViewer(wx.Frame):
         self.panel.SetSizer(self.layout)
 
         # Initialization
-        from GigE_camera_client import Camera 
+        from camera_client import Camera
         self.camera = Camera(self.name)
         if orientation != None: self.Orientation = orientation
         if mirror != None: self.Mirror = mirror
@@ -172,7 +170,7 @@ class CameraViewer(wx.Frame):
         ##value = wx.Frame.GetTitle(self)
         return value
     def SetTitle(self,value):
-        warn("Title=%r" % value)
+        warning("Title=%r" % value)
         wx.Frame.SetTitle(self,value)
         self.title = value
     Title = property(GetTitle,SetTitle)
@@ -184,11 +182,11 @@ class CameraViewer(wx.Frame):
             if self.camera.has_image and self.camera.timestamp != self.image_timestamp:
                 self.show_image()
 
-            # Update the slider indicating the exposure time
-            self.ExposureTime_Slider = self.camera.exposure_time
-            self.ExposureTime_Value = self.camera.exposure_time
-            #  Update the "Auto" checkbox
-            self.AutoExposure.Value = self.camera.auto_exposure
+        # Update the slider indicating the exposure time
+        self.ExposureTime_Slider = self.camera.exposure_time
+        self.ExposureTime_Value = self.camera.exposure_time
+        #  Update the "Auto" checkbox
+        self.AutoExposure.Value = self.camera.auto_exposure
         self.LiveImage.Value = self.camera.acquiring
         # Update status bar
         self.SetStatusText(self.camera.state)
@@ -339,8 +337,8 @@ class CameraViewer(wx.Frame):
         values = []
         for text_value in text_values:
             try: value = eval(text_value)
-            except Exception,msg:
-                warn("Zoom level: %s: %s" % (text_value,msg))
+            except Exception as msg:
+                warning("Zoom level: %s: %s" % (text_value,msg))
                 continue
             values += [value]
         return values
@@ -380,7 +378,7 @@ class CameraViewer(wx.Frame):
     def GetPosition(self):
         x,y = wx.Frame.GetPosition(self)
         if x < 0 or y < 0:
-            warn("Invalid window position %r,%r. using 0,0 instead" % (x,y))
+            warning("Invalid window position %r,%r. using 0,0 instead" % (x,y))
             return 0,0
         return x,y
     def SetPosition(self,value):
@@ -394,10 +392,10 @@ class CameraViewer(wx.Frame):
         x,y = value
         xmin,ymin = 0,20
         xmax,ymax = wx.DisplaySize()[0]-10,wx.DisplaySize()[1]-10
-        if x<xmin: warn("Ignoring window x=%r. Using %r." % (x,xmax)); x = xmin
-        if y<ymin: warn("Ignoring window y=%r. Using %r." % (y,ymin)); y = ymin
-        if x>xmax: warn("Ignoring window x=%r. Using %r." % (x,xmax)); x = xmax
-        if y>ymax: warn("Ignoring window y=%r. Using %r." % (y,ymax)); y = ymax
+        if x<xmin: warning("Ignoring window x=%r. Using %r." % (x,xmax)); x = xmin
+        if y<ymin: warning("Ignoring window y=%r. Using %r." % (y,ymin)); y = ymin
+        if x>xmax: warning("Ignoring window x=%r. Using %r." % (x,xmax)); x = xmax
+        if y>ymax: warning("Ignoring window y=%r. Using %r." % (y,ymax)); y = ymax
         wx.Frame.SetPosition(self,(x,y))
         self.Positioned = True
     Position = property(GetPosition,SetPosition)
@@ -405,7 +403,7 @@ class CameraViewer(wx.Frame):
     def GetSize(self):
         w,h = wx.Frame.GetSize(self)
         if w < 40 or h < 40:
-            warn("Invalid window size %r,%r. using 400,400 instead"%(w,h))
+            warning("Invalid window size %r,%r. using 400,400 instead"%(w,h))
             return 400,400
         return w,h
     def SetSize(self,value):
@@ -417,7 +415,7 @@ class CameraViewer(wx.Frame):
         # when non-sensical coordrinates are passed to it making the window
         # "invisble".
         w,h = value
-        if w < 40 or h < 40: warn("Ignoring window size %r,%r"%(w,h)); return
+        if w < 40 or h < 40: warning("Ignoring window size %r,%r"%(w,h)); return
         wx.Frame.SetSize(self,(w,h))
         self.Sized = True
     Size = property(GetSize,SetSize)
@@ -471,7 +469,7 @@ class CameraViewer(wx.Frame):
 
     def OnOpen(self,event):
         "Called from menu File/Open Image..."
-        dlg = wx.FileDialog(self,"Open Image",style=wx.OPEN,
+        dlg = wx.FileDialog(self,"Open Image",style=wx.FD_OPEN,
             defaultDir=dirname(self.filename),defaultFile=basename(self.filename),
             wildcard="JPEG Images (*.jpg)|*.jpg|TIFF Images (*.tif)|*.tif|"+
             "PNG Images (*.png)|*.png|All Files (*.*)|*.*")
@@ -497,7 +495,7 @@ class CameraViewer(wx.Frame):
         "Called from menu File/Save Image As..."
         filename = splitext(self.filename)[0]+".jpg"
         dlg = wx.FileDialog(self,"Save Image As",
-            style=wx.SAVE|wx.OVERWRITE_PROMPT,
+            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT,
             defaultFile=basename(filename),defaultDir=dirname(filename),
             wildcard="JPEG Images (*.jpg)|*.jpg|TIFF Images (*.tif)|*.tif|"+
             "PNG Images (*.png)|*.png|All Files (*.*)|*.*")
@@ -517,8 +515,8 @@ class CameraViewer(wx.Frame):
             image = self.ImageWindow.TransformedImage
             # Convert image from numpy to WX data format.
             d,w,h = image.shape
-            wximage = wx.EmptyImage(w,h)
-            data = image.T.tostring()
+            wximage = wx.Image(w,h)
+            data = image.T.tobytes()
             wximage.Data = data
             # Save pixelsize as DPI in image header.
             wximage.SetOptionInt (wx.IMAGE_OPTION_QUALITY,100)
@@ -533,7 +531,7 @@ class CameraViewer(wx.Frame):
         "Called from menu File/Save Beam Profile As..."
         filename = splitext(self.filename)[0]+".txt"
         dlg = wx.FileDialog(self,"Save Profile As",
-            style=wx.SAVE|wx.OVERWRITE_PROMPT,
+            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT,
             defaultFile=basename(filename),defaultDir=dirname(filename),
             wildcard="Text Files (*.txt)|*.txt|All Files (*.*)|*.*")
         if dlg.ShowModal() == wx.ID_OK:
@@ -555,11 +553,11 @@ class CameraViewer(wx.Frame):
         image = self.ImageWindow.TransformedImage
         # Convert image from numpy to WX data format.
         d,w,h = image.shape
-        wximage = wx.EmptyImage(w,h)
-        data = image.T.tostring()
+        wximage = wx.Image(w,h)
+        data = image.T.tobytes()
         wximage.Data = data
         # Put image data as "Bitmap" data object into the clipboard.
-        bitmap = wx.BitmapFromImage (wximage)
+        bitmap = wx.Image (wximage)
         bmpdo = wx.BitmapDataObject(bitmap)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(bmpdo)
@@ -593,12 +591,9 @@ class CameraViewer(wx.Frame):
         dlg.Show()         
 
     def OnAbout(self,event):
-        "Called from the Help/About"
-        info = self.__class__.__name__+" "+self.__version__+"\n"+self.__doc__
-        dlg = wx.MessageDialog(self,info,"About",wx.OK|wx.ICON_INFORMATION)
-        dlg.CenterOnParent()
-        dlg.ShowModal()
-        dlg.Destroy()
+        """Show version info"""
+        from About import About
+        About(self)
         
         # Using "AboutBox" (requires wxPython 2.8)
         #info = wx.AboutDialogInfo()
@@ -620,7 +615,7 @@ class CameraViewer(wx.Frame):
     def OnClose(self,event):
         """Called when the widnows's close button is clicked"""
         self.Show(False)
-        if DEBUG: wx.app.ExitMainLoop() # for debugging
+        if DEBUG: app.ExitMainLoop() # for debugging
         else: self.Destroy()
 
     def OnPointerFunction(self,name,x,y,event):
@@ -668,7 +663,7 @@ class CameraViewer(wx.Frame):
     def ReadSettings(self):
         "Load preferences from a file"
         if exists(self.settings_file()):
-            self.State = file(self.settings_file()).read()
+            self.State = open(self.settings_file()).read()
         self.saved_state = self.State
         self.settings_timestamp = mtime(self.settings_file())
         
@@ -677,7 +672,7 @@ class CameraViewer(wx.Frame):
     def SaveSettings(self):
         "Save defaults for next time"
         if not exists(self.settings_dir()): makedirs(self.settings_dir())
-        file(self.settings_file(),"wb").write(self.State)
+        open(self.settings_file(),"w").write(self.State)
         
         self.saved_state = self.State
         self.settings_timestamp = mtime(self.settings_file())
@@ -720,7 +715,7 @@ class CameraViewer(wx.Frame):
             line = line.strip(" \n\r")
             if line != "":
                 try: exec("self."+line)
-                except: warn("ignoring line %r" % line); pass
+                except: warning("ignoring line %r" % line); pass
     State = property(GetState,SetState)
         
     def settings_file(self):
@@ -930,9 +925,10 @@ class ImageWindow(wx.ScrolledWindow):
         dx = self.PixelSize
         cx,cy = (x0*sx-ox+w/2)/s*dx, (y0*sy-oy+h/2)/s*dx
         return cx,cy
-    def SetViewportCenter(self,(cx,cy)):
+    def SetViewportCenter(self,center):
         """Scroll such than the center the window is x mm from the
         left edge and y mm from the top edge of the image."""
+        cx,cy = center
         w,h = self.GetClientSize()
         sx,sy = self.GetScrollPixelsPerUnit()
         ox,oy = self.origin()
@@ -975,7 +971,8 @@ class ImageWindow(wx.ScrolledWindow):
         left, with rotation applied"""
         if self.Center: return self.transform(self.Center)
         else: return (self.ImageWidth/2,self.ImageHeight/2)
-    def SetCrosshair (self,(x,y)):
+    def SetCrosshair (self,position):
+        x,y = position
         if self.Center == None or self.Center != self.back_transform((x,y)):
             self.Center = self.back_transform((x,y))
     Crosshair = property(GetCrosshair,SetCrosshair)
@@ -1110,9 +1107,10 @@ class ImageWindow(wx.ScrolledWindow):
         if mirror: mask = mask[::-1,:] # flip horizonally
         return mask
 
-    def transform(self,(x,y)):
+    def transform(self,position):
         """Transform coordinates (x,y) from raw to rotated image.
         Return value: (x,y)"""
+        x,y = position
         angle = self.Orientation
         from numpy import rint
         angle = rint((angle % 360)/90.)*90
@@ -1123,9 +1121,10 @@ class ImageWindow(wx.ScrolledWindow):
         if angle == 270: x,y = h-y,x
         return x,y
         
-    def back_transform(self,(x,y)):
+    def back_transform(self,position):
         """Transform coordinates (x,y) from rotated image to raw image.
         Return value: (x,y)"""
+        x,y = position
         angle = self.Orientation
         from numpy import rint
         angle = rint((angle % 360)/90.)*90
@@ -1189,9 +1188,9 @@ class ImageWindow(wx.ScrolledWindow):
         
         # Convert image from numpy to WX data format.
         ##wximage = wx.Image(self.ImageWidth,self.ImageHeight) # wx 4.0
-        wximage = wx.EmptyImage(self.ImageWidth,self.ImageHeight)
+        wximage = wx.Image(self.ImageWidth,self.ImageHeight)
         # wx 4.0: "deprecated item EmptyImage. Use class wx.Image instead."
-        data = image.T.tostring()
+        data = image.T.tobytes()
         wximage.SetData(data)
         # Scale the image.
         w = self.ImageWidth * self.ScaleFactor
@@ -1201,7 +1200,7 @@ class ImageWindow(wx.ScrolledWindow):
         wximage = wximage.Scale(w,h)
 
         ##bitmap = wx.Bitmap(wximage) # wx 4.0
-        bitmap = wx.BitmapFromImage(wximage)
+        bitmap = wx.Image(wximage)
         # wx 4.0: "deprecated item BitmapFromImage. Use class wx.Bitmap instead."
         dc.DrawBitmap(bitmap,0,0)
         self.draw_objects(dc)
@@ -1368,15 +1367,15 @@ class ImageWindow(wx.ScrolledWindow):
         # Scale projections in units of mm.
         xscale = [(xmin+i-cx)*dx for i in range(0,len(xproj))]
         yscale = [(cy-(ymin+i))*dy for i in range(0,len(yproj))]
-        self.xprofile = zip(xscale,xproj)
-        self.yprofile = zip(yscale,yproj)
+        self.xprofile = list(zip(xscale,xproj))
+        self.yprofile = list(zip(yscale,yproj))
         
         if self.calculate_section:
             # Calculate X and Y sections through the peak.
             # This is done by intergrating of a strip that is a certain fraction
             # of the FWHM wide, detemined by the parameter "section_width".
-            xprofile = zip(range(0,len(xproj)),xproj)
-            yprofile = zip(range(0,len(yproj)),yproj)
+            xprofile = list(zip(list(range(0,len(xproj))),xproj))
+            yprofile = list(zip(list(range(0,len(yproj))),yproj))
             W,H = FWHM(xprofile),FWHM(yprofile)
             CX,CY = CFWHM(xprofile),CFWHM(yprofile)
             frac = self.section_width/2
@@ -1386,8 +1385,8 @@ class ImageWindow(wx.ScrolledWindow):
             ystrip = I[x1:x2+1,:]
             xsect = nansum(xstrip,axis=1)/sum(~isnan(xstrip),axis=1)
             ysect = nansum(ystrip,axis=0)/sum(~isnan(ystrip),axis=0)
-            self.xprofile = zip(xscale,xsect)
-            self.yprofile = zip(yscale,ysect)
+            self.xprofile = list(zip(xscale,xsect))
+            self.yprofile = list(zip(yscale,ysect))
             (xr1,yr1),(xr2,yr2) = self.ROI
             left,bottom = min(xr1,xr2),min(yr1,yr2)
             self.section = left+x1*dx,left+x2*dx,bottom+y1*dy,bottom+y2*dy
@@ -1555,16 +1554,18 @@ class ImageWindow(wx.ScrolledWindow):
         self.calculate_profile()
         self.Refresh()
         
-    def pixel(self,(x,y)):
-        "Converts from mm to pixel coordinates"
+    def pixel(self,position):
+        """Convert from mm to pixel coordinates"""
+        x,y = position
         from numpy import rint,nan_to_num
         cx,cy = self.Crosshair
         px = int32(nan_to_num(rint((x/self.pixelsize+cx)*self.ScaleFactor)))
         py = int32(nan_to_num(rint((-y/self.pixelsize+cy)*self.ScaleFactor)))
         return [px,py]
 
-    def point(self,(px,py)):
-        "Converts from pixel coordinates to mm"
+    def point(self,position):
+        """Convert from pixel coordinates to mm"""
+        px,py = position
         cx,cy = self.Crosshair
         x = (px/self.ScaleFactor-cx)*self.pixelsize
         y = -(py/self.ScaleFactor-cy)*self.pixelsize
@@ -1648,27 +1649,27 @@ class ImageWindow(wx.ScrolledWindow):
         p = self.cursor_pos(event)
         shape = self.shape(p)
         if self.MoveCrosshair:    
-            self.SetCursor (wx.StockCursor(wx.CURSOR_PENCIL))
+            self.SetCursor (wx.Image(wx.CURSOR_PENCIL))
         elif self.tool == "measure":
-            self.SetCursor (wx.StockCursor(wx.CURSOR_PENCIL))
+            self.SetCursor (wx.Image(wx.CURSOR_PENCIL))
         elif self.tool in self.pointer_functions:    
             self.SetCursor (crosshair_cursor())
         elif self.dragging == "scale start" or self.dragging == "scale end":
-            self.SetCursor (wx.StockCursor(wx.CURSOR_SIZENESW))
-        elif self.dragging: self.SetCursor(wx.StockCursor(wx.CURSOR_SIZING))
+            self.SetCursor (wx.Image(wx.CURSOR_SIZENESW))
+        elif self.dragging: self.SetCursor(wx.Image(wx.CURSOR_SIZING))
         elif self.scale_selected and (self.shape(p) == "scale start" or self.shape(p) == "scale end"):
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZENESW))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZENESW))
         elif shape == "scale":
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZING))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZING))
         elif shape == "ROI xmin,ymin" or shape == "ROI xmax,ymax":
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZENESW))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZENESW))
         elif shape == "ROI xmax,ymin" or shape == "ROI xmin,ymax":
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZENWSE))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZENWSE))
         elif shape.find("ROI x") != -1:
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZEWE))
         elif shape.find("ROI y") != -1:
-            self.SetCursor(wx.StockCursor(wx.CURSOR_SIZENS))
-        else: self.SetCursor (wx.StockCursor(wx.CURSOR_DEFAULT))
+            self.SetCursor(wx.Image(wx.CURSOR_SIZENS))
+        else: self.SetCursor (wx.Image(wx.CURSOR_DEFAULT))
 
         # CURSOR_CROSS would be better than CURSOR_PENCIL.
         # However, under Windows, the cross cursor does not have a white
@@ -1774,7 +1775,7 @@ class ImageWindow(wx.ScrolledWindow):
         self.Bind (wx.EVT_MENU,self.OnMaskBadPixels,id=18)
 
         for i in range(0,len(self.objects)):
-            name = self.objects.keys()[i]
+            name = list(self.objects.keys())[i]
             id = 200+i
             menu.Append (id,name,"",wx.ITEM_CHECK)
             if self.show_object[name]: menu.Check(id,True)
@@ -1884,7 +1885,7 @@ class ImageWindow(wx.ScrolledWindow):
         context menu"""
         i = event.GetId() - 200
         if 0 <= i < len(self.objects):
-            name = self.objects.keys()[i]
+            name = list(self.objects.keys())[i]
             self.show_object[name] = True if event.IsChecked() else False
 
     def OnMeasure (self,event):
@@ -2776,8 +2777,10 @@ ip_addresses = [
 # 02-2131A-16516
 # 02-2131A-16519
 
-def distance ((x1,y1),(x2,y2)):
-    "Distance between two points"
+def distance (p1,p2):
+    """Distance between two points"""
+    x1,y1 = p1
+    x2,y2 = p2
     return sqrt((x2-x1)**2+(y2-y1)**2)
 
 def point_line_distance (P,line):
@@ -2795,26 +2798,34 @@ def point_line_distance (P,line):
     Pb = translate(P0,scale(v,b))
     return distance(P,Pb)
 
-def vector((x1,y1),(x2,y2)):
-    "Vector from point (x1,y1) to point (x2,y2)"
+def vector(p1,p2):
+    """Vector from point p1=(x1,y1) to point p2=(x2,y2)"""
+    x1,y1 = p1
+    x2,y2 = p2
     return (x2-x1,y2-y1)
     
-def translate((x,y),(vx,vy)):
-    "Applies the vector (vx,vy) to point (x,y)"
+def translate(p,v):
+    """Apply the vector v=(vx,vy) to point p=(x,y)"""
+    x,y = p
+    vx,vy = v
     return (x+vx,y+vy)
 
-def scale((x,y),a):
-    "Mulitplies vector with scalar"
+def scale(v,a):
+    """Mulitplies vector v=(x,y) with scalar"""
+    x,y = v
     return (a*x,a*y)
 
-def direction((x,y)):
-    "Vector (x,y) scaled to unit length"
+def direction(v):
+    """Vector v=(x,y) scaled to unit length"""
+    x,y = v
     l = sqrt(x**2+y**2)
     if l == 0: return (1.,0.)
     return (x/l,y/l)
 
-def dot((x1,y1),(x2,y2)):
+def dot(v1,v2):
     "Scalar product between vectors (x1,y1) and (x2,y2)"
+    x1,y1 = v1
+    x2,y2 = v2
     return x1*x2+y1*y2
 
 def FWHM(data):
@@ -2827,7 +2838,7 @@ def FWHM(data):
         if y[i]>HM: break
     if i == 0: x1 = x[0]
     else: x1 = interpolate_x((x[i-1],y[i-1]),(x[i],y[i]),HM)
-    r = range(0,n); r.reverse()
+    r = list(range(0,n)); r.reverse()
     for i in r:
         if y[i]>HM: break
     if i == n-1: x2 = x[n-1]
@@ -2844,15 +2855,17 @@ def CFWHM(data):
         if y[i]>HM: break
     if i == 0: x1 = x[0]
     else: x1 = interpolate_x((x[i-1],y[i-1]),(x[i],y[i]),HM)
-    r = range(0,n); r.reverse()
+    r = list(range(0,n)); r.reverse()
     for i in r:
         if y[i]>HM: break
     if i == n-1: x2 = x[n-1]
     else: x2 = interpolate_x((x[i+1],y[i+1]),(x[i],y[i]),HM)
     return (x2+x1)/2.
 
-def interpolate_x((x1,y1),(x2,y2),y):
-    "Linear inteposition between two points"
+def interpolate_x(p1,p2,y):
+    """Linear inteposition between two points"""
+    x1,y1 = p1
+    x2,y2 = p2
     # In case result is undefined, midpoint is as good as any value.
     if y1==y2: return (x1+x2)/2. 
     x = x1+(x2-x1)*(y-y1)/float(y2-y1)
@@ -2878,11 +2891,12 @@ def save(columns,filename,header="",labels=None):
     length.
     "labels" can be given as comma-spearated string or as list of strings.
     """
-    output = file(filename,"w")
+    from isstring import isstring
+    output = open(filename,"w")
     for line in header.split("\n"):
         if line: output.write("# "+line+"\n")
     if labels:
-        if isinstance(labels,basestring): labels = labels.split(",")
+        if isstring(labels): labels = labels.split(",")
         output.write("#")
         for col in range(0,len(labels)-1): output.write(labels[col]+"\t")
         output.write(labels[len(labels)-1]+"\n")
@@ -2893,7 +2907,7 @@ def save(columns,filename,header="",labels=None):
         for col in range(0,Ncol):
             try: val = columns[col][row]
             except: val = ""
-            if isinstance(val,basestring): output.write(val)
+            if isstring(val): output.write(val)
             else: output.write("%g" % val)
             if col < Ncol-1: output.write("\t")
             else: output.write("\n")
@@ -2921,7 +2935,7 @@ def module_path():
     filename = basename(pathname)
     ##print("module_path: filename: %r" % filename)
     dirs = [dir for dir in [getcwd()]+path if exists(dir+"/"+filename)]
-    if len(dirs) == 0: print "pathname of file %r not found" % filename
+    if len(dirs) == 0: error("pathname of file %r not found" % filename)
     dir = dirs[0] if len(dirs) > 0 else "."
     pathname = dir+"/"+filename
     ##print("module_path: pathname: %r" % pathname)
@@ -2935,7 +2949,7 @@ def icon_dir():
 def crosshair_cursor():
     """A black crosshair cursor of size 13x13 pixels with white border
     as wx.Cursor object"""
-    # This is a replacement for wx.StockCursor(wx.CURSOR_CROSS)
+    # This is a replacement for wx.Image(wx.CURSOR_CROSS)
     # Under Windows, the wxPython's built-in crosshair cursor does not have a
     # white border and is hard to see on a black background.
     global crosshair_cursor_object
@@ -2947,8 +2961,8 @@ def crosshair_cursor():
         image.SetOptionInt(wx.IMAGE_OPTION_CUR_HOTSPOT_Y,7)
         crosshair_cursor_object = wx.CursorFromImage(image)
     else:
-        warn("%s not found" % filename)
-        crosshair_cursor_object = wx.StockCursor(wx.CURSOR_CROSS)
+        warning("%s not found" % filename)
+        crosshair_cursor_object = wx.Image(wx.CURSOR_CROSS)
     return crosshair_cursor_object
 
 def mtime(filename):
@@ -2972,11 +2986,10 @@ DEBUG = False # for debugging
 
 if __name__ == "__main__": # for testing
     from pdb import pm # for debugging
-    import logging; from tempfile import gettempdir
-    logging.basicConfig(level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s: %(message)s")
+    name = "MicroscopeCamera"
+    from redirect import redirect
+    redirect(name)
     DEBUG = True
-    wx.app = wx.App(redirect=False) # Needed to initialize WX library
-    viewer = CameraViewer(name="TestBenchCamera")
-    wx.app.MainLoop()
-    self = viewer # for debugging
+    app = wx.GetApp() if wx.GetApp() else wx.App()
+    self = CameraViewer(name=name)
+    app.MainLoop()

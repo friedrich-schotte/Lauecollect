@@ -1,0 +1,10 @@
+auto_start = True
+command = "from configuration_IOC import *; run('LaserLab')"
+format_code = '"Not Running" if value is None else "Running"'
+label = 'Configuration Server'
+log_level = 'DEBUG'
+logfile_basename = 'configuration_IOC'
+machine_name = 'FEMTO7'
+mnemonic = 'configuration'
+test_code = 'value is not None'
+value_code = 'caget("LASERLAB:CONFIGURATION.CONFIGURATION_NAMES")'

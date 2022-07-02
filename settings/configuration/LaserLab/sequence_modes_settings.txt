@@ -1,0 +1,26 @@
+CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+auto_update_timestamps = True
+command_row = 0
+command_rows = [1]
+description_width = 58
+motor_labels = ['acquisition', 'idle']
+motor_names = ['timing_system_client.composer.acquisition_sequence', 'timing_system_client.composer.sequence']
+names = ['acquisition', 'idle']
+nrows = 2
+row_height = 40
+show_define_buttons = True
+show_stop_button = False
+title = 'Sequence Configuration'
+widths = [85, 85]
+line0.description = 'Camera'
+line0.timing_system_client.composer.acquisition_sequence = 'enable=11X'
+line0.timing_system_client.composer.sequence = 'enable=XXX'
+line0.updated = '2020-07-23 14:02:43'
+line1.description = 'Dev'
+line1.timing_system_client.composer.acquisition_sequence = 'enable=111'
+line1.updated = '2020-12-23 03:24:00'
+line1.timing_system_client.composer.sequence = 'enable=XXX'
+line2.description = 'Dark'
+line2.timing_system_client.composer.acquisition_sequence = 'enable=11X'
+line2.timing_system_client.composer.sequence = 'enable=XXX'
+line2.updated = '2020-07-23 13:59:16'

@@ -1,0 +1,1 @@
+from configuration_tables_client import configuration_tables_client as configuration_tables

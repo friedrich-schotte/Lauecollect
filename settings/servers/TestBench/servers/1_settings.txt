@@ -1,0 +1,10 @@
+machine_name = 'PICO8'
+mnemonic = 'TestBench_timing_system_simulator'
+label = 'Timing System Simulator'
+command = 'from timing_system_simulator import *; run("TestBench",reset=True)'
+logfile_basename = 'timing_system_simulator'
+value_code = 'caget("TESTBENCH:TIMING.registers.ver.count")'
+test_code = 'value is not None'
+format_code = '"online" if value is not None else "offline"'
+auto_start = True
+log_level = 'DEBUG'

@@ -2,8 +2,11 @@
 """
 DI-245 Data Acquisition monitor (Application level code)
 by Valentyn Stadnytskyi
-created: Oct 2017
-last update: Nov 11, 2017
+Date created: Oct 2017
+Date last updated: 2020-01-15
+Comments: Friedrich Schotte: Issues:
+  except Exception as msg: traceback.format_exc(msg): illegal argument
+  except socket.error as msg: msg[0]: TypeError: 'TimeoutError' object is not subscriptable
 """
 import matplotlib
 matplotlib.use('WxAgg')
@@ -15,7 +18,10 @@ import numpy as np
 import sys
 from struct import unpack
 import wx
-import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from pdb import pm
@@ -40,7 +46,7 @@ __version__ = "1.0.6" # Friedrich Schotte: logfile directory
 #I have updated circular buffer client to be uploaded from the circular_buffer.py module
 #cleaned the code
 
-from circular_buffer_LL import client as CircularBuffer
+from circular_buffer_LL import CBClient as CircularBuffer
 
 class ClientSocket(object):
 
@@ -66,8 +72,8 @@ class ClientSocket(object):
 
             self.server.connect((self.ip_address_server, port))
             debug("Connection success!")
-        except socket.error, msg:
-            error("Failed to create and connect. Error code: %s , Error message : %r" % (str(msg[0]), msg[1]))
+        except socket.error as msg:
+            error("Failed to create and connect. Error: %s" % msg)
 
 
     def _send(self,command_str):
@@ -561,17 +567,17 @@ class ClientGUI(wx.Frame):
 
         if buffer.pointerC>self.time_range:
             y1 =  self.smooth(((buffer.buffer[0,plot_from:plot_to]-8192.))*(5.0/2**13)/self.calib[0],self.smooth_factor)
-            y2 =  self.smooth(((buffer.buffer[2,plot_from:plot_to]-8192.))*(5.0/2**13)/self.calib[2],self.smooth_factor)
-            y3 =  self.smooth((buffer.buffer[1,plot_from:plot_to]-8192.)*0.036621+100. + self.calib[1],self.smooth_factor)
+            y2 =  self.smooth(((buffer.buffer[1,plot_from:plot_to]-8192.))*(5.0/2**13)/self.calib[1],self.smooth_factor)
+            y3 =  self.smooth((buffer.buffer[2,plot_from:plot_to]-8192.)*0.036621+100. + self.calib[2],self.smooth_factor)
             y4 =  self.smooth((buffer.buffer[3,plot_from:plot_to]-8192.)*0.036621+100. + self.calib[3],self.smooth_factor)
 
         else:
             y = np.concatenate((buffer.buffer[0,plot_from:],buffer.buffer[0,0:plot_to]))
             y1 = self.smooth(((y-8192.)/8192.)*(5.0/2**13),self.smooth_factor)
-            y = np.concatenate((buffer.buffer[2,plot_from:],buffer.buffer[2,0:plot_to]))
-            y2 = self.smooth(((y-8192.)/8192.)*(5.0/2**13),self.smooth_factor)
             y = np.concatenate((buffer.buffer[1,plot_from:],buffer.buffer[1,0:plot_to]))
-            y3 = self.smooth((y-8192.)*0.036621 + 100.0 + self.calib[1],self.smooth_factor)
+            y2 = self.smooth(((y-8192.)/8192.)*(5.0/2**13),self.smooth_factor)
+            y = np.concatenate((buffer.buffer[2,plot_from:],buffer.buffer[2,0:plot_to]))
+            y3 = self.smooth((y-8192.)*0.036621 + 100.0 + self.calib[2],self.smooth_factor)
             y = np.concatenate((buffer.buffer[3,plot_from:],buffer.buffer[3,0:plot_to]))
             y4 = self.smooth((y-8192.)*0.036621 + 100.0 + self.calib[3],self.smooth_factor)
 
@@ -604,7 +610,7 @@ class ClientGUI(wx.Frame):
             self.axes1.set_ylim([np.nanmin(y2)-np.nanabs(np.nanmin(y2))*0.02,np.nanmax(y2)+np.nanabs(np.nanmax(y2))*0.02])
             self.axes2.set_ylim([np.nanmin(y3)-np.nanabs(np.nanmin(y3))*0.02,np.nanmax(y3)+np.nanabs(np.nanmax(y3))*0.02])
             self.axes3.set_ylim([np.nanmin(y4)-np.nanabs(np.nanmin(y4))*0.02,np.nanmax(y4)+np.nanabs(np.nanmax(y4))*0.02])
-        except Exception,e:
+        except:
             error(traceback.format_exc())
 
         self.axes0.grid()
@@ -658,7 +664,7 @@ if __name__ == "__main__":
     client = ClientSocket()
 
     #Create the GUI frane and show it
-    app = wx.App(False)
+    app = wx.App()
     frame = ClientGUI()
     frame.Show()
 

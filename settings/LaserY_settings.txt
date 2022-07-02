@@ -1,0 +1,7 @@
+prefix = '14IDB:m42'
+description = 'Laser Y'
+EPICS_enabled = True
+target = -3.893
+speed = 1.0
+min_dial = -12.0
+max_dial = 12.8

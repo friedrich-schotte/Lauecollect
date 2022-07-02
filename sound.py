@@ -1,78 +1,78 @@
-"""Platform-indepedent way to generate sound.
-Friedrich Schotte, 2 Jul 2010 - 28 Feb 2016
+"""Platform-independent way to generate sound.
+Author: Friedrich Schotte
+Date created: 2010-07-02
+Date last modified: 2020-09-29
+Revision comment: Fixed: Issue: play_sound_file not returning; running in endless loop
+
 Setup:
 Install the packages "portaudio" and"pyaudio"
-("sudo apt-get install portaudio-dev" or "sudo yum install portaudio-devel"
-"sudo pip install pyaudio" or "sudo easy_install pyaudio")
+ - "sudo apt-get install portaudio-dev" or "sudo yum install portaudio-devel"
+ - "pip install pyaudio"
+Revision comment: Cleanup
 """
-from logging import warn
-__version__ = "1.0.1" # volume control
+from logging import warning
 
-def play_sound(name,volume=4.0):
-    play_sound_file(module_dir()+"/sounds/"+name+".wav",volume)
+__version__ = "1.0.5"
 
-def play_sound_file(filename,volume=1.0):
+
+def play_sound(name, volume=4.0):
+    play_sound_file(sound_filename(name), volume)
+
+
+def sound_filename(name):
+    return sounds_dir() + "/" + name + ".wav"
+
+
+def sounds_dir():
+    from module_dir import module_dir
+    return module_dir(sounds_dir) + "/sounds"
+
+
+def play_sound_file(filename, volume=1.0):
     # based on people.csail.mit.edu/hubert/pyaudio/#examples
-    try: import pyaudio
+    try:
+        import pyaudio
     except ImportError:
-        warn("pyaudio module not found. Sound not played."); return
-    import wave
-    from os.path import exists
-    
-    if not exists(filename):
-        print "%s: file not found. Sound not played" % filename; return
-    wf = wave.open(filename,"rb")
+        warning("pyaudio module not found. Sound not played.")
+    else:
+        import wave
+        from os.path import exists
+        if not exists(filename):
+            warning("%s: file not found. Sound not played" % filename)
+        else:
+            sound_file = wave.open(filename, "rb")
 
-    p = pyaudio.PyAudio()
+            audio = pyaudio.PyAudio()
 
-    # open stream
-    stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
-        channels = wf.getnchannels(),rate = wf.getframerate(),output = True)
-    # read data
-    chunk = 1024
-    data = wf.readframes(chunk)
-    # play stream
-    while data != '':
-        stream.write(scale(data,volume))
-        data = wf.readframes(chunk)
-    stream.close()
-    p.terminate()
+            audio_stream = audio.open(
+                format=audio.get_format_from_width(sound_file.getsampwidth()),
+                channels=sound_file.getnchannels(),
+                rate=sound_file.getframerate(),
+                output=True,
+            )
+            chunk_size = 1024
+            sound_data = sound_file.readframes(chunk_size)
+            while sound_data:
+                scaled_data = scale(sound_data, volume)
+                audio_stream.write(scaled_data)
+                sound_data = sound_file.readframes(chunk_size)
+            audio_stream.close()
+            audio.terminate()
 
-def scale(data,factor):
+
+def scale(data, factor):
     """Scale the amplitude of a sound waveform.
     data: 16-bit signed integers stereo sound samples, stored as string
-    scale factor: flotign point number: >1 louder, <1 softer, 1 keep volume
+    scale factor: floating point number: >1 louder, <1 softer, 1 keep volume
     return value: scaled data"""
-    from numpy import fromstring,int16,clip
-    values = fromstring(data,int16)
-    values = clip(values*factor,-2**15,2**15-1).astype(int16)
-    data = values.tostring()
+    from numpy import frombuffer, int16, clip
+    values = frombuffer(data, int16)
+    values = clip(values * factor, -2 ** 15, 2 ** 15 - 1).astype(int16)
+    data = values.tobytes()
     return data
 
-def module_dir():
-    """directory in which the .py file of current module is located"""
-    from os.path import dirname
-    return dirname(module_path())
 
-def module_path():
-    """Full pathname of the current module"""
-    from sys import path
-    from os import getcwd
-    from os.path import basename,exists
-    from inspect import getmodulename,getfile
-    # 'getfile' retreives the source file name name compiled into the .pyc file.
-    pathname = getfile(lambda x: None)
-    if exists(pathname): return pathname
-    # The module might have been compiled on a different machine or in a
-    # different directory.
-    pathname = pathname.replace("\\","/")
-    filename = basename(pathname)
-    dirs = [dir for dir in [getcwd()]+path if exists(dir+"/"+filename)]
-    if len(dirs) == 0: print "pathname of file %r not found" % filename
-    dir = dirs[0] if len(dirs) > 0 else "."
-    pathname = dir+"/"+filename
-    return pathname
-
-
-if __name__ == "__main__": # for testing
-    print("play_sound('ding',volume=1.0)")
+if __name__ == "__main__":  # for testing
+    name = 'ding'
+    filename = sound_filename(name)
+    print(f"play_sound(%r,volume=1.0)" % name)

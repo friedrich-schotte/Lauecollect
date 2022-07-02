@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from channel_archiver_IOC import *; run("LaserLab")'
+format_code = '"IOC offline" if value is None else "Active" if value else "Not Active"'
+label = 'Channel Archiver'
+log_level = 'DEBUG'
+logfile_basename = 'channel_archiver_IOC'
+machine_name = 'FEMTO7'
+mnemonic = 'channel_archiver'
+test_code = 'value'
+value_code = "caget('LASERLAB:ARCHIVE.ARCHIVING_REQUESTED')"

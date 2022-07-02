@@ -8,7 +8,7 @@ Date created: 2018-10-25
 Date last modified: 2018-03-28
 """
 __version__ = "0.0.2" # Friedrich Schotte, WideFieldCamera with uppercase F
-from GigE_camera_client import Camera
+from camera_client import Camera
 from Ensemble import ensemble
 from EPICS_motor import EPICS_motor
 from sleep import sleep

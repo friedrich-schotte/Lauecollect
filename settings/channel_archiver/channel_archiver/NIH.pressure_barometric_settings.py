@@ -1,1 +1,0 @@
-filename = '//mx340hs/data/anfinrud_1903/Archive/channel_archiver/NIH.pressure_barometric.txt'

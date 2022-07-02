@@ -1,2 +1,0 @@
-CustomView = ['EPICS Record', 'ID String', 'Nom. Update Period', 'Act. Update Period', 'Proportional Gain (P)', 'Integral Gain (I)', 'Differential Gain (D)', 'Stabilization Threshold', 'Stabilization N Samples', 'Current Low Limit', 'Current High Limit']
-view = 'Custom'

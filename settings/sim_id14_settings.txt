@@ -1,0 +1,2 @@
+CustomView = ['DS Table X', 'Detector distance']
+view = 'Custom'

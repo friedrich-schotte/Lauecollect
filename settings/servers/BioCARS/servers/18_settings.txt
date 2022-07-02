@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from DI_245_DL import dev; dev.run();'
+format_code = "str(value) == '1'"
+label = 'DI-245 Server'
+log_level = 'DEBUG'
+logfile_basename = 'DI_245_server'
+machine_name = 'PICO1'
+mnemonic = 'DI_245'
+test_code = 'value'
+value_code = 'caget("NIH:DI245.RUNNING")'

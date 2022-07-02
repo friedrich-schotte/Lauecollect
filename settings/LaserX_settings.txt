@@ -1,0 +1,4 @@
+prefix = '14IDB:m30'
+description = 'Laser X'
+EPICS_enabled = True
+target = -1.154

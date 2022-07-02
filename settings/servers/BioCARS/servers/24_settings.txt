@@ -1,0 +1,10 @@
+auto_start = True
+command = "from lecroy_scope_server import *; run_server( 'BioCARS.xray_scope')"
+format_code = '"IOC offline" if value is None else "Offline" if isnan(value) else "Online"'
+label = 'X-Ray Scope Server'
+log_level = 'INFO'
+logfile_basename = 'xray_scope_server'
+machine_name = 'ID14B-XSCOPE'
+mnemonic = 'xray_scope'
+test_code = 'value is not None'
+value_code = 'caget("BIOCARS:XRAY_SCOPE.ACQUIRING_WAVEFORMS")'

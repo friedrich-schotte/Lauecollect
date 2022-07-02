@@ -1,0 +1,5 @@
+EPICS_enabled = True
+description = 'Detector distance'
+prefix = '14IDB:m3'
+target = 186.9
+speed = 1.0

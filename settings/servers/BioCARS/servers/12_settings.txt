@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from lightwave_temperature_controller_server import *;  lightwave_temperature_controller_IOC.run()'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Lightwave TEC DL'
+log_level = 'DEBUG'
+logfile_basename = 'lightwave_temperature_controller_server'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'lightwave_temperature_controller'
+test_code = 'value is not None and not isnan(value)'
+value_code = 'caget("NIH:LIGHTWAVE.VAL")'

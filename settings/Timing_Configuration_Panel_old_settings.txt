@@ -1,0 +1,32 @@
+title = "Timing System Configuration"
+icon = "timing-system"
+EPICS_Record.value = 'self.timing_system.prefix'
+EPICS_Record.properties = {
+    'Enabled': 'True',
+    'Items': 'self.timing_system.prefixes',
+}
+IP_Address.properties = {
+    'Enabled': 'False',
+    'Value': '"Address "+self.timing_system.ip_address if self.timing_system.ip_address else "offline"',
+}
+Configuration.value = 'self.timing_system.configuration_name'
+Configuration.properties = {
+    'Enabled': 'self.timing_system.online',
+    'Items': 'self.timing_system.configuration_names',
+}
+Load.action = {
+    True: 'self.timing_system.load_configuration()'
+}
+##Load.value = 'self.timing_system.save_configuration()'
+Load.properties = {
+    'Enabled': 'self.timing_system.online',
+    'Label': '"Load Configuration"',
+}
+Save.action = {
+    True: 'self.timing_system.save_configuration()'
+}
+##Save.value = 'self.timing_system.save_configuration()'
+Save.properties = {
+    'Enabled': 'self.timing_system.online',
+    'Label': '"Save Configuration"',
+}

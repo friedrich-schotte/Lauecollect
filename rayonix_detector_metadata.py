@@ -1,0 +1,1 @@
+from rayonix_detector_metadata_client import rayonix_detector_metadata_client as rayonix_detector_metadata

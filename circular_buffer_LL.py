@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Circular buffer Server and Client module
     by Valentyn Stadnytskyi
@@ -245,6 +245,8 @@ class Client(object):
             self.buffer[:,self.pointerC] = input_data[:,j]
             self.pointerC = self.pointerC + 1
             self.pointerS = self.pointerS + 1
+            
+    get_update = update
 
     def give_all(self):
         """

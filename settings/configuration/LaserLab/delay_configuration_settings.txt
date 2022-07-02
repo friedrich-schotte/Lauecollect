@@ -1,0 +1,13 @@
+auto_update_timestamps = True
+command_rows = []
+command_row = 0
+define_button_label = 'Update'
+description_width = 42
+motor_labels = ['list of delays']
+motor_names = ['acquisition.delay_configuration']
+multiple_selections = False
+names = ['delay_configuration']
+nrows = 0
+row_height = 40
+title = 'Delay Configuration'
+widths = [81]

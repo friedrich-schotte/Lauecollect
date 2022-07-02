@@ -1,0 +1,2 @@
+CustomView = ['Detector status', 'Server status', 'Continuous readout', 'Image acquisition', 'X-ray detector image count', 'Timing system image count', 'Data collection image', 'Data collection images left', 'Bin factor', 'Scratch images directory', 'Scratch images', 'Scratch images limit', 'Scratch images limit enabled', 'Server IP address', 'Detector IP address']
+view = 'Custom'

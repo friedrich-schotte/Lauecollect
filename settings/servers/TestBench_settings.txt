@@ -1,0 +1,2 @@
+N = 5
+machine_names = ['PICO8']

@@ -1,0 +1,10 @@
+auto_start = True
+command = "from configuration_IOC import *; run('TestBench')"
+format_code = '"Not Running" if value is None else "Running"'
+label = 'Configuration Server'
+log_level = 'DEBUG'
+logfile_basename = 'TestBench_configuration_server'
+machine_name = 'PICO8'
+mnemonic = 'configuration'
+test_code = 'value is not None'
+value_code = 'caget("TESTBENCH:CONFIGURATION.CONFIGURATION_NAMES")'

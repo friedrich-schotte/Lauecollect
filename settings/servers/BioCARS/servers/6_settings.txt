@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from Ensemble_simulator_IOC import *; run()'
+format_code = '"Not running" if value is None else "Running"'
+label = 'Ensemble Simulator'
+log_level = 'DEBUG'
+logfile_basename = 'Ensemble_simulator_IOC'
+machine_name = 'ID14B4'
+mnemonic = 'Ensemble_simulator_IOC'
+test_code = 'value is not None'
+value_code = 'caget("NIH:SAMPLEX.VAL")'

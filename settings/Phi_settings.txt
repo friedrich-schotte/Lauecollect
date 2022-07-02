@@ -1,0 +1,7 @@
+prefix = '14IDB:m151'
+description = 'Alio Phi'
+target = -30.000714647249083
+EPICS_enabled = True
+min_dial = -360.0
+max_dial = 360.0
+speed = 50.0

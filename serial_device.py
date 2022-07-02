@@ -1,11 +1,13 @@
 """
-
+Base class for serial port controlled devices, allowing auto-discovery
 Authors: Friedrich Schotte
 Date created: 2019-05-20
-Date last modified: 2019-05-20
+Date last modified: 2020-06-16
+Revision comment: Using serial.tools.list_ports
 """
-__version__ = "1.0" 
-from logging import error,warn,info,debug
+__version__ = "1.0.1"
+ 
+from logging import error,warning,info,debug
 
 class Serial_Device(object):
     name = "serial_device"
@@ -34,7 +36,7 @@ class Serial_Device(object):
         if self.port is None: self.init_communications()
         online = self.port is not None
         if online: debug("Device online")
-        else: warn("Device offline")
+        else: warning("Device offline")
         return online
 
     @property
@@ -50,8 +52,8 @@ class Serial_Device(object):
         with self.__lock__: # multithread safe
             for i in range(0,2):
                 try: reply = self.__query__(command,count)
-                except Exception,msg:
-                    warn("query: %r: attempt %s/2: %s" % (command,i+1,msg))
+                except Exception as msg:
+                    warning("query: %r: attempt %s/2: %s" % (command,i+1,msg))
                     reply = ""
                 if reply: return reply
                 self.init_communications()
@@ -107,28 +109,37 @@ class Serial_Device(object):
                     info("%s: lost connection" % self.port.name)
                     self.port = None
                 else: info("Device is still responsive.")
-            except Exception,msg:
+            except Exception as msg:
                 debug("%s: %s" % (Exception,msg))
                 self.port = None
 
         if self.port is None:
-            port_basenames = ["COM"] if not exists("/dev") \
-                else ["/dev/tty.usbserial","/dev/ttyUSB"]
-            for i in range(-1,50):
-                for port_basename in port_basenames:
-                    port_name = port_basename+("%d" % i if i>=0 else "")
-                    ##debug("Trying port %s..." % port_name)
-                    try:
-                        port = Serial(port_name,baudrate=self.baudrate)
-                        port.write(self.id_query)
-                        debug("%s: Sent %r" % (port.name,self.id_query))
-                        reply = self.read(count=self.id_reply_length,port=port)
-                        if self.id_reply_valid(reply):
-                           self.port = port
-                           info("Discovered device at %s based on reply %r" % (self.port.name,reply))
-                           break
-                    except Exception,msg: debug("%s: %s" % (Exception,msg))
-                if self.port is not None: break
+            for port_name in self.available_ports:
+                ##debug("Trying port %s..." % port_name)
+                try:
+                    port = Serial(port_name,baudrate=self.baudrate)
+                    port.write(self.id_query)
+                    debug("%s: Sent %r" % (port.name,self.id_query))
+                    reply = self.read(count=self.id_reply_length,port=port)
+                    if self.id_reply_valid(reply):
+                       self.port = port
+                       info("Discovered device at %s based on reply %r" % (self.port.name,reply))
+                       break
+                except Exception as msg: debug("%s: %s" % (Exception,msg))
+
+    @property
+    def available_ports(self):
+        """List of device names"""
+        from platform import system
+        from serial.tools.list_ports import comports
+        if system() == 'Windows':
+            suffix = 'COM'
+        elif system() == 'Darwin':
+            suffix = 'cu.usbserial'
+        else:
+            suffix = ''
+        return [port.device for port in comports() if suffix in port.device]
+
 
 if __name__ == "__main__":
     from pdb import pm

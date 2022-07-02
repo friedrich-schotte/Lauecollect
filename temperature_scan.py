@@ -1,0 +1,1 @@
+from temperature_scan_client import temperature_scan_client as temperature_scan

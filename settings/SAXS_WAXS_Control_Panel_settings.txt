@@ -1,0 +1,293 @@
+Environment.defaults = {'Enabled': False, 'Value': 'offline?'}
+Environment.properties = {'Enabled': [(True, 'SAXS_WAXS_control.ensemble_online')]}
+Environment.value = 'SAXS_WAXS_control.environment'
+XRayDetector.properties = {
+    'Enabled': 'True',
+    'Label': '"X-Ray Detector %.1f mm" % SAXS_WAXS_control.instrumentation.DetZ.value',
+}
+XRayDetectorInserted.action = {
+    False: 'SAXS_WAXS_control.det_retracted = True',
+    True: 'SAXS_WAXS_control.det_inserted = True'
+}
+XRayDetectorInserted.defaults = {
+    'Enabled': False,
+    'Label': 'offline',
+}
+XRayDetectorInserted.properties = {
+    'BackgroundColour': [
+        ('green', 'SAXS_WAXS_control.det_inserted == True'),
+        ('yellow', 'SAXS_WAXS_control.det_retracted == True'),
+        ('red', 'SAXS_WAXS_control.det_inserted == SAXS_WAXS_control.det_retracted'),
+    ],
+    'Enabled': [(True, 'SAXS_WAXS_control.det_inserted in [True,False]')],
+    'Value': [
+        (True, 'SAXS_WAXS_control.det_inserted == True'),
+        (False, 'SAXS_WAXS_control.det_retracted == True'),
+    ],
+    'Label': [
+        ('Cancel', 'SAXS_WAXS_control.det_moving == True'),
+        ('Retract', 'SAXS_WAXS_control.det_inserted == True'),
+        ('Insert', 'SAXS_WAXS_control.det_inserted == False'),
+    ],
+}
+ProgramRunning.action = {
+    False: 'SAXS_WAXS_control.ensemble_program_running = False',
+    True: 'SAXS_WAXS_control.ensemble_program_running = True',
+}
+ProgramRunning.defaults = {'Enabled': False, 'Label': 'offline'}
+ProgramRunning.properties = {
+    'BackgroundColour': [
+        ('green', 'SAXS_WAXS_control.ensemble_program_running == True'),
+        ('red', 'SAXS_WAXS_control.ensemble_program_running == False')],
+    'Enabled': [(False, 'SAXS_WAXS_control.fault == True'),
+                (True, 'SAXS_WAXS_control.fault == False')],
+    'Value': [(False, 'SAXS_WAXS_control.ensemble_program_running == False'),
+              (True, 'SAXS_WAXS_control.ensemble_program_running == True')],
+    'Label': [
+        ('Fault', 'SAXS_WAXS_control.fault == True'),
+        ('Start', 'SAXS_WAXS_control.ensemble_program_running == False'),
+        ('Stop', 'SAXS_WAXS_control.ensemble_program_running == True')]
+}
+GotoSaved.action = {True: 'SAXS_WAXS_control.inserted = True'}
+GotoSaved.defaults = {'Enabled': False}
+GotoSaved.properties = {
+    'BackgroundColour': [('red', 'SAXS_WAXS_control.XY_enabled == False')],
+    'Enabled': [(True, '1-SAXS_WAXS_control.inserted')]}
+Home.action = {
+    False: 'SAXS_WAXS_control.ensemble_homing = False',
+    True: 'SAXS_WAXS_control.ensemble_homing = True'}
+Home.defaults = {'Enabled': False, 'Label': 'Home'}
+Home.properties = {
+    'BackgroundColour': [
+        ('yellow', 'SAXS_WAXS_control.ensemble_homing == True'),
+        ('green', 'SAXS_WAXS_control.ensemble_homed == True'),
+        ('red', 'SAXS_WAXS_control.ensemble_homed == False')],
+    'Enabled': [
+        (False, "SAXS_WAXS_control.ensemble_homing_prohibited != ''"),
+        (True, "SAXS_WAXS_control.ensemble_homing_prohibited == ''")],
+    'Value': [
+        (False, 'SAXS_WAXS_control.ensemble_homing == False'),
+        (True, 'SAXS_WAXS_control.ensemble_homing == True')],
+    'Label': [
+        ('Cancel', 'SAXS_WAXS_control.ensemble_homing == True'),
+        ('Home', 'SAXS_WAXS_control.ensemble_homed == False'),
+        ('Home', 'SAXS_WAXS_control.ensemble_homed == True')]
+}
+Inserted.action = {
+    False: 'SAXS_WAXS_control.retracted = True',
+    True: 'SAXS_WAXS_control.inserted = True',
+}
+Inserted.defaults = {
+    'Enabled': True,
+    'Label': 'Inserted [Withdrawn]'
+}
+Inserted.properties = {
+    'BackgroundColour': [
+        ('grey80', 'SAXS_WAXS_control.moving_sample == True'),
+        ('green', 'SAXS_WAXS_control.inserted == True'),
+        ('yellow', 'SAXS_WAXS_control.retracted == True'),
+        ('red', 'SAXS_WAXS_control.inserted == SAXS_WAXS_control.retracted'),
+    ],
+    'Enabled': [
+        (True, 'SAXS_WAXS_control.XY_enabled and not SAXS_WAXS_control.moving_sample'),
+        (False, 'not SAXS_WAXS_control.ensemble_online'),
+    ],
+    'Value': [
+        (True, 'SAXS_WAXS_control.inserted == True'),
+        (False, 'SAXS_WAXS_control.retracted == True'),
+    ],
+    'Label': [
+        ('Cancel', 'SAXS_WAXS_control.inserting_sample == True'),
+        ('Cancel', 'SAXS_WAXS_control.retracting_sample == True'),
+        ('Retract', 'SAXS_WAXS_control.inserted == True'),
+        ('Insert', 'SAXS_WAXS_control.inserted == False'),
+    ],
+}
+Temperature_Setpoint.defaults = {'Enabled': False, 'Value': 'offline'}
+Temperature_Setpoint.type = 'float'
+Temperature_Setpoint.format = '%.1f'
+Temperature_Setpoint.unit = 'C'
+Temperature_Setpoint.properties = {'Enabled': [(True, 'SAXS_WAXS_control.temperature_online')]}
+Temperature_Setpoint.value = 'SAXS_WAXS_control.temperature_setpoint'
+Temperature.defaults = {'Enabled': False, 'Value': 'offline'}
+Temperature.type = 'float'
+Temperature.format = '%.3f'
+Temperature.unit = 'C'
+Temperature.properties = {'Enabled': [(True, 'SAXS_WAXS_control.temperature_online')]}
+Temperature.value = 'SAXS_WAXS_control.temperature'
+JogTable.action = {
+    False: 'SAXS_WAXS_control.jogging_table = False',
+    True: 'SAXS_WAXS_control.jogging_table = True'}
+JogTable.defaults = {'Enabled': False, 'Label': 'Jog'}
+JogTable.properties = {
+    'Enabled': [
+        (False, "SAXS_WAXS_control.jog_table_possible == False"),
+        (True, "SAXS_WAXS_control.jog_table_possible == True")],
+    'Value': [
+        (False, 'SAXS_WAXS_control.jogging_table == False'),
+        (True, 'SAXS_WAXS_control.jogging_table == True')
+     ],
+    'Label': [
+        ('Cancel', 'SAXS_WAXS_control.jogging_table == True'),
+        ('Jog', 'SAXS_WAXS_control.jogging_table == False'),
+    ]
+}
+JogTablePosition.properties = {
+    'Enabled': 'SAXS_WAXS_control.jogging_table',
+    'Label': '"%.3f" % SAXS_WAXS_control.jog_table_motor.value',
+}
+XRayShutter.defaults = {'Enabled': False, 'Label': 'offline'}
+XRayShutter.properties = {
+    'Enabled': 'SAXS_WAXS_control.xray_safety_shutters_enabled == True',
+    'Value': 'SAXS_WAXS_control.xray_safety_shutters_open == True',
+    'Label': [
+        ('Disabled', 'SAXS_WAXS_control.xray_safety_shutters_enabled == False'),
+        ('Close','SAXS_WAXS_control.xray_safety_shutters_open == True'),
+        ('Open', 'SAXS_WAXS_control.xray_safety_shutters_open == False'),
+    ],
+    'BackgroundColour': [
+        ('green', 'SAXS_WAXS_control.xray_safety_shutters_open'),
+        ('red',   'not SAXS_WAXS_control.xray_safety_shutters_open and SAXS_WAXS_control.xray_safety_shutters_enabled'),
+    ],
+}
+XRayShutter.action = {
+    False: 'SAXS_WAXS_control.xray_safety_shutters_open = False',
+    True: 'SAXS_WAXS_control.xray_safety_shutters_open = True',
+}
+XRayShutterAutoOpen.defaults = {'Enabled': False}
+XRayShutterAutoOpen.properties = {
+    'Enabled': 'SAXS_WAXS_control.xray_safety_shutters_auto_open in [True,False]',
+    'Value': 'SAXS_WAXS_control.xray_safety_shutters_auto_open == True',
+}
+XRayShutterAutoOpen.action = {
+    False: 'SAXS_WAXS_control.xray_safety_shutters_auto_open = False',
+    True: 'SAXS_WAXS_control.xray_safety_shutters_auto_open = True',
+}
+LaserShutter.defaults = {'Enabled': False, 'Label': 'offline'}
+LaserShutter.properties = {
+    'Enabled': 'SAXS_WAXS_control.laser_safety_shutter_open in [True,False]',
+    'Value': 'SAXS_WAXS_control.laser_safety_shutter_open == True',
+    'Label': [
+        ('Close','SAXS_WAXS_control.laser_safety_shutter_open == True'),
+        ('Open', 'SAXS_WAXS_control.laser_safety_shutter_open == False'),
+    ],
+    'BackgroundColour': [
+        ('green', 'SAXS_WAXS_control.laser_safety_shutter_open == True'),
+        ('red',   'SAXS_WAXS_control.laser_safety_shutter_open == False'),
+    ],
+}
+LaserShutter.action = {
+    False: 'SAXS_WAXS_control.laser_safety_shutter_open = False',
+    True:  'SAXS_WAXS_control.laser_safety_shutter_open = True',
+}
+LaserShutterAutoOpen.defaults = {'Enabled': False}
+LaserShutterAutoOpen.properties = {
+    'Enabled': 'SAXS_WAXS_control.laser_safety_shutter_auto_open in [True,False]',
+    'Value': 'SAXS_WAXS_control.laser_safety_shutter_auto_open == True',
+}
+LaserShutterAutoOpen.action = {
+    False: 'SAXS_WAXS_control.laser_safety_shutter_auto_open = False',
+    True:  'SAXS_WAXS_control.laser_safety_shutter_auto_open = True',
+}
+Mode.defaults = {'Enabled': False, 'Value': 'offline'}
+Mode.properties = {'Enabled': [(True, 'SAXS_WAXS_control.timing_system_online == True')]}
+Mode.value = 'SAXS_WAXS_control.mode'
+PumpEnabled.action = {
+      False: 'SAXS_WAXS_control.pump_on_command = False',
+      True: 'SAXS_WAXS_control.pump_on_command = True'
+}
+PumpEnabled.defaults = {'Enabled': False, 'Label': 'offline'}
+PumpEnabled.properties = {
+    'Enabled': [(True, 'SAXS_WAXS_control.timing_system_running == True and SAXS_WAXS_control.pump_operating_manually == False')],
+    'Value': [
+        (False, 'SAXS_WAXS_control.pump_on_command == False'),
+        (True, 'SAXS_WAXS_control.pump_on_command == True')],
+    'Label': [
+        ('running', 'SAXS_WAXS_control.pump_on == True'),
+        ('stopped', 'SAXS_WAXS_control.pump_on == False'),
+        ('offline', 'SAXS_WAXS_control.pump_on not in [True,False]'),
+    ]
+}
+LoadSample.action = {
+    False: 'SAXS_WAXS_control.sample_loading = False',
+    True: 'SAXS_WAXS_control.sample_loading = True'
+}
+LoadSample.defaults = {'Enabled': False}
+LoadSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'SAXS_WAXS_control.sample_loading'),
+        ('red', 'SAXS_WAXS_control.pump_enabled == False')],
+    'Enabled': [
+        (True, 'SAXS_WAXS_control.pump_movable or SAXS_WAXS_control.sample_loading')],
+    'Value': [(True, 'SAXS_WAXS_control.sample_loading == True')],
+    'Label': [('Load Sample', 'not SAXS_WAXS_control.sample_loading'),
+              ('Cancel Load', 'SAXS_WAXS_control.sample_loading')]
+}
+LoadSampleStep.value = 'SAXS_WAXS_control.load_step'
+LoadSampleStep.properties = {'Enabled': 'True'}
+ExtractSample.action = {
+    False: 'SAXS_WAXS_control.sample_extracting = False',
+    True: 'SAXS_WAXS_control.sample_extracting = True',
+}
+ExtractSample.defaults = {'Enabled': False}
+ExtractSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'SAXS_WAXS_control.sample_extracting == True'),
+        ('red', 'SAXS_WAXS_control.pump_enabled == False')
+    ],
+    'Enabled': [(True, 'SAXS_WAXS_control.pump_movable or SAXS_WAXS_control.sample_extracting')],
+    'Value': [(True, 'SAXS_WAXS_control.sample_extracting == True')],
+    'Label': [
+        ('Extract Sample', 'not SAXS_WAXS_control.sample_extracting'),
+        ('Cancel Extract', 'SAXS_WAXS_control.sample_extracting')
+    ]
+}
+ExtractSampleStep.value = 'SAXS_WAXS_control.extract_step'
+ExtractSampleStep.properties = {'Enabled': 'True'}
+CirculateSample.action = {
+    False: 'SAXS_WAXS_control.sample_circulating = False',
+    True: 'SAXS_WAXS_control.sample_circulating = True'
+}
+CirculateSample.defaults = {'Enabled': False}
+CirculateSample.properties = {
+    'BackgroundColour': [
+        ('yellow', 'SAXS_WAXS_control.sample_circulating'),
+        ('red', 'SAXS_WAXS_control.pump_enabled == False')
+    ],
+    'Enabled': [(True, 'SAXS_WAXS_control.pump_movable or SAXS_WAXS_control.sample_circulating')],
+    'Value': [(True, 'SAXS_WAXS_control.sample_circulating == True')],
+    'Label': [
+        ('Circulate Sample', 'not SAXS_WAXS_control.sample_circulating'),
+        ('Cancel Circulate', 'SAXS_WAXS_control.sample_circulating')
+    ],
+}
+CirculateSampleStep.value = 'SAXS_WAXS_control.circulate_step'
+CirculateSampleStep.properties = {'Enabled': 'True'}
+PumpHomed.action = {
+    False: 'SAXS_WAXS_control.pump_homed = True',
+    True: 'SAXS_WAXS_control.pump_homed = True',
+}
+PumpHomed.defaults = {'Enabled': False, 'Label': 'offline', 'Value': True}
+PumpHomed.properties = {
+    'Enabled': [
+        (True, 'SAXS_WAXS_control.pump_movable == True')
+    ],
+    'Label': [
+        ('Home', 'SAXS_WAXS_control.ensemble_online'),
+    ]
+}
+PumpPosition.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpPosition.format = '%.1f'
+PumpPosition.properties = {'Enabled': [(True, 'SAXS_WAXS_control.ensemble_online')]}
+PumpPosition.value = 'SAXS_WAXS_control.pump_position'
+PumpSpeed.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpSpeed.properties = {'Enabled': [(True, 'SAXS_WAXS_control.ensemble_online')]}
+PumpSpeed.value = 'SAXS_WAXS_control.pump_speed'
+PumpStep.defaults = {'Enabled': False, 'Value': 'offline'}
+PumpStep.properties = {'Enabled': [(True, 'SAXS_WAXS_control.ensemble_online')]}
+PumpStep.value = 'SAXS_WAXS_control.pump_step'
+Save.action = {True: 'SAXS_WAXS_control.at_inserted_position = True'}
+Save.defaults = {'Enabled': False}
+Save.properties = {
+    'Enabled': [(True, 'SAXS_WAXS_control.at_inserted_position == False')]
+}

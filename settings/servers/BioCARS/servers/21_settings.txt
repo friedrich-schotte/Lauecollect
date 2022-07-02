@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from syringe_pump_DL import tower; tower.run();'
+format_code = '"Server offline" if value is None else "Tower offline" if not value else "Tower Online"'
+label = 'Syringe Tower IOC (Valentyn)'
+log_level = 'DEBUG'
+logfile_basename = 'syringe_tower_IOC_Valentyn'
+machine_name = 'PICO1'
+mnemonic = 'syringe_tower_IOC_Valentyn'
+test_code = 'value'
+value_code = 'caget("NIH:SYRINGE1.RUNNING")'

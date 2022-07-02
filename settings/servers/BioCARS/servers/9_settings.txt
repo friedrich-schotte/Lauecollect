@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from GigE_camera_IOC import *; run("WideFieldCamera",simulated=True)'
+format_code = 'str(value)'
+label = 'Wide-Field Camera Simulator'
+log_level = 'DEBUG'
+logfile_basename = 'WideFieldCamera_simulator'
+machine_name = 'ID14B4'
+mnemonic = 'WideFieldCamera'
+test_code = 'value is not None and "not found" not in value'
+value_code = 'caget("NIH:CAMERA.WIDEFIELDCAMERA.STATE")'

@@ -1,0 +1,9 @@
+CustomView = ['Temp Points', 'Time Points', 'P default', 'I default', 'D default', 'Lightwave prefix,temperature', 'oasis slave (on/off)', 'Oasis threshold T', 'Oasis idle temperature (low limit) (C)', 'Oasis temperature limit high (C)', 'Oasis headstart time (s)', 'Oasis prefix']
+history_length = 300
+idle_temperature = 22.0
+idle_temperature_oasis = 8.0
+stabilization_RMS = 0.01
+stabilization_time = 3.0
+temp_points = [-16, -16, 80, 80, -16, -16, 80, 80, -16, -16, 80, 80, -16]
+time_points = [0.0, 35.92512000000001, 265.845888, 289.795968, 519.7167360000001, 556.83936, 786.7601280000001, 810.7102080000001, 1040.6309760000001, 1077.7536, 1307.6743680000002, 1331.624448, 1561.5452160000002]
+view = 'Standard'

@@ -62,7 +62,7 @@ class RayonixDetectorSimulatorPanel(BasePanel):
     def OnClose(self,event=None):
         det.server_running = False
         self.Destroy()
-        ##if hasattr(wx,"app"): wx.app.Exit()
+        ##if hasattr(wx,"app"): app.Exit()
         
 if __name__ == '__main__':
     from pdb import pm # for debugging
@@ -74,6 +74,6 @@ if __name__ == '__main__':
         filename=gettempdir()+"/RayonixDetectorSimulatorPanel.log")
     rayonix_detector_simulator.verbose_logging = True
     
-    if not hasattr(wx,"app"): wx.app = wx.App(redirect=False) # initialize WX
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     panel = RayonixDetectorSimulatorPanel()
-    wx.app.MainLoop()
+    app.MainLoop()

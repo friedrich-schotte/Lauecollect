@@ -1,0 +1,2 @@
+N = 3
+machine_names = ['PICO1','PICO7','FRIEDRICHS-MACBOOK']

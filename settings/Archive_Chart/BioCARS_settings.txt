@@ -1,0 +1,3 @@
+time_window = 300.0
+show_latest = True
+center_time = 1595312366.4901454

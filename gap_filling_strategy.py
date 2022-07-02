@@ -1,15 +1,19 @@
 """Gap filling strategy: Given a list of angles already collected
 What is the optimal choice of angles to complete the data set?
-Friedrich Schotte, 4 Jul 2010"""
+Author: Friedrich Schotte
+Date created: 2010-09-04
+Date last modified: 2020-09-30
+Revision comment: Cleanup
+"""
 
 from numpy import *
-__version__ = "1.1"
+__version__ = "1.1.1"
 
 # Orientations already collected
 angles = 0,79,118,148,187,218,257,288,323,96,72,103,141,173,212,244,281,314,351
 # If rotating about a symmetry axis, reciprocal space symmetry period
 period = 60.
-# total orientations to collect
+# total orientations to acquire
 nangles = 40
 increment = 36.
 

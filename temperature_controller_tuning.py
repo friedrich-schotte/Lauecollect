@@ -3,14 +3,14 @@
 ##
 ##There will be several different for loops and other things.
 from time import time,sleep
-from numpy import savetxt, loadtxt, mean, max, asarray
+from numpy import asarray
 import matplotlib.pyplot as plt
 plt.ion()
-from channel_archiver import channel_archiver
+from instrumentation import BioCARS
 from CA import caget, caput, cawait
-from time import sleep,time
-from thread import start_new_thread
 import pickle
+
+channel_archiver = BioCARS.channel_archiver
 default_P,default_I,default_D = 1, 0.3, 0.562
 T_step = 4 #in degree C
 T_start = 22

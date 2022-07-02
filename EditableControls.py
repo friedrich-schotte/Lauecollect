@@ -1,19 +1,24 @@
 """Author: Friedrich Schotte,
 Date created: 2010-12-10
-Date last modified: 2019-02-31
+Date last modified: 2020-06-10
+Revision comment: line 19, self.OSXDisableAllSmartSubstitutions(): NotImplementedError
 """
-__version__ = "1.5.4" # SetValue: clearer coding
+__version__ = "1.6.2"
 
 import wx
 from logging import debug,info,warn,error
 
-class TextCtrl (wx.TextCtrl):
+class TextCtrl(wx.TextCtrl):
     """A customized editable text control"""
-    def __init__ (self,parent,style=wx.TE_PROCESS_ENTER,*args,**kwargs):
+    def __init__ (self,parent,style=wx.TE_PROCESS_ENTER,require_enter=False,
+        *args,**kwargs):
         wx.TextCtrl.__init__(self,parent,style=style,*args,**kwargs)
+        # "..." -> Unicode Hoizonal Ellipsis (U+2026)
+        # " -> Unicode Character 'LEFT DOUBLE QUOTATION MARK' (U+201C)
+        try: self.OSXDisableAllSmartSubstitutions() # requires wx 4
+        except: pass
 
-        self.RequireEnter = False # Is Enter is reqired to confirm a change?
-        if "require_enter" in kwargs: self.RequireEnter = kwargs["require_enter"]
+        self.RequireEnter = require_enter # Is Enter is reqired to confirm a change?
 
         self.Edited = False
         self.NormalBackgroundColour = self.DiplayedBackgroundColour
@@ -22,7 +27,7 @@ class TextCtrl (wx.TextCtrl):
         self.EditedForegroundColour = wx.Colour(30,30,0) # dark brown
         self.CachedValue = self.DiplayedValue
         self.Bind (wx.EVT_KEY_DOWN,self.OnType)
-        self.Bind (wx.EVT_TEXT_ENTER,self.OnEnter)
+        ##self.Bind (wx.EVT_TEXT_ENTER,self.OnEnter)
         self.Bind (wx.EVT_SET_FOCUS,self.OnReceiveFocus)
         self.Bind (wx.EVT_KILL_FOCUS,self.OnLooseFocus)
 
@@ -36,14 +41,10 @@ class TextCtrl (wx.TextCtrl):
             self.cancel_edit()
         elif event.KeyCode == wx.WXK_TAB:
             # Tab navigates between controls shifting the keyboard focus.
-            if self.RequireEnter: self.cancel_edit() 
+            if self.RequireEnter: self.cancel_edit()
             else:
                 changed = (self.DiplayedValue != self.CachedValue)
                 self.accept_edit()
-                if changed:
-                    # Make sure the callback for EVT_TEXT_ENTER is called.
-                    new_event = wx.PyCommandEvent(wx.EVT_TEXT_ENTER.typeId,self.Id)
-                    wx.PostEvent(self.EventHandler,new_event)
         elif event.KeyCode == wx.WXK_RETURN:
             skip_event = False
             changed = (self.DiplayedValue != self.CachedValue)
@@ -51,7 +52,7 @@ class TextCtrl (wx.TextCtrl):
             if changed:
                 # Make sure the callback for EVT_TEXT_ENTER is called.
                 new_event = wx.PyCommandEvent(wx.EVT_TEXT_ENTER.typeId,self.Id)
-                wx.PostEvent(self.EventHandler,new_event)  
+                wx.PostEvent(self.EventHandler,new_event)
         else:
             # Enter 'editing mode' by changing the background color.
             self.Edited = True
@@ -61,7 +62,7 @@ class TextCtrl (wx.TextCtrl):
         # Pass this event on to further event handlers bound to this event.
         # Otherwise, the typed text does not appear in the window.
         if skip_event: event.Skip()
-        
+
     def OnEnter(self,event):
         """Called when Enter is pressed"""
         debug("%s: Enter" % self.Name)
@@ -83,7 +84,7 @@ class TextCtrl (wx.TextCtrl):
         """Called when window looses keyboard focus"""
         ##debug("%s: Lost keyboard focus" % self.Name)
         # Is Enter is reqired to confirm a change?
-        if self.RequireEnter: self.cancel_edit() 
+        if self.RequireEnter: self.cancel_edit()
         else: self.accept_edit()
         # Pass this event on to further event handlers bound to this event.
         # Otherwise, the typed text does not appear in the window.
@@ -93,12 +94,15 @@ class TextCtrl (wx.TextCtrl):
         """Make the edited text available as "Value" of
         the control and exits "editing mode"."""
         old_bkg = wx.TextCtrl.GetBackgroundColour(self)
-        wx.TextCtrl.SetBackgroundColour(self,self.NormalBackgroundColour)       
+        wx.TextCtrl.SetBackgroundColour(self,self.NormalBackgroundColour)
         if wx.TextCtrl.GetBackgroundColour(self) != old_bkg: self.Refresh()
         value = self.DiplayedValue
         if value != self.CachedValue:
             debug("%s: Accepting '%s' (replacing '%s')" % (self.Name,value,self.CachedValue))
-        self.CachedValue = value    
+            # Make sure the callback for EVT_TEXT_ENTER is called.
+            new_event = wx.PyCommandEvent(wx.EVT_TEXT_ENTER.typeId,self.Id)
+            wx.PostEvent(self.EventHandler,new_event)
+        self.CachedValue = value
         self.Edited = False
 
     def cancel_edit(self):
@@ -195,7 +199,7 @@ class ComboBox (wx.ComboBox):
             self.cancel_edit()
         elif event.KeyCode == wx.WXK_TAB:
             # Tab navigates between controls shifting the keyboard focus.
-            if self.RequireEnter: self.cancel_edit() 
+            if self.RequireEnter: self.cancel_edit()
             else:
                 changed = (wx.ComboBox.GetValue(self) != self.CachedValue)
                 self.accept_edit()
@@ -212,7 +216,7 @@ class ComboBox (wx.ComboBox):
         # Pass this event on to further event handlers bound to this event.
         # Otherwise, the typed text does not appear in the window.
         event.Skip()
-        
+
     def OnEnter(self,event):
         """Called when Enter is pressed"""
         debug("%s: Enter" % self.Name)
@@ -234,7 +238,7 @@ class ComboBox (wx.ComboBox):
         """Called when window looses keyboard focus"""
         ##debug("%s: Lost keyboard focus" % self.Name)
         # Is Enter is reqired to confirm a change?
-        if self.RequireEnter: self.cancel_edit() 
+        if self.RequireEnter: self.cancel_edit()
         else: self.accept_edit()
         # Pass this event on to further event handlers bound to this event.
         # Otherwise, the typed text does not appear in the window.
@@ -244,12 +248,12 @@ class ComboBox (wx.ComboBox):
         """Make the edited text available as "Value" of
         the control and exits "editing mode"."""
         old_bkg = wx.ComboBox.GetBackgroundColour(self)
-        wx.ComboBox.SetBackgroundColour(self,self.NormalBackgroundColour)       
+        wx.ComboBox.SetBackgroundColour(self,self.NormalBackgroundColour)
         if wx.ComboBox.GetBackgroundColour(self) != old_bkg: self.Refresh()
         value = wx.ComboBox.GetValue(self)
         if value != self.CachedValue:
             debug("%s: Accepting '%s' (replacing '%s')" % (self.Name,value,self.CachedValue))
-        self.CachedValue = value        
+        self.CachedValue = value
         self.Edited = False
 
     def cancel_edit(self):
@@ -284,7 +288,10 @@ class ComboBox (wx.ComboBox):
         return wx.ComboBox.GetItems(self)
     def SetItems(self,values):
         if values != wx.ComboBox.GetItems(self):
-            wx.ComboBox.SetItems(self,values)
+            if not self.Edited:
+                value = wx.ComboBox.GetValue(self)
+                wx.ComboBox.SetItems(self,values)
+                wx.ComboBox.SetValue(self,value)
     Items = property(GetItems,SetItems)
     Choices = Items
 
@@ -346,7 +353,7 @@ class Choice (wx.Choice):
 
 
 def key_name(key_code): # for debugging
-    """The name for a key code""" 
+    """The name for a key code"""
     import wx
     names = ",".join([x[4:] for x in dir(wx) if x.startswith("WXK_") and
         getattr(wx,x) == key_code and not x.startswith("WXK_CONTROL_")])

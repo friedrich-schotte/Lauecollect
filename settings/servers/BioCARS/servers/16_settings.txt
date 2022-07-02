@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from temperature_system_IOC import *; run("BioCARS")'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Temperature System'
+log_level = 'DEBUG'
+logfile_basename = 'temperature_system'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'temperature_system'
+test_code = 'value is not None and not isnan(value)'
+value_code = "caget('BIOCARS:TEMPERATURE_SYSTEM.RBV')"

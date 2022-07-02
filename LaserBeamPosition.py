@@ -92,7 +92,7 @@ class LaserBeamPosition(CameraViewer):
         self.Status = wx.StaticText(self.panel,size=(-1,35))
 
         # Layout
-        self.layout.AddSpacer ((5,5))
+        self.layout.AddSpacer(5)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -111,7 +111,7 @@ class LaserBeamPosition(CameraViewer):
         panel.SetSizer(hbox)
 
         hbox2.Add (panel,flag=wx.ALIGN_CENTER)
-        hbox2.AddSpacer ((5,5))
+        hbox2.AddSpacer(5)
         hbox2.Add (self.StabilizationActive,flag=wx.ALIGN_CENTER)
         self.layout.Add (hbox2,flag=wx.ALIGN_CENTER)
 
@@ -666,7 +666,7 @@ def SNR(data):
 
 # The following is only executed when run as stand-alone application.
 if __name__ == '__main__':
-    wx.app = wx.App(redirect=False)
+    app = wx.App()
     camera = GigE_camera("id14b-prosilica5.cars.aps.anl.gov")
     ##camera = GigE_camera("id14b-prosilica5.biocarsvideo.net")
     # Direct imaging: pixel size is same as CCD pixel, 4.65 um 
@@ -674,4 +674,4 @@ if __name__ == '__main__':
         "Laser Beam Position (in beam conditioning box)",
         name="LaserBeamPosition",
         pixelsize=0.00465)
-    wx.app.MainLoop()
+    app.MainLoop()

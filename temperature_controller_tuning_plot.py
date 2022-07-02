@@ -1,4 +1,4 @@
-from channel_archiver import channel_archiver
+from instrumentation import BioCARS
 from time import time,sleep
 from numpy import asarray
 from time import time
@@ -11,7 +11,7 @@ def round_p(lst):
     return str(round(float(lst),3))
 
 def get_data(name = 'TEMP',from_time = 0, duration = 0):
-    a = asarray(channel_archiver.history("NIH:"+name+".RBV",from_time-duration,from_time))
+    a = asarray(BioCARS.channel_archiver.history("NIH:"+name+".RBV",from_time-duration,from_time))
     
     return a
 def temp_to_oasis(T):

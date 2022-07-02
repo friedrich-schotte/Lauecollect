@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from IOC import *; run("BioCARS.motor_scan")'
+format_code = '"IOC offline" if value is None else "Running"'
+label = 'Motor Scan IOC'
+log_level = 'DEBUG'
+logfile_basename = 'motor_scan_IOC'
+machine_name = 'ID14B4'
+mnemonic = 'motor_scan'
+test_code = 'value is not None'
+value_code = 'caget("BIOCARS:MOTOR_SCAN.VALUES_STRING")'

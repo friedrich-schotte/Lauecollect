@@ -1,9 +1,9 @@
 """Software simulated motor
 Author: Friedrich Schotte
 Date created: 2019-02-28
-Date last modified: 2019-04-26
+Date last modified: 2019-10-04
 """
-__version__ = "1.0.1" # IOC_Wrapper.transform_functions initialization
+__version__ = "1.1" # EPICS_enabled not automatic
 
 from logging import debug,info,warn,error
 
@@ -61,6 +61,9 @@ class sim_safety_shutter(object):
 
 class sim_EPICS_safety_shutter(sim_safety_shutter):
     """Simulated EPICS motor"""    
+    from persistent_property import persistent_property
+    EPICS_autostart = persistent_property("EPICS_autostart",True)
+
     def __init__(self,name,description,command_value,value,auto_open):
         """command_value: PV name
         value: PV name
@@ -98,7 +101,6 @@ class IOC_Wrapper(object):
         self.PV_names = {}
         for name in kwargs:
             self.PV_names[name] = kwargs[name]
-        self.running = self.EPICS_enabled
 
     def PV_name(self,name):
         return self.prefix+self.PV_names[name]
@@ -115,19 +117,9 @@ class IOC_Wrapper(object):
             value = back_transform_function(value)
         return value
     
-    def get_EPICS_enabled(self):
-        return self.__EPICS_enabled__
-    def set_EPICS_enabled(self,value):
-        self.__EPICS_enabled__ = value
-        self.running = value
-    EPICS_enabled = property(get_EPICS_enabled,set_EPICS_enabled)
-
-    from persistent_property import persistent_property
-    __EPICS_enabled__ = persistent_property("EPICS_enabled",True)
-
     from thread_property_2 import thread_property
     @thread_property
-    def running(self):
+    def EPICS_enabled(self):
         info("Starting IOC...")
         from CAServer import casget,casput,casdel,casmonitor
         from time import time
@@ -137,7 +129,7 @@ class IOC_Wrapper(object):
             PV_name = self.PV_name(name)
             casmonitor(PV_name,callback=self.monitor)
         
-        while not self.running_cancelled:
+        while not self.EPICS_enabled_cancelled:
             t = time()
             for name in self.PV_names:
                 if time() - self.last_updated(name) > self.update_period(name):
@@ -146,9 +138,9 @@ class IOC_Wrapper(object):
                     ##info("%s=%r" % (PV_name,value))
                     casput(PV_name,self.transform(name,value),update=False)
                     self.set_update_time(name)
-            if not self.running_cancelled: sleep(t+self.min_update_period-time())
+            if not self.EPICS_enabled_cancelled: sleep(t+self.min_update_period-time())
 
-        for name in self.names:
+        for name in self.PV_names:
             PV_name = self.PV_name(name)
             casdel(PV_name)
 

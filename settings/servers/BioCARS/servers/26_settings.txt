@@ -1,0 +1,10 @@
+auto_start = True
+command = 'from lecroy_scope_server import *; scope.name = "diag_scope"; run_server()'
+format_code = '"IOC offline" if value is None else "Offline" if isnan(value) else "Online"'
+label = 'Diagnostics Scope'
+log_level = 'DEBUG'
+logfile_basename = 'diag_scope_server'
+machine_name = 'ID14B-WAVESURFER'
+mnemonic = 'diag_scope'
+test_code = 'value is not None'
+value_code = 'caget("BIOCARS:DIAG_SCOPE.P1")'

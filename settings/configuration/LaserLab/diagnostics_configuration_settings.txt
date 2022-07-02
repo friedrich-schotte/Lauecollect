@@ -1,0 +1,16 @@
+CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+auto_update_timestamps = True
+command_row = 0
+command_rows = []
+description_width = 170
+motor_labels = ['diagnostics']
+motor_names = ['diagnostics.list']
+names = ['diagnostics']
+nrows = 0
+show_define_buttons = False
+show_in_list = True
+title = 'Diagnostics Configuration'
+widths = [300]
+line0.description = ''
+line0.diagnostics.list = ''
+line0.updated = '2020-06-23 19:11:44'

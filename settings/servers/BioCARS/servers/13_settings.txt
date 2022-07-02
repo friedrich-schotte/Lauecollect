@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from cavro_centris_syringe_pump_IOC import *; syringe_pump_IOC.run()'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Centris Syringe IOC'
+log_level = 'DEBUG'
+logfile_basename = 'cavro_centris_syringe_pump_IOC'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'cavro_centris_syringe_pump_IOC'
+test_code = 'not isnan(value)'
+value_code = 'pump_motherliquor.value'

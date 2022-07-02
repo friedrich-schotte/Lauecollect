@@ -1,2 +1,0 @@
-CustomView = ['Data']
-view = 'Standard'

@@ -1,11 +1,14 @@
 """Beam Profile Display window
-Author: Friedrich Schotte, Feb 26, 2016 - Sep 28, 2017
+Author: Friedrich Schotte
+Date created: 2016-02-26
+Date last modified: 2020-03-03
+Revision comment: Issue fixed: Python 3 compatibility
 """
 import wx
-from profile import xy_projections,FWHM,CFWHM,xvals,yvals
+from beam_profile import xy_projections,FWHM,CFWHM,xvals,yvals
 from logging import debug,info,warn,error
 
-__version__ = "1.1.2" # optional arguments
+__version__ = "1.1.4"
 
 class BeamProfile(wx.Panel):
     """Beam Profile Display window"""
@@ -65,7 +68,7 @@ class BeamProfile(wx.Panel):
                         event = wx.PyCommandEvent(self.EVT_THREAD.typeId,self.Id)
                         # call OnUpdate in GUI thread
                         wx.PostEvent(self.EventHandler,event)
-            except wx.PyDeadObjectError: break
+            except RuntimeError: break
 
     def refresh(self):
         """Force update"""
@@ -101,7 +104,7 @@ class BeamProfile(wx.Panel):
         """Did the last 'update_data' change the data to be plotted?"""
         ##changed = (self.values != self.old_values)
         if sorted(self.values.keys()) != sorted(self.old_values.keys()):
-            debug("beam profile: %r != %r" % (self.values.keys(),self.old_values.keys()))
+            debug("beam profile: %r != %r" % (list(self.values.keys()),list(self.old_values.keys())))
             changed = True
         else:
             changed = False
@@ -177,7 +180,7 @@ class BeamProfile(wx.Panel):
             ##scalefactor = min(float(W)/max(w,1),float(H)/max(h,1))
             ##W = rint(w*scalefactor); H = rint(h*scalefactor)
             image = image.Scale(W,H)
-            dc.DrawBitmap (wx.BitmapFromImage(image),0,0)
+            dc.DrawBitmap (wx.Image(image),0,0)
 
         # Draw the FWHM with dimensions box around the beam center,
         # horizontal and vertcal beam projections or sections on the left and

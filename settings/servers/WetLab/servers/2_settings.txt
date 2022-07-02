@@ -1,0 +1,10 @@
+auto_start = True
+command = 'import GigE_camera_server; GigE_camera_server.run("MicrofluidicsCamera")'
+format_code = 'value'
+label = 'Microfluidics Camera'
+log_level = 'INFO'
+logfile_basename = 'MicrofluidicsCamera_server'
+machine_name = 'PICO1'
+mnemonic = 'MicrofluidicsCamera'
+test_code = '"offline" not in value and "not found" not in value'
+value_code = 'Camera("MicrofluidicsCamera").state'

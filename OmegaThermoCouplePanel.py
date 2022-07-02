@@ -40,7 +40,7 @@ class OmegaThermocouplePanel(BasePanel):
 if __name__ == '__main__':
     from pdb import pm
     ##import logging; logging.basicConfig(level=logging.DEBUG)
-    # Needed to initialize WX library
-    if not "app" in globals(): app = wx.App(redirect=False)
+
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     panel = OmegaThermocouplePanel()
     app.MainLoop()

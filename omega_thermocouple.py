@@ -69,8 +69,8 @@ class Thermocouple(object):
 
     def __init__(self):
         # Make multithread safe
-        from thread import allocate_lock
-        self.__lock__ = allocate_lock()
+        from threading import Lock
+        self.__lock__ = Lock()
 
     @property
     def id(self): return self.query(self.id_query)
@@ -131,7 +131,7 @@ class Thermocouple(object):
         with self.__lock__: # multithread safe
             for i in range(0,2):
                 try: reply = self.__query__(command)
-                except Exception,msg:
+                except Exception as msg:
                     info("query: %r: attempt %s/2: %s" % (command,i+1,msg))
                     reply = ""
                 if reply: return reply
@@ -184,7 +184,7 @@ class Thermocouple(object):
                     debug("%s: %r: reply %r" % (self.port.name,self.id_query,reply))
                     info("%s: lost connection" % self.port.name)
                     self.port = None 
-            except Exception,msg:
+            except Exception as msg:
                 debug("%s: %s" % (Exception,msg))
                 self.port = None 
 
@@ -204,7 +204,7 @@ class Thermocouple(object):
                            self.port = port
                            info("%s: Found %r" % (self.port.name,self.id_reply))
                            break
-                    except Exception,msg: debug("%s: %s" % (Exception,msg))
+                    except Exception as msg: debug("%s: %s" % (Exception,msg))
                 if self.port is not None: break
             
 

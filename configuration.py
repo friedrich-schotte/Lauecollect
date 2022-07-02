@@ -1,2 +1,1 @@
-##from configuration_driver import *
-from configuration_client import *
+from configuration_client import configuration_client as configuration

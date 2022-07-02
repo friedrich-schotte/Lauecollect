@@ -1,4 +1,0 @@
-#!/bin/tcsh
-set dir = `dirname $0`
-#set PYTHONPATH=${dir}:${PYTHONPATH}
-python $dir/LaserBeamPosition.py

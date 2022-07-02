@@ -1,0 +1,3 @@
+EGU = 'steps'
+DESC = 'PumpB'
+DRBV = 0.0

@@ -1,11 +1,13 @@
 """
 Boxer perstaltic pump, controlled by a stpper motor, controller by Aerotech
 Ensemble EPAQ motion controller.
-Friedrich Schotte, Jun 27, 2014 - 19 Jun 2015
+Author: Friedrich Schotte
+Date created: 2014-06-27
+Date last modified: 2019-07-30
 """
 from logging import debug
 
-__version__ = "1.1.5"
+__version__ = "1.1.6" # Python 3
 
 from Ensemble import PumpA,PumpB,ensemble_motors
 
@@ -114,8 +116,8 @@ if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG,format="%(asctime)s: %(message)s")
     self = p.V # for debugging
-    print 'p.V1.value'
-    print 'p.V2.value'
-    print 'p.V.value'
-    print 'p.dV.value'
+    print('p.V1.value')
+    print('p.V2.value')
+    print('p.V.value')
+    print('p.dV.value')
 

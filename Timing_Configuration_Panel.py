@@ -5,85 +5,102 @@ Saving and restoring settings
 
 Author: Friedrich Schotte
 Date created: 2019-03-26
-Date last modified:  2019-06-01
+Date last modified: 2022-04-12
+Revision comment: Using timing system server
 """
-__version__ = "1.1" # redirect 
-
-from logging import debug,info,warn,error
-from traceback import format_exc
+__version__ = "1.2"
 
 import wx
 
-from instrumentation import timing_system # -> globals()
-
 from Control_Panel import Control_Panel
+
+
 class Timing_Configuration_Panel(Control_Panel):
     name = "Timing_Configuration_Panel"
-    title = "Timing Configuration"
+    icon = "Timing System"
+    timing_system_name = "BioCARS"
+
+    def __init__(self, timing_system_name=None):
+        if timing_system_name is not None:
+            self.timing_system_name = timing_system_name
+        Control_Panel.__init__(self)
+
+    @property
+    def timing_system(self):
+        from timing_system_client import timing_system_client
+        return timing_system_client(self.timing_system_name)
+
+    @property
+    def title(self):
+        return "Timing Configuration [%s]" % self.timing_system_name
 
     @property
     def ControlPanel(self):
         from Controls import Control
+        from EditableControls import ComboBox, TextCtrl
         panel = wx.Panel(self)
 
         frame = wx.BoxSizer()
         panel.Sizer = frame
-        
+
         layout = wx.BoxSizer(wx.VERTICAL)
-        frame.Add(layout,flag=wx.EXPAND|wx.ALL,border=10,proportion=1)
+        frame.Add(layout, flag=wx.EXPAND | wx.ALL, border=10, proportion=1)
 
         width = 160
-        
-        control = Control(panel,type=wx.ComboBox,
-            globals=globals(),
-            locals=locals(),
-            name=self.name+".EPICS_Record",
-            size=(width,-1),
-        )
-        layout.Add(control,flag=wx.ALIGN_CENTRE|wx.ALL)
 
-        control = Control(panel,type=wx.TextCtrl,
-            globals=globals(),
-            locals=locals(),
-            name=self.name+".IP_Address",
-            size=(width,-1),
-        )
-        layout.Add(control,flag=wx.ALIGN_CENTRE|wx.ALL)
+        control = Control(panel, type=ComboBox,
+                          globals=globals(),
+                          locals=locals(),
+                          name=self.name + ".EPICS_Record",
+                          size=(width, -1),
+                          style=wx.TE_PROCESS_ENTER,
+                          )
+        layout.Add(control, flag=wx.ALIGN_CENTRE | wx.ALL)
 
-        control = Control(panel,type=wx.ComboBox,
-            globals=globals(),
-            locals=locals(),
-            name=self.name+".Configuration",
-            size=(width,-1),
-        )
-        layout.Add(control,flag=wx.ALIGN_CENTRE|wx.ALL)
-        
-        control = Control(panel,type=wx.Button,
-            globals=globals(),
-            locals=locals(),
-            name=self.name+".Load",
-            size=(width,-1),
-        )
-        layout.Add(control,flag=wx.ALIGN_CENTRE|wx.ALL)
+        control = Control(panel, type=TextCtrl,
+                          globals=globals(),
+                          locals=locals(),
+                          name=self.name + ".IP_Address",
+                          size=(width, -1),
+                          )
+        layout.Add(control, flag=wx.ALIGN_CENTRE | wx.ALL)
 
-        control = Control(panel,type=wx.Button,
-            globals=globals(),
-            locals=locals(),
-            name=self.name+".Save",
-            size=(width,-1),
-        )
-        layout.Add(control,flag=wx.ALIGN_CENTRE|wx.ALL)
+        control = Control(panel, type=ComboBox,
+                          globals=globals(),
+                          locals=locals(),
+                          name=self.name + ".Configuration",
+                          size=(width, -1),
+                          style=wx.TE_PROCESS_ENTER,
+                          )
+        layout.Add(control, flag=wx.ALIGN_CENTRE | wx.ALL)
+
+        control = Control(panel, type=wx.Button,
+                          globals=globals(),
+                          locals=locals(),
+                          name=self.name + ".Load",
+                          size=(width, -1),
+                          )
+        layout.Add(control, flag=wx.ALIGN_CENTRE | wx.ALL)
+
+        control = Control(panel, type=wx.Button,
+                          globals=globals(),
+                          locals=locals(),
+                          name=self.name + ".Save",
+                          size=(width, -1),
+                          )
+        layout.Add(control, flag=wx.ALIGN_CENTRE | wx.ALL)
 
         panel.Fit()
         return panel
 
+
 if __name__ == '__main__':
-    from pdb import pm
-    import autoreload
+    timing_system_name = "BioCARS"
+    # timing_system_name = "LaserLab"
+
     from redirect import redirect
+
     redirect("Timing_Configuration_Panel")
-    # Needed to initialize WX library
-    import wx
-    app = wx.App(redirect=False)
-    panel = Timing_Configuration_Panel()
+    app = wx.GetApp() if wx.GetApp() else wx.App()
+    self = Timing_Configuration_Panel(timing_system_name)
     app.MainLoop()

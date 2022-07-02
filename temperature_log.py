@@ -6,7 +6,7 @@ Friedrich Schotte, APS, 4 Dec 2009
 
 from temperature_controller import temperature_controller
 from CA import PV
-from scan import timescan
+from scanning import timescan
 
 temperature = temperature_controller.temperature
 power = temperature_controller.power

@@ -3,7 +3,7 @@ Plot Window
 Friedrich Schotte, Hyun Sun Cho, 19 Dec 2007
 
 Usage example:
-app=wx.App(False)
+app = wx.App()
 from numpy import *
 data = 2.*pi*arange(200)/200.; data.shape = (100, 2); data[:,1] = sin(data[:,0])
 Plot(data)
@@ -24,7 +24,7 @@ class PlotScan(wx.Frame,Thread):
             app = None
             wx.Frame.__init__(self,None,title="Scan",size=(640, 400))
         except wx._core.PyNoAppError:
-            app = wx.App(redirect=False)
+            app = wx.App()
             wx.Frame.__init__(self,None,title="Scan",size=(640, 400))
         Thread.__init__(self)
 
@@ -122,10 +122,10 @@ class PlotScan(wx.Frame,Thread):
         # Layout
         layout = wx.BoxSizer(wx.VERTICAL)
         layout.Add (self.PlotArea,proportion=1,flag=wx.EXPAND) # growable
-        layout.AddSpacer((3,3))
+        layout.AddSpacer(3)
         controls = wx.BoxSizer(wx.HORIZONTAL)
         controls.Add (self.Start,flag=wx.ALIGN_CENTER)
-        controls.AddSpacer((5,5))
+        controls.AddSpacer(5)
         controls.Add (wx.StaticText(panel,label="Scan"),flag=wx.ALIGN_CENTER)
         controls.Add (self.Motor,flag=wx.ALIGN_CENTER)
         controls.Add (wx.StaticText(panel,label="from"),flag=wx.ALIGN_CENTER)
@@ -228,7 +228,7 @@ class PlotScan(wx.Frame,Thread):
         file"""
         filename = self.config.Read('filename')
         dlg = wx.FileDialog(self,"Save Data As",wildcard="*.txt",
-            defaultFile=filename,style=wx.SAVE|wx.OVERWRITE_PROMPT)
+            defaultFile=filename,style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.save_xy (self.data,filename)
@@ -314,9 +314,9 @@ class PlotScan(wx.Frame,Thread):
 
 # for testing
 def show():
-    # Needed to initialize WX library
+
     global app
-    if not "app" in globals(): app = wx.App(redirect=False)
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     PlotScan()
     app.MainLoop()
 

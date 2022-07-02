@@ -3,9 +3,10 @@
 data collection. This script also updates Lauecollect logfiles.
 Author: Friedrich Schotte
 Date created: 2011-07-27
-Date last modified: 2019-06-02
+Date last modified: 2021-10-05
+Revision comment: Python 3 compatibility
 """
-__version__ = "1.4.1" # Issues: repeat in old name, empty replacement string
+__version__ = "1.4.2" 
 
 from logging import debug,info,warn,error
 
@@ -42,7 +43,7 @@ def rename_files(directories,replacements,test_run=False):
                 # Update file contents
                 filename = new if not test_run else old_directory+"/"+basename 
                 if any([new.endswith(ext) for ext in update_extensions]):
-                    old_content = file(filename).read()
+                    old_content = open(filename).read()
                     new_content = replace_all(old_content,replacements)
                     if new_content != old_content:
                         backup_file = new+".old"
@@ -53,7 +54,7 @@ def rename_files(directories,replacements,test_run=False):
                         rename(new,backup_file,test_run)
                         info("Rewriting %s" % new)
                         if not test_run: 
-                            file(new,"wb").write(new_content)
+                            open(new,"wb").write(new_content)
                             # Set the file timestamp to be the same as of the original file.
                             utime(new,(-1,getmtime(backup_file)))
             if not test_run:
@@ -138,10 +139,9 @@ if __name__ == "__main__":
         format="%(message)s",
     )
     directories = [
-        "/net/mx340hs/data/anfinrud_1906/Data/WAXS/RNA-Hairpin/RNA-Hairpin-4BP/RNA-Hairpin-4BP-CG-Stem-End/RNA-Hairpin-4BP-CG-Stem-End-1",
+        "/net/mx340hs/data/anfinrud_2110/Data/Scans/Laser-Profile/LaserX-Scan-3",
     ]
     replacements = [
-        ["RNA-Hairpin-4BP-CG-Stem-End-1RNA-Hairpin-4BP-CG-Stem-End-1",
-         "RNA-Hairpin-4BP-CG-Stem-End-1"],
+        [ "LaserX-Scan-3 ", "LaserX-Scan-3" ],
     ]
     rename_files(directories,replacements,test_run=True)

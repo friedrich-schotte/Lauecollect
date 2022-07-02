@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from omega_thermocouple import *; run_IOC()'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Thermocouple IOC'
+log_level = 'DEBUG'
+logfile_basename = 'omega_thermocouple'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'omega_thermocouple'
+test_code = 'value is not None and not isnan(value)'
+value_code = 'caget("NIH:TC.VAL")'

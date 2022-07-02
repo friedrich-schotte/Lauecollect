@@ -1,0 +1,3 @@
+BioCARS.CustomView = ['Ns Laser Q-Switch Trigger', 'Ns Laser Flash Lamp Trigger', 'Heatload Chopper Phase', 'Heatload Chop. Act. Phase', 'High-Speed Chopper Phase']
+LaserLab.CustomView = ['X-ray Scope Trigger', 'Laser to X-ray Delay', 'Ps Laser Oscillator Phase', 'Ps Laser Trigger', 'Laser Scope Trigger', 'High-Speed Chopper Phase']
+BioCARS.view = 'Custom'

@@ -1,0 +1,10 @@
+auto_start = True
+command = 'import Ensemble; Ensemble.run_server()'
+format_code = '{0:"Device offline",1:"Online",nan:"IOC offline"}[value]'
+label = 'Ensemble'
+log_level = 'DEBUG'
+logfile_basename = 'Ensemble_IOC'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'Ensemble_IOC'
+test_code = 'value==1'
+value_code = 'ensemble.connected'

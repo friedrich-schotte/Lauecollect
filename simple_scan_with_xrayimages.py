@@ -1,5 +1,5 @@
-from id14 import LaserX,LaserY,LaserZ
-from rayonix_detector_continuous import rayonix_detector
+from instrumentation import LaserX,LaserY,LaserZ
+from rayonix_detector import rayonix_detector
 
 import os
 from shutil import copyfile

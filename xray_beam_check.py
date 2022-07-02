@@ -6,18 +6,16 @@ by gated integration of the X-ray pulse.
 A three-point scan is performed and the optimum determined by parabolic fit.
 
 Author: Friedrich Schotte
-Date created : 2016-06-25
-Date last modified: 2018-10-31
+Date created: 2016-06-25
+Date last modified: 2022-03-28
+Revision comment: Cleanup: timing_system_composer
 """
-__version__ = "1.2" # Don't switch oscilloscope from "Sequence" to "RealTime" mode 
+__version__ = "1.2.5"
 
-from instrumentation import xray_pulse,timing_system
-from Ensemble_SAXS_pp import Ensemble_SAXS
-from timing_sequencer import timing_sequencer
+from instrumentation import xray_pulse
 from CA import caget,caput,PV
 from persistent_property import persistent_property
 from numpy import nan,sqrt,arange
-from thread import start_new_thread
 from time import sleep,time
 from instrumentation import MirrorH,MirrorV,s1hg,shg,svg
 from logfile import LogFile
@@ -88,8 +86,8 @@ class Xray_Beam_Check(object):
         @property
         def y_aperture_moving(self): return self.y_aperture_control.moving
 
-        def get_timing_system_ip_address(self): return timing_system.ip_address
-        def set_timing_system_ip_address(self,value): timing_system.ip_address = value
+        def get_timing_system_ip_address(self): return self.timing_system.ip_address
+        def set_timing_system_ip_address(self,value): self.timing_system.ip_address = value
         timing_system_ip_address = property(get_timing_system_ip_address,set_timing_system_ip_address)
 
         def get_scope_ip_address(self): return xray_pulse.scope.ip_address
@@ -105,15 +103,21 @@ class Xray_Beam_Check(object):
         timing_modes = ["SAXS/WAXS","Laue"]
 
         @property
-        def timing_sequencer(self):
-            return timing_sequencer if self.timing_mode == "Laue" \
-                else Ensemble_SAXS
+        def timing_system_composer(self):
+            return self.timing_system.composer
+
+        @property
+        def timing_system(self):
+            from timing_system import timing_system
+            return timing_system(self.timing_system_name)
+        
+        timing_system_name = "BioCARS"
 
     settings = Settings()
 
     log = LogFile(name+".log",["date time","x_control","y_control"])
-    if log.filename == "":
-        log.filename = "//mx340hs/data/anfinrud_1703/Logfiles/xray_beam_check.log"
+    from redirect import log_filename
+    log.filename = log_filename("xray_beam_check")
 
     x_scan_x =    persistent_property("x_scan_x",   []) 
     x_scan_I =    persistent_property("x_scan_I",   []) 
@@ -170,21 +174,21 @@ class Xray_Beam_Check(object):
 
     def timing_system_pre_scan_setup(self):
         # Save current settings
-        self.settings.xosct_on_norm = self.settings.timing_sequencer.xosct_on
-        self.settings.ms_on_norm = self.settings.timing_sequencer.ms_on
+        self.settings.xosct_on_norm = self.settings.timing_system_composer.xosct_on
+        self.settings.ms_on_norm = self.settings.timing_system_composer.ms_on
 
-        if not self.settings.timing_sequencer.xosct_on:
-            self.settings.timing_sequencer.xosct_on = True
-        if not self.settings.timing_sequencer.ms_on:
-            self.settings.timing_sequencer.ms_on = True
-        while not (self.settings.timing_sequencer.xosct_on
-            and self.settings.timing_sequencer.ms_on) and not self.cancelled:
+        if not self.settings.timing_system_composer.xosct_on:
+            self.settings.timing_system_composer.xosct_on = True
+        if not self.settings.timing_system_composer.ms_on:
+            self.settings.timing_system_composer.ms_on = True
+        while not (self.settings.timing_system_composer.xosct_on
+            and self.settings.timing_system_composer.ms_on) and not self.cancelled:
             sleep(0.1)
 
     def timing_system_post_scan_setup(self):
         # Restore settings
-        self.settings.timing_sequencer.xosct_on = self.settings.xosct_on_norm
-        self.settings.timing_sequencer.ms_on = self.settings.ms_on_norm
+        self.settings.timing_system_composer.xosct_on = self.settings.xosct_on_norm
+        self.settings.timing_system_composer.ms_on = self.settings.ms_on_norm
 
     def get_x_scan_running(self):
         return self.x_scan_started > time()-self.settings.scan_timeout
@@ -204,11 +208,17 @@ class Xray_Beam_Check(object):
 
     def start_x_scan(self):
         self.cancelled = False
-        start_new_thread(self.perform_x_scan,())
+        from threading import Thread
+        thread = Thread(target=self.perform_x_scan)
+        thread.daemon = True
+        thread.start()
 
     def start_y_scan(self):
         self.cancelled = False
-        start_new_thread(self.perform_y_scan,())
+        from threading import Thread
+        thread = Thread(target=self.perform_y_scan)
+        thread.daemon = True
+        thread.start()
 
     def perform_x_scan(self):
         self.x_scan_started = time()
@@ -329,10 +339,13 @@ class Xray_Beam_Check(object):
 xray_beam_check = Xray_Beam_Check()
 
 
-def parabola_vertex((x1,x2,x3),(y1,y2,y3)):
+def parabola_vertex(X,Y):
     """Vertex of a parabola given three points
-    x: list of three value
-    Y: list 3 values"""
+    X: list of three value
+    Y: list 3 values
+    """
+    x1,x2,x3 = X
+    y1,y2,y3 = Y
     # http://stackoverflow.com/questions/717762/how-to-calculate-the-vertex-of-a-parabola-given-three-points
     # y = A * x**2 + B * x + C
     try:
@@ -345,7 +358,13 @@ def parabola_vertex((x1,x2,x3),(y1,y2,y3)):
     except ZeroDivisionError: xv,yv = nan,nan
     return xv,yv
 
-def parabolic_fit((x1,x2,x3),(y1,y2,y3)):
+def parabolic_fit(X,Y):
+    """
+    X: list of three value
+    Y: list 3 values
+    """
+    x1,x2,x3 = X
+    y1,y2,y3 = Y
     # http://stackoverflow.com/questions/717762/how-to-calculate-the-vertex-of-a-parabola-given-three-points
     # y = A * x^2 + B * x + C
     try:
@@ -374,22 +393,15 @@ def round_next(x,step):
 
 if __name__ == "__main__":
     from pdb import pm
-    from CA import cainfo
+    import logging
+    format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
+    logging.basicConfig(level=logging.DEBUG,format=format)
     from instrumentation import mir2X1,mir2X2,mir2Th
     self = xray_beam_check # for debugging
-    print('xray_beam_check.settings.timing_system_ip_address = %r' % xray_beam_check.settings.timing_system_ip_address)
-    print('xray_beam_check.settings.scope_ip_address = %r' % xray_beam_check.settings.scope_ip_address)
-    print('xray_beam_check.settings.timing_mode = %r' % xray_beam_check.settings.timing_mode)
-    print('xray_beam_check.settings.beamline_mode = %r' % xray_beam_check.settings.beamline_mode)
-    print('')
+    ##print('xray_beam_check.settings.timing_system_ip_address = %r' % xray_beam_check.settings.timing_system_ip_address)
+    ##print('xray_beam_check.settings.scope_ip_address = %r' % xray_beam_check.settings.scope_ip_address)
+    ##print('xray_beam_check.settings.timing_mode = %r' % xray_beam_check.settings.timing_mode)
+    ##print('xray_beam_check.settings.beamline_mode = %r' % xray_beam_check.settings.beamline_mode)
+    ##print('')
     print('xray_beam_check.perform_x_scan()')
     print('xray_beam_check.perform_y_scan()')
-    ##print('xray_beam_check.settings.x1_motor       = %r' % xray_beam_check.settings.x1_motor)
-    ##print('xray_beam_check.settings.x2_motor       = %r' % xray_beam_check.settings.x2_motor)
-    ##print('xray_beam_check.settings.y_motor        = %r' % xray_beam_check.settings.y_motor)
-    ##print('xray_beam_check.settings.x_aperture_motor=%r' % xray_beam_check.settings.x_aperture_motor)
-    ##print('xray_beam_check.settings.y_aperture_motor=%r' % xray_beam_check.settings.y_aperture_motor)
-    ##print('xray_beam_check.x_control               = %.4f' % xray_beam_check.x_control)
-    ##print('xray_beam_check.y_control               = %.4f' % xray_beam_check.y_control)
-    ##print('xray_beam_check.settings.dx_scan        = %.4f' % xray_beam_check.settings.dx_scan)
-    ##print('xray_beam_check.settings.dy_scan        = %.4f' % xray_beam_check.settings.dy_scan)

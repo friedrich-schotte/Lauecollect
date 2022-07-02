@@ -219,7 +219,7 @@ class TimingStabilityChart (wx.Frame):
         from inspect import getfile
         filename = self.export_filename
         dlg = wx.FileDialog(self,"Save Displayed Data Points As",
-            style=wx.SAVE|wx.OVERWRITE_PROMPT,
+            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT,
             defaultFile=basename(filename),defaultDir=dirname(filename),
             wildcard="Text Files (*.txt)|*.txt|All Files (*.*)|*.*")
         if dlg.ShowModal() == wx.ID_OK:
@@ -485,9 +485,9 @@ def repr(x):
 
 def main():
     global win
-    if not hasattr(wx,"app"): wx.app = wx.App(redirect=False)
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     win = TimingStabilityChart()
-    wx.app.MainLoop()
+    app.MainLoop()
 
 if __name__ == "__main__":
     """Main program"""

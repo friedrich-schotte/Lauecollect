@@ -1,2 +1,0 @@
-CustomView = ['Acquisition', 'X-ray detector image count', 'Image', 'Images left to save', 'Bin factor', 'Scratch directory', 'Images to keep', 'Server IP address', 'Detector IP address', 'Timing mode', 'Limit images to keep', 'Auto-start']
-view = 'Custom'

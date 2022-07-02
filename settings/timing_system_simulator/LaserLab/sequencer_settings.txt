@@ -1,0 +1,9 @@
+next_queue_name = ''
+default_queue_name = 'queue2'
+queue_name = 'queue2'
+descriptor = "delay=-0.0005,nom_delay=-0.0005,laser_on=True,ms_on=False,pump_on=False,xdet_on=False,trans_on=False,pass_number=0.0,image_number_inc=False,pass_number_inc=False,acquiring=False,mode_number=1,N=32,period=64,transd=0,dt=2,t0=1,z=0,transc=1,preceding_sequence.delay=-0.0005,xd=0.000985971429,ch1.special='',ch1.offset_PP=nan,ch1.offset_sign=1.0,ch1.pulse_length_PP=nan,ch1.offset_HW=0.001,ch1.pulse_length_HW=1e-06,ch1.timed='pump+probe',ch1.gated='pump',ch1.counter_enabled=0,ch3.special='',ch3.offset_PP=nan,ch3.offset_sign=1.0,ch3.pulse_length_PP=nan,ch3.offset_HW=0.00075,ch3.pulse_length_HW=0.002,ch3.timed='period',ch3.gated='detector',ch3.counter_enabled=0,losct.special='',losct.offset_PP=nan,losct.offset_sign=1.0,losct.pulse_length_PP=nan,losct.offset_HW=0.00099,losct.pulse_length_HW=1e-06,losct.timed='pump',losct.gated='',losct.counter_enabled=1,generator='composer',generator_version='5.6.5',timing_sequence_version='7.8.3',"
+packet_start_time = 1591011973
+interrupt_handler_enabled_time = 1591167674.269623
+buffer_size = 262144
+phase_matching_period = 12
+next_queue_sequence_count = -1

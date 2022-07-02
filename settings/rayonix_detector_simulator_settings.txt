@@ -1,0 +1,10 @@
+ignore_first_trigger = False
+trigger_PV = 'NIH:TIMING.registers.ch7_trig_count.count'
+external_trigger = 1
+n_frames = 9999999
+first_frame_number = 1
+filename_base = '//mx340hs/data/tmp/'
+filename_suffix = '.rx'
+number_field_width = 7
+bin_factor = 8
+readout_mode_number = 0

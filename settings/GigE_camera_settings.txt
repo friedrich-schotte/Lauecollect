@@ -1,0 +1,9 @@
+MicroscopeCamera.camera.IP_addr = 'id14b-prosilica1.cars.aps.anl.gov'
+WideFieldCamera.camera.IP_addr = 'id14b-prosilica2.cars.aps.anl.gov'
+Microscope.camera.IP_addr = 'pico22.niddk.nih.gov'
+MicrofluidicsCamera.camera.IP_addr = 'femto5.niddk.nih.gov'
+TestBenchCamera.camera.IP_addr = 'femto9.niddk.nih.gov'
+LaserLabCamera.camera.IP_addr = 'femto9.niddk.nih.gov'
+Camera.camera.IP_addr = ''
+Camera.use_multicast = False
+MicroscopeCamera.use_multicast = False

@@ -1,0 +1,11 @@
+P_default = 0.749
+I_default = 0.178
+idle_temperature_oasis = 8.0
+temperature_oasis_limit_high = 45.0
+T_threshold = 79.0
+oasis_slave = 1
+oasis_headstart_time = 15.0
+D_default = 0.442
+time_points = []
+temp_points = []
+set_point_update_period = 0.25

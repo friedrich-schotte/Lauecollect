@@ -1,4 +1,9 @@
-"""Friedrich Schotte, 9 Nov 2012"""
+"""
+Author: Friedrich Schotte
+Date created: 2012-11-09
+Date last modified: 2019-10-15
+"""
+__version__ = "1.0.1"
 
 def interpolate_2D(PHI,Z,OFFSET,phi,z):
     """Perform two-dimensional interpolation of data define on a rectangular
@@ -54,11 +59,8 @@ def interpolate_2D(PHI,Z,OFFSET,phi,z):
 
 
 if __name__ == "__main__":
-    import lauecollect_new as lauecollect
     from numpy import array
-    lauecollect.param.path = "//id14bxf/data/anfinrud_1211/Data/Laue/PYP-E46Q-H/PYP-E46Q-H46.1-288K"
-    PHI,Z,X,Y,OFFSET = array(lauecollect.align_table())[0:5]
-    ##PHI,Z,OFFSET = PHI[0:2],Z[0:2],OFFSET[0:2]
+    PHI,Z,OFFSET = array([[0.0,45.0],[6.8,7.0],[0.12,0.16]])
     phi,z = 0+1,6.814-0
     offset = interpolate_2D(PHI,Z,OFFSET,phi,z)
-    print offset
+    print("offset=%r" % offset)

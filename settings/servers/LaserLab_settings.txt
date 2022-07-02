@@ -1,0 +1,2 @@
+N = 7
+machine_names = ['FEMTO7','PICO6','PICO7','FRIEDRICHS-MACBOOK']

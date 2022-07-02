@@ -1,0 +1,10 @@
+auto_start = True
+command = "from IOC import *; run('BioCARS.channel_archiver')"
+format_code = '"IOC offline" if value is None else "Active" if value else "Not Active"'
+label = 'Channel Archiver'
+log_level = 'DEBUG'
+logfile_basename = 'channel_archiver_IOC'
+machine_name = 'ID14B4'
+mnemonic = 'channel_archiver'
+test_code = 'value'
+value_code = "caget('BIOCARS:CHANNEL_ARCHIVER.ARCHIVING_REQUESTED')"

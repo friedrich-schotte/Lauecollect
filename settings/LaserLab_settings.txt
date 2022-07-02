@@ -1,0 +1,13 @@
+CustomView = ['Delay', 'Mode', 'Pump (laser)', 'Acquiring', 'Sequencer Running']
+LaserLab_timing_modes.CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+sequence_modes.CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+timing_modes.CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+method.CustomView = ['Title', 'Columns']
+detector_configuration.CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+method.motor1.CustomView = ['Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances']
+method.motor4.CustomView = ['Label', 'Python code', 'Mnemonic', 'Format', 'Tolerance', 'Width']
+method.motor9.CustomView = ['Label', 'Python code', 'Mnemonic', 'Format', 'Tolerance', 'Width']
+method.motor7.CustomView = ['Label', 'Python code', 'Mnemonic', 'Format', 'Tolerance', 'Width']
+method.view = 'Standard'
+LaserLabCamera.LaserLab.LaserLabCamera.CustomView = ['Title']
+FLIR1.LaserLab.FLIR1.CustomView = ['Title']

@@ -1,0 +1,5 @@
+CustomView = ['Data']
+view = 'Standard'
+TimeChart.time_window = 300.0
+TimeChart.show_latest = True
+TimeChart.center_time = 1595382318.973356

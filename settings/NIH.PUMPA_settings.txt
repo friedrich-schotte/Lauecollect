@@ -1,0 +1,4 @@
+EGU = 'steps'
+DESC = 'PumpA'
+DRBV = 0.0
+DVAL = 0.0

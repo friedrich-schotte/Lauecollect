@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 """
 DI-245 Data Acquisition monitor (Application level code)
 by Valentyn Stadnytskyi
@@ -672,7 +672,7 @@ if __name__ == "__main__":
     client = ClientSocket()
     
     #Create the GUI frane and show it
-    app = wx.App(False)
+    app = wx.App()
     frame = ClientGUI()
     frame.Show()
     

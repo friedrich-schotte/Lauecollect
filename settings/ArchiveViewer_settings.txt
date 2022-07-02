@@ -1,0 +1,4 @@
+CustomView = ['Data']
+view = 'Custom'
+BioCARS.CustomView = None
+LaserLab.CustomView = None

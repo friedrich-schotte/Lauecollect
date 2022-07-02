@@ -1,0 +1,15 @@
+auto_update_timestamps = True
+command_rows = []
+command_row = 0
+description_width = 42
+formats = ['%s', '%g', '%g', '%g']
+history_length = 300
+motor_labels = ['list of temperatures', 'wait', 'Idle\ntemp', 'count']
+motor_names = ['temperature_scan.temperatures', 'acquisition.temperature_wait', 'temperature_scan.temperature_idle']
+names = ['list', 'wait', 'idle']
+nrows = 0
+row_height = 21
+show_define_buttons = False
+sort_column_labels = ['Name', 'Updated']
+title = 'Temperature Configuration'
+widths = [121, 35, 65]

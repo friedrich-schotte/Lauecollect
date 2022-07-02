@@ -1,13 +1,29 @@
 #!/usr/bin/env python
 """
 Control panel for variable laser attenuator
-Friedrich Schotte, APS, 8 Jun 2009 - 16 Nov 2014
+Author: Friedrich Schotte
+Date created: 2009-06-08
+Date last modified: 2022-03-23
+Revision comment: Cleanup (formatting)
 """
-__version__ = "1.2" # trans -> trans2
+__version__ = "1.3.1"
+
 import wx
 from LaserAttenuatorPanel import LaserAttenuatorPanel
-from id14 import trans2
 
-wx.app = wx.App(redirect=False) # Needed to initialize WX library
-panel = LaserAttenuatorPanel(trans2,title="Laser Attenuator [in X-ray Hutch]")
-wx.app.MainLoop()
+
+class LaserAttenuatorXrayHutchPanel(LaserAttenuatorPanel):
+    title = "Laser Attenuator [in X-Ray Hutch]"
+
+    def __init__(self):
+        from id14 import trans2
+        LaserAttenuatorPanel.__init__(self, trans2, title=self.title)
+
+
+if __name__ == "__main__":
+    from redirect import redirect
+
+    redirect("LaserAttenuatorXrayHutchPanel")
+    app = wx.GetApp() if wx.GetApp() else wx.App()
+    panel = LaserAttenuatorXrayHutchPanel()
+    app.MainLoop()

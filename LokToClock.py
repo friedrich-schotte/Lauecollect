@@ -1,18 +1,17 @@
 """Spectra Physics 3930 Lok-to-Clock frequency stabilizer for the Tsunami laser
 This is to make the device remote controllable accross the network using
 EPICS.
-Friedrich Schotte, 3 Jun 2013 - 27 Apr 2016
+Author: Friedrich Schotte
+Date created: 2013-06-03
+Date last modified: 2019-11-13
 """
-__version__ = "1.1.1" # EPICS_CA_ADDR_LIST
+__version__ = "1.1.3" # removed address list for EPICS
 
 from CA import Record
-from os import environ
-
-environ["EPICS_CA_ADDR_LIST"] = "id14l-spitfire2.cars.aps.anl.gov"
 LokToClock = Record("14IDL:LokToClock")
 
 if __name__ == "__main__":
     from CA import caget
-    print 'caget("14IDL:LokToClock.locked")'
-    print "LokToClock.locked"
-    print "LokToClock.locked = 1"
+    print('caget("14IDL:LokToClock.locked")')
+    print("LokToClock.locked")
+    print("LokToClock.locked = 1")

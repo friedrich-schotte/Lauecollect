@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from xray_beam_center_IOC import *; run("BioCARS")'
+format_code = '"Server offline" if value is None else "Detector not acquiring" if isnan(value) else "Online"'
+label = 'X-Ray Beam Center'
+log_level = 'DEBUG'
+logfile_basename = 'xray_beam_center_IOC'
+machine_name = 'ID14B4'
+mnemonic = 'xray_beam_center'
+test_code = 'value is not None and not isnan(value)'
+value_code = 'caget("BIOCARS:XRAY_BEAM_CENTER.I")'

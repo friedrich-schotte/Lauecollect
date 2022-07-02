@@ -1,23 +1,25 @@
 """
 Plot Window
-Friedrich Schotte, Hyun Sun Cho, NIH, 19 Dec 2007 - 5 Nov 2010
 
 Usage example:
-app=wx.App(False)
+app = wx.App()
 from numpy import *
 data = 2.*pi*arange(200)/200.; data.shape = (100, 2); data[:,1] = sin(data[:,0])
 Plot(data)
+
+Author: Friedrich Schotte, Hyun Sun Cho
+Date created: 2007-23-29
+Date last modified: 2020-10-10
+Revision comment: Python 3 compatibility
 """
+__version__ = "1.2.1"
+
 import wx
 from PyPlot import * # tweaked version of wx.lib.plot
 
-__version__ = "1.2"
 
 class Plot(wx.Frame):
     def __init__(self,data=[[0,0]],title="",xaxis="",yaxis=""):
-        # WX requires that before the first window is dsiplayed an wx.App
-        # object needs to be created first.
-        if not hasattr(wx,"app"): wx.app = wx.PySimpleApp(redirect=False)
 
         wx.Frame.__init__(self,None,title="Plot",size=(600, 400))
 
@@ -163,7 +165,7 @@ class Plot(wx.Frame):
         file"""
         filename = self.config.Read('filename')
         dlg = wx.FileDialog(self,"Save Data As",wildcard="*.txt",
-            defaultFile=filename,style=wx.SAVE|wx.OVERWRITE_PROMPT)
+            defaultFile=filename,style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.save_xy (self.data,filename)
@@ -172,7 +174,7 @@ class Plot(wx.Frame):
 
     def save_xy(self,xy_data,filename):
         "Write (x,y) tuples as two-column tab separated ASCII file."
-        output = file(filename,"w")
+        output = open(filename,"w")
         for i in range(0,len(xy_data)):
             output.write("%g\t%g\n" % (xy_data[i][0],xy_data[i][1]))
 
@@ -247,8 +249,9 @@ def plot(*args,**kwargs):
     """Display a plot window.
     Does not returns when the window is closed."""
     win = Plot(*args,**kwargs)
-    wx.app.MainLoop()
+    app.MainLoop()
 
         
 if __name__ == "__main__":
+    app = wx.GetApp() if wx.GetApp() else wx.App()
     plot([[0,0],[1,1],[2,2],[3,3],[4,4],[5,5]])

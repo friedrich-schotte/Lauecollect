@@ -1,0 +1,2 @@
+PV_name = 'NIH:TEMP.RBV'
+time_window = 7200.0

@@ -1,0 +1,2 @@
+CustomView = ['Live image', 'ADXV status', 'Filename', 'Live filename', 'IP Address', 'Refresh interval']
+view = 'Custom'

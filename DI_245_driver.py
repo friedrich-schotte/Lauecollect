@@ -1,6 +1,6 @@
 # encoding=utf8
 """
-####!/bin/env python
+####!/usr/bin/env python
 # -*- coding: utf-8 -*-
 Four-channel USB Voltage and Thermocouple DAQ driver,
 Resolution: 14-bit
@@ -104,8 +104,8 @@ class DI245(object):
             self.dict_DI245['Last Calibration date in hex'] = self.inquire('A7',10)[2:]
             self.dict_DI245['Serial Number'] = self.inquire('NZ',12)[2:][:-2]
             for i in self.dict_DI245.keys():
-                print i, self.dict_DI245[i]
-            print 'Complete: Initialization of the DI-245 with S\N', self.dict_DI245['Serial Number']
+                print(i, self.dict_DI245[i])
+            print('Complete: Initialization of the DI-245 with SN', self.dict_DI245['Serial Number'])
         else:
             print('no DI-245 available')
 
@@ -122,6 +122,7 @@ class DI245(object):
             self.ser.flushInput()
             self.ser.flushOutput()
             self.ser.set_buffer_size(rx_size = 409200)
+            self.ser.timeout = 2
             info('try: use_com_port N = %r' % N)
         except:
             error(traceback.format_exc())
@@ -155,7 +156,7 @@ class DI245(object):
         buff = 'timeout'
         while time() - tstart < self.timeout:
             debug('while loop %r %r' % (time(),1))
-            if self.waiting()[0] == N:
+            if self.waiting()[0] >= N:
                 buff = self.ser.read(N)
             else:
                 sleep(self.timeout)
@@ -170,6 +171,7 @@ class DI245(object):
             if self.ser.isOpen():
                 self.ser.flushInput()
                 self.ser.flushOutput()
+                command = command.encode('utf-8')
                 self.ser.write(command)
                 result = True
             else:
@@ -186,7 +188,9 @@ class DI245(object):
         self.write(command)
         return self.read(Nbytes)
 
-
+    def flush(self):
+        self.ser.flushInput()
+        self.ser.flushOutput()
 
     def close_port(self):
         try:
@@ -260,12 +264,9 @@ class DI245(object):
         issues start command "S1" that initializes data stream from the DI 245
         """
         info('DRIVER: scan starts, inWaiting %r' % self.ser.inWaiting())
-        self.ser.read(self.ser.inWaiting())
-        read_byte_temp = ""
-        while read_byte_temp != 'S1':
-            self.ser.write('(0x00) S1')
-            sleep(1)
-            read_byte_temp = self.ser.read(2) #read 2-byte echo response
+        self.flush()
+        self.write('S1')
+
         info('The configured measurement(s) has(have) started')
 
     def read_number(self, N_of_channels, N_of_points = 1):
@@ -279,7 +280,7 @@ class DI245(object):
         for j in range(self.channels_to_read):
             #value_array[2*j] = time.time()
             tempt_t = time()
-            read_byte_temp = self.ser.read(2)
+            read_byte_temp = self.read(2)
             try:
                 read_byte = bin(struct_unpack("H", read_byte_temp)[0])[2:].zfill(16)
             except Exception as e:
@@ -302,7 +303,7 @@ class DI245(object):
         """
         try:
             result = (self.ser.inWaiting(),self.ser.out_waiting)
-        except Exception,e:
+        except Exception as e:
             error(e)
             result = (nan,nan)
         return result

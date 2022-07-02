@@ -1,0 +1,10 @@
+auto_start = False
+command = 'from oasis_chiller_server import *;  run()'
+format_code = '"IOC offline" if value is None else "Device offline" if isnan(value) else "Online"'
+label = 'Oasis Chiller DL'
+log_level = 'DEBUG'
+logfile_basename = 'oasis_chiller_server'
+machine_name = 'NIH-INSTRUMENTATION'
+mnemonic = 'oasis_chiller_server'
+test_code = 'value is not None and not isnan(value)'
+value_code = 'caget("NIH:CHILLER.RBV")'

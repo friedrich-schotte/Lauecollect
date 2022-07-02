@@ -1,10 +1,13 @@
 """Author: Friedrich Schotte
 Date created: 2015-09-25
-Date last modified: 2019-03-11
+Date last modified: 2020-09-02
+Revision comment: Fixed: Issue: line 107, in set_elements
+    for key in self.content.keys():
+    RuntimeError: dictionary changed size during iteration
 """
 from logging import debug
 
-__version__ = "1.3" # comparison
+__version__ = "1.3.3"
 
 class sparse_array(object):
     """"""
@@ -100,10 +103,10 @@ class sparse_array(object):
             for i in range(start,stop,step):
                 self[i] = value[j]
                 j += 1
-        elif step == 1:
+        elif start < stop and step == 1:
             if stop < len(self): next_value = self[stop]
             if self[start] != value: self.content[start] = value
-            for key in self.content.keys():
+            for key in list(self.content.keys()):
                 if start < key < stop: del self.content[key]
             if stop < len(self): self.content[stop] = next_value
         else:
@@ -169,18 +172,19 @@ class sparse_array(object):
     def cumsum(self,*args,**kwargs):
         """Cumulative sum"""
         ##debug("sparse_array.cumsum...")
-        cumsum = sparse_array(len(self))
+        result = sparse_array(len(self))
         sum = 0
         indices = sorted(self.content.keys())
-        for i,j in zip(indices[:-1],indices[1:]):
+        ranges = list(zip(indices,indices[1:]+[len(self)]))
+        for i,j in ranges:
             inc = self[i]
-            if inc == 0: cumsum.content[j-1] = sum
-            else:
+            ##if inc == 0: result.content[j-1] = sum
+            if inc != 0:
                 for k in range(i,j):
                     sum += inc
-                    cumsum.content[k] = sum
+                    result.content[k] = sum
         ##debug("sparse_array.cumsum done.")
-        return cumsum
+        return result
 
     def clip(self,min,max,*args,**kwargs):
         """Limit range"""
@@ -197,7 +201,7 @@ class sparse_array(object):
         return clipped
 
 def starts(array):
-    """Indicis of the element where the value changes"""
+    """Indices of the elements where the value changes"""
     if type(array) == sparse_array: return array.starts
     else: return sparse_array(array).starts
 
@@ -206,7 +210,7 @@ if __name__ == "__main__":
     import logging; logging.basicConfig(level=logging.INFO)
     from numpy import cumsum,clip,array,asarray
     from time import time
-    n = 55200 #55200
+    n = 5500 #55200
     i = range(2,n,50)
     j = range(4,n,50)
     self = sparse_array(n)

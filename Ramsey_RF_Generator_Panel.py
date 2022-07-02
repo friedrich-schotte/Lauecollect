@@ -4,17 +4,17 @@ Ramsay RSG1000B RF Signal Generator
 
 Authors: Friedrich Schotte
 Date created: 2018-01-23
-Date last modified: 2018-01-23
+Date last modified: 2020-06-15
+Revision comment: Renamed to Ramsey_RF_Generator_Panel
 """
 import wx
 ##import CA; CA.monitor_always = False
-from EditableControls import ComboBox,TextCtrl # customized versions
 from Ramsey_RF_generator import Ramsey_RF_generator as device
 from Panel import BasePanel,PropertyPanel
 
-__version__ = "2.0.1" # SCAN, no "Live" and "Refresh" buttons
+__version__ = "2.1"
 
-class ControlPanel(BasePanel):
+class Ramsey_RF_Generator_Panel(BasePanel):
     name = "Ramsay_RF_Generator"
     title = "Ramsay RF Generator"
     icon = "Ramsay RF Generator"
@@ -64,7 +64,7 @@ class SettingsPanel(BasePanel):
 
 
 if __name__ == '__main__': 
-    # Needed to initialize WX library
-    if not "app" in globals(): app = wx.App(redirect=False)
-    panel = ControlPanel()
+
+    app = wx.GetApp() if wx.GetApp() else wx.App()
+    panel = Ramsey_RF_Generator_Panel()
     app.MainLoop()

@@ -1,0 +1,1 @@
+local.TimingPanel.refresh_period = 2.0

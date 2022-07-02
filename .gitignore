@@ -5,7 +5,14 @@
 *.bcm
 *.err
 *.basi
+EPICS_CA
 .DS_Store
 .AppleDouble
 ._*
 _Archived Items
+.ropeproject
+.vscode
+.cache
+2to6.egg-info
+__pycache__
+auto-generated

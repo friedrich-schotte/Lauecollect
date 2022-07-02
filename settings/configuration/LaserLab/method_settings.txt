@@ -1,0 +1,55 @@
+CustomView = ['Rows', 'Title', 'Mnemonic', 'Python code', 'Column mnemonics', 'Column labels', 'Column widths', 'Column formats', 'Tolerances', 'Name width', 'Row height', 'Apply buttons', 'Apply button label', 'Update buttons', 'Update button label', 'Stop button', 'Go To', 'Vertical', 'Multiple Selections']
+apply_button_label = 'Select'
+auto_update_timestamps = True
+command_row = 5
+command_rows = [1]
+define_button_label = 'Update'
+description_width = 115
+formats = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+motor_labels = ['PP mode', 'Sequence', 'Delay', 'Temperature', 'Power', 'Scan', 'Collection Order', 'Diagnostics', 'Detectors']
+motor_names = ['configuration_tables.timing_modes', 'configuration_tables.sequence_modes', 'configuration_tables.delay_configuration', 'configuration_tables.temperature_configuration', 'configuration_tables.power_configuration', 'configuration_tables.scan_configuration', 'acquisition.collection_order', 'configuration_tables.diagnostics_configuration', 'configuration_tables.detector_configuration']
+names = ['timing_modes', 'sequence', 'delays', 'temperatures', 'power', 'scan', 'collection_order', 'diagnostics', 'detector']
+nrows = 6
+row_height = 21
+show_apply_buttons = True
+show_define_buttons = True
+show_stop_button = False
+sort_column_labels = ['Name', 'Updated']
+title = 'Methods Configuration'
+widths = [58, 65, 45, 81, 45, 38, 166, 76, 65]
+line0.acquisition.collection_order = 'Repeat=256,Repeat=10'
+line0.configuration_tables.delay_configuration = ''
+line0.configuration_tables.detector_configuration = ''
+line0.configuration_tables.diagnostics_configuration = ''
+line0.configuration_tables.power_configuration = ''
+line0.configuration_tables.scan_configuration = ''
+line0.configuration_tables.sequence_modes = 'Camera'
+line0.configuration_tables.temperature_configuration.value = ''
+line0.configuration_tables.timing_modes = 'L2C64'
+line0.description = 'Camera'
+line0.updated = '2020-07-27 15:12:07'
+line1.description = 'Cam Rep1'
+line1.configuration_tables.timing_modes = 'L2C64'
+line1.updated = '2020-12-22 10:31:08'
+line1.configuration_tables.sequence_modes = 'Camera'
+line1.acquisition.collection_order = 'Repeat=256,Repeat=1'
+line2.configuration_tables.timing_modes = 'L2C64'
+line2.updated = '2020-09-08 13:15:51'
+line2.configuration_tables.sequence_modes = 'Camera'
+line2.acquisition.collection_order = 'Repeat=256,Repeat=513'
+line2.description = 'L2C64 rep 512'
+line3.configuration_tables.timing_modes = 'L2C64'
+line3.updated = '2020-12-16 21:30:55'
+line3.configuration_tables.sequence_modes = 'Dev'
+line3.acquisition.collection_order = 'Repeat=256'
+line3.description = 'dev'
+line4.description = 'L2C64 rep 128'
+line4.configuration_tables.timing_modes = 'L2C64'
+line4.updated = '2020-09-11 18:16:36'
+line4.acquisition.collection_order = 'Repeat=256,Repeat=128'
+line4.configuration_tables.sequence_modes = 'Camera'
+line5.description = 'L2C64 rep 256'
+line5.configuration_tables.timing_modes = 'L2C64'
+line5.configuration_tables.sequence_modes = 'Camera'
+line5.acquisition.collection_order = 'Repeat=256,Repeat=257'
+line5.updated = '2020-09-27 09:37:25'
