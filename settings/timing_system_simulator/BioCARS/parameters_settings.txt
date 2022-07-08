@@ -1,6 +1,6 @@
 0xF0FFB058+0:20.offset = -0.000985235868
-N = 40
-acquisition_sequence = 'enable=1X1'
+N = 1
+acquisition_sequence = 'enable=111'
 bct = 2.841442022733923e-09
 bct_external = 2.857142857142857e-09
 bct_internal = 2.857142857142857e-09
@@ -218,7 +218,7 @@ cmcad.offset = -0.00023185029
 cmcnd.offset = -0.00023174799820420875
 configuration = 'BioCARS'
 debug_level = 6
-dt = 24
+dt = 1920
 hlc.auto_phase = 1
 hlc.settling_time = 10.0
 hlc.tolerance = 8e-6
@@ -231,7 +231,7 @@ hlctd.offset = 1.1365768090935692e-08
 hlctd.stepsize = 1.1365768090935692e-08
 image_number_inc_on = 0
 laser_on = 1
-mode_number = 2
+mode_number = 9
 nsl_div = 48
 ntp_servers = '128.231.5.228 164.54.161.158'
 p0ad.offset = 1.1365768090935692e-08
@@ -240,22 +240,22 @@ p0d.offset = 1.1365768090935692e-08
 p0d.stepsize = 1.1365768090935692e-08
 p0fd.offset = 2.841442022733923e-09
 p0fd.stepsize = 2.841442022733923e-09
-period = 1176
+period = 1920
 prefix = 'NIH:TIMING.'
 pso_delay.stepsize = 1.4207210113669614e-09
 psod1.offset = 2.7767493772892064e-10
 psod2.offset = 0.0
 psod3.offset = 7.68e-09
 pump_on = True
-sequence = 'enable=1X1'
-t0 = 228
+sequence = 'enable=1XX'
+t0 = 1908
 transc = 33.0
-transd = -43
+transd = 0
 translate_mode = 'Flythru-4'
 waitt.count = 4.0
 waitt.stepsize = 0.01221942857142857
 waitt.value = 0.001
-z = 1
+z = 0
 ch0.offset = 0.0
 ch1.counter_enabled = 1
 ch16.counter_enabled = 1

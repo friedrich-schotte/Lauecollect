@@ -3,10 +3,10 @@
 Database save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2022-06-16
-Date last modified: 2022-06-30
-Revision comment: configuration_name: checking if is configuration
+Date last modified: 2022-07-07
+Revision comment: Updated example
 """
-__version__ = "2.0.1"
+__version__ = "2.0.5"
 
 import logging
 from traceback import format_exc
@@ -174,7 +174,7 @@ class Configuration_Table_Motor_Driver:
         match = self.position_matches(nominal_pos, self.current_position)
         return match
 
-    def position_matches(self, nominal_pos, actual_pos):
+    def position_matches(self, nominal_position, current_position):
         """
         nominal_pos: position of motor number *motor_number*
         actual_pos: current position of motor number *motor_number*
@@ -182,31 +182,35 @@ class Configuration_Table_Motor_Driver:
         return value: True of False
         """
         if self.is_numeric:
-            matches = self.numerical_position_matches(nominal_pos, actual_pos)
+            matches = self.numerical_position_matches(nominal_position, current_position)
         else:  # string-valued
-            matches = self.string_matches(nominal_pos, actual_pos)
+            matches = self.string_matches(nominal_position, current_position)
         return matches
 
-    def numerical_position_matches(self, nominal_pos, actual_pos):
+    def numerical_position_matches(self, nominal_position, current_position):
         """
         nominal_pos: position of motor number *motor_number*
         actual_pos: current position of motor number *motor_number*
             (optional, given to speed up calculation)
         return value: True of False
         """
-        matches = not abs(nominal_pos - actual_pos) > self.tolerance
+        from numpy import isnan
+        if isnan(nominal_position):
+            matches = True
+        else:
+            matches = abs(nominal_position - current_position) <= self.tolerance
         return matches
 
     @monitored_method
-    def string_matches(self, nominal_pos, actual_pos):
+    def string_matches(self, nominal_position, current_position):
         """
         nominal_pos: position of motor number *motor_number*
         actual_pos: current position of motor number *motor_number*
             (optional, given to speed up calculation)
         return value: True of False
         """
-        if nominal_pos != "":
-            matches = nominal_pos == actual_pos
+        if nominal_position != "":
+            matches = nominal_position == current_position
         else:
             matches = True
         # debug("matches(%r,%r): %r" % (nominal_pos,actual_pos,matches))
@@ -305,9 +309,25 @@ if __name__ == '__main__':
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
+    domain_name = "BioCARS"
+    # base_name = "beamline_configuration"
+    # base_name = "Julich_chopper_modes"
+    # base_name = "heat_load_chopper_modes"
+    base_name = "timing_modes"
+    # base_name = "sequence_modes"
+    # base_name = "delay_configuration"
+    # base_name = "temperature_configuration"
+    # base_name = "power_configuration"
+    # base_name = "scan_configuration"
+    # base_name = "diagnostics_configuration"
+    # base_name = "detector_configuration"
+    # base_name = "method"
+    # base_name = "laser_optics_modes"
+    # base_name = "alio_diffractometer_saved"
+
     from configuration_table_driver import configuration_table_driver
 
-    configuration = configuration_table_driver("BioCARS.method")
+    configuration = configuration_table_driver(f"{domain_name}.{base_name}")
     self = configuration_table_motor_driver(configuration, 0)
 
     @handler

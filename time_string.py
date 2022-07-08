@@ -1,19 +1,12 @@
 """For converting '100ps' <-> 1e-10, etc.
 Author: Friedrich Schotte
 Date created: 2009-08-26
-Date last modified: 2022-01-20
-Revision comment: Issue: doe_time(0)
-    line 163, in date_time
-    timeLocal = utc.localize(timeUTC).astimezone(timezoneLocal)
-    File "C:\Python39\lib\site-packages\dateutil\tz\tz.py", line 260, in _naive_is_dst
-    return time.localtime(timestamp + time.timezone).tm_isdst
-    OSError: [Errno 22] Invalid argument
+Date last modified: 2022-07-03
+Revision comment: Cleanup: logging
 """
-__version__ = "1.6.4"
+__version__ = "1.6.6"
 
-from logging import debug, error
-
-from cached_function import cached_function
+import logging
 
 
 def vectorize(f):
@@ -36,7 +29,7 @@ def isscalar(x):
     return isscalar(x) or x is None
 
 
-# Problem: 'vectorize' returns a array of strings, not a chararray.
+# Problem: 'vectorize' returns an array of strings, not a chararray.
 def as_chararray(f):
     """Make sure f returns a numpy array of type 'chararray'"""
     from numpy import chararray
@@ -55,6 +48,7 @@ def seconds(s):
     """Convert time string to number. e.g. '100ps' -> 1e-10"""
     from numpy import nan, isnan
 
+    # noinspection PyBroadException
     try:
         seconds = float(eval(s))
     except Exception:
@@ -77,6 +71,7 @@ def seconds(s):
         s = s.replace("n", "*1e-9")
         s = s.replace("u", "*1e-6")
         s = s.replace("m", "*1e-3")
+        # noinspection PyBroadException
         try:
             seconds = float(eval(s))
         except Exception:
@@ -146,29 +141,14 @@ def timestamp(date_time, timezone=None):
                 from dateutil.tz import tzlocal
                 from datetime import datetime
                 timezone = datetime.now(tzlocal()).tzname()
-            debug("timestamp: %r: Assuming time zone %r" % (date_time, timezone))
+            logging.debug("timestamp: %r: Assuming time zone %r" % (date_time, timezone))
             t = parse(date_time + timezone)
         t0 = parse("1970-01-01 00:00:00+0000")
         T = (t - t0).total_seconds()
     except Exception as msg:
-        error("timestamp: %r: %s" % (msg, date_time))
+        logging.error("timestamp: %r: %s" % (msg, date_time))
         T = nan
     return T
-
-
-def date_time(seconds):
-    """Date and time as formatted ASCII text, precise to 1 us
-    seconds: time elapsed since 1 Jan 1970 00:00:00 UTC
-    e.g. '2016-02-01 19:14:31.707016-0800' """
-    from datetime import datetime
-    date_time = datetime.fromtimestamp(seconds, timezone()).strftime("%Y-%m-%d %H:%M:%S.%f%z")
-    return date_time
-
-
-@cached_function()
-def timezone():
-    from tzlocal import get_localzone
-    return get_localzone()
 
 
 def round_to_power_of_10(t):
@@ -197,9 +177,5 @@ def isfinite(x):
 
 
 if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG,
-                        format="%(asctime)s: %(levelname)s %(message)s")
-
-    print(f'date_time(0)')
+    msg_format = "%(asctime)s: %(levelname)s %(message)s"
+    logging.basicConfig(level=logging.DEBUG, format=msg_format)

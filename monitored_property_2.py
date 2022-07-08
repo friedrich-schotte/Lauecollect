@@ -3,10 +3,10 @@
 Push notifications
 Author: Friedrich Schotte
 Date created: 2020-09-05
-Date last modified: 2022-06-24
-Revision comment: Using module logger to selectively disable debug messages
+Date last modified: 2022-07-04
+Revision comment: If future event where already generated, these need to be re-evaluated
 """
-__version__ = "2.0"
+__version__ = "2.2.1"
 
 import warnings
 import logging
@@ -58,7 +58,7 @@ class monitored_property(property):
     def get_property(self, instance):
         self.set_monitoring(instance, True)
         if self.get_monitoring(instance):
-            value = self.reference(instance).event_history.last_value
+            value = self.event_history(instance).last_value
         else:
             value = self.value(instance)
         return value
@@ -97,7 +97,8 @@ class monitored_property(property):
         values = []
         input_references = self.cache(instance).input_references
         for input_reference in input_references:
-            if input_reference.event_history.recording:
+            # if input_reference.event_history.recording_started:
+            if input_reference.event_history.initialized:
                 value = input_reference.event_history.last_value
             else:
                 value = input_reference.value
@@ -144,15 +145,17 @@ class monitored_property(property):
         with self.cache(instance).lock:
             if monitoring != self.get_monitoring(instance):
                 if monitoring:
+                    self.set_inputs_initialized(instance, True),
+                    # self.set_inputs_recording_started(instance, True),
+                    self.event_history(instance).default_value = self.value(instance)
                     self.set_monitoring_inputs(instance, True)
-                    self.set_inputs_recording_started(instance, True),
-                    self.reference(instance).event_history.default_value = self.value(instance)
                 else:
                     self.set_monitoring_inputs(instance, False)
 
     def get_monitoring(self, instance):
         return all([
-            self.get_inputs_recording_started(instance),
+            self.get_inputs_initialized(instance),
+            # self.get_inputs_recording_started(instance),
             self.get_monitoring_inputs(instance)
         ])
 
@@ -190,6 +193,17 @@ class monitored_property(property):
         for input_reference in input_references:
             input_reference.event_history.recording_started = recording_started
 
+    def get_inputs_initialized(self, instance):
+        input_references = self.cache(instance).input_references
+        recording = all([input_reference.event_history.initialized for input_reference in input_references])
+        return recording
+
+    def set_inputs_initialized(self, instance, initialize):
+        if initialize:
+            input_references = self.cache(instance).input_references
+            for input_reference in input_references:
+                input_reference.event_history.initialize()
+
     def get_input_last_values(self, instance):
         input_references = self.cache(instance).input_references
         last_values = [input_reference.event_history.last_value for input_reference in input_references]
@@ -203,20 +217,32 @@ class monitored_property(property):
 
     def handle_dependency_change(self, instance, event=None):
         logger.debug(f"{self.repr(instance)}: event={event}")
-        self.generate_new_event(instance, event.time)
+        with self.cache(instance).lock:
+            self.generate_new_event(instance, event.time)
 
     def handle_input_change(self, instance, input_count, event):
-        self.check_event(instance, event, input_count)
+        # logging.debug(f"{self.repr(instance)}: {input_count}, {event}")
+        with self.cache(instance).lock:
+            self.check_event(instance, event, input_count)
 
-        input_references = self.cache(instance).input_references
-        input_references[input_count].event_history.add(event)
+            input_references = self.cache(instance).input_references
+            input_references[input_count].event_history.add(event)
 
-        self.generate_new_event(instance, event.time)
+            self.update_event_history(instance, event.time)
+            # If future event where already generated, these need to be re-evaluated
+            times = self.event_history(instance).event_times_after(event.time)
+            for time in times:
+                self.update_event_history(instance, time)
+            self.send_events(instance)
 
     def generate_new_event(self, instance, time):
+        self.update_event_history(instance, time)
+        self.send_events(instance)
+
+    def update_event_history(self, instance, time):
         input_references = self.cache(instance).input_references
         input_values = [ref.event_history.value(time) for ref in input_references]
-        input_timestamps = Timestamps([ref.event_history.last_event_time_before_or_at(time) for ref in input_references])
+        input_timestamps = Timestamps([ref.event_history.last_event_timestamps_before_or_at(time) for ref in input_references])
         value = self.value_from_input_values(instance, input_values)
         new_event = Event(
             value=value,
@@ -224,14 +250,19 @@ class monitored_property(property):
             timestamps=input_timestamps,
             reference=self.reference(instance),
         )
-        event_history = self.reference(instance).event_history
-        competing_events = event_history.events_at_time(time)
-        is_new_event = all([new_event.timestamps >= ev.timestamps for ev in competing_events])
-        if is_new_event:
-            if competing_events:
-                new_event.version = max([ev.version for ev in competing_events]) + 1
-            event_history.add(new_event)
-            self.call_monitors(instance, new_event)
+        self.event_history(instance).add(new_event)
+
+    def send_events(self, instance):
+        from time import time as now
+        new_events = self.event_history(instance).events_to_be_sent
+        sent_time = now()
+        for event in new_events:
+            event.sent_time = sent_time
+        for event in new_events:
+            self.call_monitors(instance, event)
+
+    def event_history(self, instance):
+        return self.reference(instance).event_history
 
     def check_event(self, instance, event, input_count):
         input_references = self.cache(instance).input_references
@@ -419,8 +450,8 @@ if __name__ == "__main__":
     def report(event=None):
         logging.info(f"event={event}")
 
-    reference(instance, "count0").monitors.add(report)
-    reference(instance, "base_count0").monitors.add(report)
-    reference(instance, "base_count1").monitors.add(report)
+    # reference(instance, "count0").monitors.add(report)
+    # reference(instance, "base_count0").monitors.add(report)
+    # reference(instance, "base_count1").monitors.add(report)
     reference(instance, "count").monitors.add(report)
     print("instance.count0 += 1")

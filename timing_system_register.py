@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-05
-Date last modified: 2022-04-05
-Revision comment:
+Date last modified: 2022-07-07
+Revision comment: Not caching PVs
 """
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 import warnings
 from logging import warning
@@ -80,8 +80,8 @@ class Register(object):
 
     @property
     def PV(self):
-        from PV_cached import PV_cached
-        return PV_cached(self.PV_name)
+        from CA import PV
+        return PV(self.PV_name)
 
     def next_count(self, count):
         """Round value to the next allowed integer count"""

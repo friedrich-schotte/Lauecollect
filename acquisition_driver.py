@@ -1516,7 +1516,7 @@ class Acquisition_Driver(object):
 
     def logfile_entry(self, i):
         from time import time
-        from time_string import date_time
+        from date_time import date_time
         from numpy import isfinite
         from os.path import basename
 

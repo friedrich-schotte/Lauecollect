@@ -1,17 +1,18 @@
 """Software simulated motor
 Author: Friedrich Schotte
 Date created: 2015-11-03
-Date last modified: 2021-10-10
-Revision comment: sim_EPICS_motor: Added option command=
+Date last modified: 2022-07-06
+Revision comment: Added option speed=
 """
-__version__ = "1.4"
+__version__ = "1.5"
+
+from numpy import nan
 
 
 class sim_motor(object):
     from persistent_property import persistent_property
     stepsize = persistent_property("stepsize", 0.001)
     target = persistent_property("target", 0.0)
-    speed = persistent_property("speed", 10.0)
     acceleration = persistent_property("acceleration", 1.0)
     min_dial = persistent_property("min_dial", 0.0)
     max_dial = persistent_property("max_dial", 100.0)
@@ -19,16 +20,55 @@ class sim_motor(object):
     offset = persistent_property("offset", 0.0)
     unit = persistent_property("unit", "mm")
     enabled = persistent_property("enabled", True)
-    description = persistent_property("description", "simulated motor")
     homed = persistent_property("homed", True)
 
     move_starting_position = 0.0
     move_starting_time = 0.0
     homing = False
 
-    def __init__(self, name="sim_motor"):
+    def __init__(
+        self,
+        name="sim_motor",
+        default_speed=None,
+        default_description=None,
+    ):
         """name: string"""
         self.name = name
+        if default_speed is not None:
+            self.default_speed = default_speed
+        if default_description is not None:
+            self.default_description = default_description
+
+    @property
+    def speed(self):
+        from numpy import isnan
+        if not isnan(self.saved_speed):
+            speed = self.saved_speed
+        else:
+            speed = self.default_speed
+        return speed
+
+    @speed.setter
+    def speed(self, speed):
+        self.saved_speed = speed
+
+    default_speed = 10.0
+    saved_speed = persistent_property("speed", nan)
+
+    @property
+    def description(self):
+        if self.saved_description:
+            description = self.saved_description
+        else:
+            description = self.default_description
+        return description
+
+    @description.setter
+    def description(self, description):
+        self.saved_description = description
+
+    default_description = "simulated motor"
+    saved_description = persistent_property("description", "")
 
     def get_dial(self):
         from time import time
@@ -218,17 +258,21 @@ class sim_EPICS_motor(sim_motor):
         unit=None,
         command=None,
         readback=None,
+        speed=None,
     ):
         """prefix: default name of motor record
         name: mnemonic name
         readback: PV name for readback value (RBV)
         """
-        sim_motor.__init__(self, prefix)
+        sim_motor.__init__(
+            self,
+            name=prefix,
+            default_speed=speed,
+            default_description=description,
+        )
         self.name = name
         if self.__prefix__ == "SIM:MOTOR":
             self.__prefix__ = prefix
-        if self.description == "simulated motor":
-            self.description = description
         if unit is not None and self.unit == "mm":
             self.unit = unit
         if command is not None:
@@ -299,7 +343,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s: %(levelname)s %(module)s %(message)s")
     motor = sim_EPICS_motor
-    self = motor("14IDC:table2", name="Table2X", command="X", readback="EX", description="DS Table horiz.")
+    self = motor(
+        prefix="14IDC:table2",
+        name="Table2X",
+        command="X",
+        readback="EX",
+        description="DS Table horiz.",
+        speed=1.0,
+    )
     # print('import EPICS_CA.CA; EPICS_CA.CA.DEBUG = True')
     # print('EPICS_CA.CAServer; EPICS_CA.CAServer.DEBUG = True')
     print('self.EPICS_enabled = True')

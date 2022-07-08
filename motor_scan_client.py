@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-27
-Date last modified: 2022-06-27
-Revision comment: Cleanup
+Date last modified: 2022-07-08
+Revision comment: Added: scan_speed, normal_speed
 """
-__version__ = "1.0"
+__version__ = "1.1"
 
 import logging
 
@@ -21,6 +21,8 @@ def motor_scan_client(domain_name):
 class Motor_Scan_Client(Scan_Client):
     scan_relative = PV_property(dtype=bool)
     scan_return = PV_property(dtype=bool)
+    scan_speed = PV_property(dtype=float)
+    normal_speed = PV_property(dtype=float)
 
 
 if __name__ == "__main__":  # for debugging

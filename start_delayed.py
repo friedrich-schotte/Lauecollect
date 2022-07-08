@@ -20,5 +20,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
     from time import time
-    from time_string import date_time
+    from date_time import date_time
+
     start_delayed(3.0, logging.info, f"Scheduled at {date_time(time())}")

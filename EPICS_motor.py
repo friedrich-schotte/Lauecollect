@@ -2,18 +2,21 @@
 EPICS-controlled motors
 Author: Friedrich Schotte
 Date created: 2007-11-07
-Date last modified: 2021-10-13
-Revision comment: Cleanup: moving
+Date last modified: 2022-07-06
+Revision comment: Cleanup: pylint; updated example
 """
-__version__ = "3.3.2"
+__version__ = "3.3.3"
 
 import logging
-from logging import info, warning
 from time import time
 
 from numpy import nan, isnan
 
 from CA import Record
+from monitored_property import monitored_property
+from monitored_value_property import monitored_value_property
+from timed_out_property import timed_out_property
+from value_property import value_property
 
 
 class EPICS_motor(Record):
@@ -38,10 +41,6 @@ class EPICS_motor(Record):
     LLS - at low limit switch
     HOMF - home in forward direction
     """
-    from monitored_property import monitored_property
-    from monitored_value_property import monitored_value_property
-    from timed_out_property import timed_out_property
-
     def __init__(
             self,
             prefix,
@@ -92,6 +91,7 @@ class EPICS_motor(Record):
         from DB import dbget
 
         dbname = getattr(self, "__db_name__", "")
+        # noinspection PyBroadException
         try:
             prefix = eval(dbget("EPICS_motor/" + dbname + ".prefix"))
         except Exception:
@@ -118,7 +118,7 @@ class EPICS_motor(Record):
     @property
     def command_PV_name(self):
         """Process variable value for the motor target position.
-        Usually the value of the VAL process variable, but may me overridden."""
+        Usually the value of the VAL process variable, but may be overridden."""
         if ":" not in self.__command__:
             PV_name = self.__prefix__ + "." + self.__command__
         else:
@@ -128,7 +128,7 @@ class EPICS_motor(Record):
     @property
     def readback_PV_name(self):
         """Process variable value for the actual position as measured.
-        Usually the value of the RBV process variable, but may me overridden."""
+        Usually the value of the RBV process variable, but may be overridden."""
         if ":" not in self.__readback__:
             PV_name = self.__prefix__ + "." + self.__readback__
         else:
@@ -186,23 +186,22 @@ class EPICS_motor(Record):
         fset=set_command_value,
     )
 
-    def inputs_value(self):
-        from reference import reference
-        from CA import PV
-        return [reference(PV(self.readback_PV_name), "value")]
-
-    def calculate_value(self, readback_PV_value):
+    @monitored_property
+    def value(self, readback_PV_value):
         """Position of motor (user value)."""
         return as_float(readback_PV_value)
 
-    def set_value(self, value):
+    @value.setter
+    def value(self, value):
         self.command_value = value
 
-    value = monitored_property(
-        inputs=inputs_value,
-        calculate=calculate_value,
-        fset=set_value,
-    )
+    readback_PV_value = value_property("readback_PV_reference")
+
+    @property
+    def readback_PV_reference(self):
+        from reference import reference
+        from CA import PV
+        return reference(PV(self.readback_PV_name), "value")
 
     @monitored_property
     def command_dial(self, DVAL):
@@ -421,7 +420,7 @@ class EPICS_motor(Record):
     readback_slop = property(get_readback_slop, set_readback_slop)
 
     def wait(self):
-        """If the motor is moving, returns control after current move move is
+        """If the motor is moving, returns control after current move is
         complete."""
         from time import sleep
         while self.moving:
@@ -462,11 +461,11 @@ if __name__ == "__main__":  # for testing
     from handler import handler as _handler
     from reference import reference as _reference
 
-    self = motor("14IDB:m7", name="HuberPhi")
+    self = motor("14IDB:m16", name="HuberPhi")
 
     @_handler
     def report(event):
-        info(f"event={event}")
+        logging.info(f"event={event}")
 
     _reference(self, "command_value").monitors.add(report)
     _reference(self, "value").monitors.add(report)

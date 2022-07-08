@@ -1,10 +1,10 @@
 """Data Collection diagnostics
 Author: Friedrich Schotte
 Date created: 2018-10-27
-Date last modified: 2022-05-03
-Revision comment: Using timing system server; Using event_history
+Date last modified: 2022-07-06
+Revision comment: Renamed: ...history.time(...)
 """
-__version__ = "2.0.14"
+__version__ = "2.0.15"
 
 import logging
 
@@ -49,17 +49,17 @@ class Diagnostics(object):
     running = property(get_running, set_running)
 
     def started(self, image_number):
-        time = self.image_number_history.timestamp(image_number)
+        time = self.image_number_history.time(image_number)
         acquiring = self.image_number_history.value(time)
         if not acquiring == 1:
-            start_time = self.acquiring_history.timestamp(1)
+            start_time = self.acquiring_history.time(1)
             start_image_number = self.acquiring_history.value(start_time)
             if start_image_number == image_number:
                 time = start_time
         return time
 
     def finished(self, image_number):
-        time = self.image_number_history.timestamp(image_number+1)
+        time = self.image_number_history.time(image_number + 1)
         return time
 
     def is_finished(self, image_number):
@@ -208,7 +208,7 @@ class Diagnostics(object):
             self.value = value
 
         def __repr__(self):
-            from time_string import date_time
+            from date_time import date_time
             return "(%s,%r)" % (date_time(self.time), self.value)
 
     class interval(object):
@@ -222,7 +222,7 @@ class Diagnostics(object):
             return self.started <= time <= self.finished
 
         def __repr__(self):
-            from time_string import date_time
+            from date_time import date_time
             return "(%s,%s)" % (date_time(self.started), date_time(self.finished))
 
 

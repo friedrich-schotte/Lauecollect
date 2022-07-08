@@ -338,7 +338,7 @@ class TimeChart(wx.Panel):
         debug("show latest %r" % self.show_latest)
         center_fraction = (self.start_fraction + self.end_fraction) / 2
         self.center_time = self.start_time + self.full_time_range * center_fraction
-        from time_string import date_time
+        from date_time import date_time
         debug("center time %r" % date_time(self.center_time))
         self.refresh()
 

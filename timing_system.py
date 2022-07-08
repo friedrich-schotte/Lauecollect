@@ -4,10 +4,10 @@ FPGA Timing System
 
 Author: Friedrich Schotte
 Date created: 2007-04-02
-Date last modified: 2022-05-03
-Revision comment: Added: domain_name
+Date last modified: 2022-07-07
+Revision comment: Not caching PVs
 """
-__version__ = "8.31"
+__version__ = "8.31.1"
 
 from logging import debug, info, warning, error
 from traceback import format_exc
@@ -15,7 +15,6 @@ from traceback import format_exc
 from cached_function import cached_function
 from handler import handler
 from monitored_property import monitored_property
-from reference import reference
 from timing_system_channel import Channel, channel
 from timing_system_configuration import Configuration
 from timing_system_dummy_register import dummy_register
@@ -319,8 +318,8 @@ class Timing_System(object):
         return self.property_PV_name("parameters." + name)
 
     def parameter_PV(self, name):
-        from PV_cached import PV_cached
-        return PV_cached(self.parameter_PV_name(name))
+        from CA import PV
+        return PV(self.parameter_PV_name(name))
 
     def parameter_monitor(self, name, handler, *args, **kwargs):
         return self.monitor_property("parameters." + name, handler, *args, **kwargs)
@@ -401,8 +400,8 @@ class Timing_System(object):
         return self.prefix + name
 
     def property_PV(self, name):
-        from PV_cached import PV_cached
-        return PV_cached(self.property_PV_name(name))
+        from CA import PV
+        return PV(self.property_PV_name(name))
 
     @monitored_property
     def clock_period(self, clk_src_count, clock_period_internal, clock_period_external):

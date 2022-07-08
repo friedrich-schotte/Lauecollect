@@ -8,7 +8,11 @@ __version__ = "1.2"
 
 from logging import debug,warn,info,error
 # FutureWarning: Conversion of the second argument of issubdtype from `str` to `str` is deprecated
-import numpy; numpy.warnings.filterwarnings('ignore', r'Conversion of the second argument of issubdtype')
+import numpy;
+
+import date_time
+
+numpy.warnings.filterwarnings('ignore', r'Conversion of the second argument of issubdtype')
 
 class Dataset(object):
     def __init__(self,logfile_name):
@@ -128,20 +132,20 @@ class Dataset(object):
         j = len(logfile)
         logfile = logfile.copy()
         logfile.resize(len(logfile)+sum(add))
-        from time_string import date_time
+        from date_time import date_time
         from numpy import where
         image_numbers_to_add = where(add)[0]
         for i in image_numbers_to_add:
             logfile.file[j] = filenames[i]
             logfile.started[j] = date_time(timestamps[i-1]) if i-1 > 0 else ""
             logfile.finished[j] = date_time(timestamps[i])
-            logfile.date_time[j] = logfile.finished[j]
+            date_time.date_time[j] = logfile.finished[j]
             j += 1
         return logfile
 
     def sort(self,logfile):
         from time_string import timestamp
-        time = [timestamp(t) for t in logfile.date_time]
+        time = [timestamp(t) for t in date_time.date_time]
         from numpy import argsort
         order = argsort(time)
         logfile = logfile[order]

@@ -52,3 +52,4 @@ method.motor5.CustomView = None
 detector_configuration.motor3.CustomView = None
 method.motor6.CustomView = None
 scan_configuration.motor4.CustomView = None
+scan_configuration.motor6.CustomView = None

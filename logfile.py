@@ -34,7 +34,7 @@ class LogFile(object):
         time: time in seconds since 1970-01-01 00:00:00 UTC
         """
         from time import time
-        from time_string import date_time
+        from date_time import date_time
         from normpath import normpath
         from os.path import exists, dirname
         from os import makedirs

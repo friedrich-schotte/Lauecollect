@@ -21,7 +21,7 @@ from rayonix_image_header_property import (
     timestamp_header_property,
     optional_timestamp_header_property,
 )
-from time_string import date_time
+from date_time import date_time
 
 logger = logging.getLogger(__name__)
 if not logger.level:

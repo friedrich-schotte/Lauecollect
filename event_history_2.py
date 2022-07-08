@@ -1,10 +1,10 @@
 """Caching of Channel Access
 Author: Friedrich Schotte
 Date created: 2022-03-22
-Date last modified: 2022-05-23
-Revision comment: Renamed: last_event_time_before_or_at; returning nan
+Date last modified: 2022-07-06
+Revision comment: Renamed: time(...)
 """
-__version__ = "2.5"
+__version__ = "2.6"
 
 import logging
 
@@ -66,7 +66,7 @@ class Event_History:
         with self.lock:
             self.data = [], []
 
-    def timestamp(self, value):
+    def time(self, value):
         from numpy import nan
         timestamp = nan
         for (t, v) in zip(*self.data):

@@ -18,11 +18,11 @@ Rayonix MX series CCD X-ray detector
 
 Author: Friedrich Schotte
 Date created: 2016-06-17
-Date last modified: 2022-06-23
-Revision comment: Moved "basename" properties to rayonix_detector_client module
+Date last modified: 2022-07-05
+Revision comment: Added: running
 
 """
-__version__ = "8.2"
+__version__ = "8.4"
 
 import logging
 from os.path import basename
@@ -35,7 +35,7 @@ from handler_method import handler_method
 from monitored_value_property import monitored_value_property
 from rayonix_detector_base_driver import Rayonix_Detector
 from alias_property import alias_property
-from time_string import date_time
+from date_time import date_time
 from thread_property_2 import thread_property, cancelled
 from db_property import db_property
 from monitored_property import monitored_property
@@ -83,8 +83,32 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
         self.monitoring_temp_basenames = False
 
     def __repr__(self):
-        class_name = type(self).__name__.lower()
-        return f"{class_name}({self.domain_name!r})"
+        return f"{self.class_name}({self.domain_name!r})"
+
+    @property
+    def running(self):
+        return self.monitoring_temp_basenames
+
+    @running.setter
+    def running(self, running):
+        if running != self.running:
+            if running:
+                logging.debug("Starting...")
+                self.monitoring_temp_basenames = True
+                self.limit_files_autostart()
+                if self.acquiring:
+                    self.acquiring_images = True
+            else:
+                self.monitoring_temp_basenames = False
+                self.limiting_files = False
+
+    @property
+    def class_name(self):
+        return type(self).__name__.lower()
+
+    @property
+    def name(self):
+        return f"{self.domain_name}.{self.class_name}"
 
     domain_name = "BioCARS"
 
@@ -116,13 +140,6 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
     nimages_to_keep = db_property("nimages_to_keep", 1000)
 
     last_saved_image_filename = db_property("last_saved_image_filename", "", local=True)
-
-    def start(self):
-        logging.debug("Starting...")
-        self.monitoring_temp_basenames = True
-        self.limit_files_autostart()
-        if self.acquiring:
-            self.acquiring_images = True
 
     @monitored_property
     def ready(self, acquiring_images):
@@ -888,10 +905,14 @@ if __name__ == "__main__":  # for debugging
     from handler import handler
 
     domain_name = "BioCARS"
-    self = rayonix_detector_driver(domain_name)
-    print('self.startup()')
-    print('')
-    print('self.monitoring_temp_basenames = True')
+    from IOC import ioc as _ioc
+    ioc = _ioc(f'{domain_name}.rayonix_detector')
+    self = ioc.object
+    # self = rayonix_detector_driver(domain_name)
+
+    print("ioc.start()")
+    print('self.start()')
+    # print('self.monitoring_temp_basenames = True')
 
 
     @handler

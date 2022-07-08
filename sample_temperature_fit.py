@@ -5,6 +5,8 @@ F. Schotte, Dec 14, 2016
 """
 from numpy import *
 __version__ = "1.0"
+
+import date_time
 from table import table
 from logging import info
 import logging; logging.basicConfig(level=logging.INFO)
@@ -32,10 +34,10 @@ info("Loading data")
 Tin_log = table(Tin_logfile,separator="\t")[53180:]
 T_log = table(T_logfile,separator="\t")[:-120]
 
-t_Tin = array([timestamp(t+timezone) for t in Tin_log.date_time])
+t_Tin = array([timestamp(t+timezone) for t in date_time.date_time])
 T_Tin = Tin_log.value+273
 Tin = interp1d(t_Tin,T_Tin,kind='linear',bounds_error=False)
-t = array([timestamp(t+timezone) for t in T_log.date_time])
+t = array([timestamp(t+timezone) for t in date_time.date_time])
 T = T_log.value+273
 
 def dT_dt(T,t):

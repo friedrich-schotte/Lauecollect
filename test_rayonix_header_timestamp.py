@@ -24,7 +24,8 @@ def mccd_ntp_write(path_name, ntp_start, ntp_stop):
 
 
 def test(filename):
-    from time_string import date_time, timestamp
+    from time_string import timestamp
+    from date_time import date_time
     from os.path import getmtime
     ntp_stop = timestamp("2021-11-30 01:01:06.105282-0500")
     ntp_start = ntp_stop - 1.1

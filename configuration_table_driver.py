@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-16
-Date last modified: 2022-06-27
-Revision comment: Cleanup: Removed property no longer needed
+Date last modified: 2022-07-07
+Revision comment: Updated example
 """
-__version__ = "1.0.2"
+__version__ = "1.0.5"
 
 import logging
 
@@ -44,7 +44,7 @@ class Configuration_Table_Driver(object):
         if in_position:
             value = selected_description
         else:
-            value = ""
+            value = f"{selected_description}?"
         return value
 
     @value.setter
@@ -264,25 +264,26 @@ if __name__ == '__main__':
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
-    # name = "BioCARS.beamline_configuration"
-    # name = "BioCARS.Julich_chopper_modes"
-    # name = "BioCARS.heat_load_chopper_modes"
-    # name = "BioCARS.timing_modes"
-    # name = "BioCARS.sequence_modes"
-    # name = "BioCARS.delay_configuration"
-    # name = "BioCARS.temperature_configuration"
-    # name = "BioCARS.power_configuration"
-    # name = "BioCARS.scan_configuration"
-    # name = "BioCARS.diagnostics_configuration"
-    # name = "BioCARS.detector_configuration"
-    name = "BioCARS.method"
-    # name = "BioCARS.laser_optics_modes"
-    # name = "BioCARS.alio_diffractometer_saved"
+    domain_name = "BioCARS"
+    # base_name = "beamline_configuration"
+    # base_name = "Julich_chopper_modes"
+    # base_name = "heat_load_chopper_modes"
+    base_name = "timing_modes"
+    # base_name = "sequence_modes"
+    # base_name = "delay_configuration"
+    # base_name = "temperature_configuration"
+    # base_name = "power_configuration"
+    # base_name = "scan_configuration"
+    # base_name = "diagnostics_configuration"
+    # base_name = "detector_configuration"
+    # base_name = "method"
+    # base_name = "laser_optics_modes"
+    # base_name = "alio_diffractometer_saved"
 
     from IOC import ioc as _ioc
     from handler import handler as _handler
 
-    ioc = _ioc('BioCARS.configuration.method')
+    ioc = _ioc(f'{domain_name}.configuration.{base_name}')
     # self = configuration_table_driver(name)
     self = ioc.object
 

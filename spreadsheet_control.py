@@ -2,10 +2,10 @@
 Table-like interface
 Author: Friedrich Schotte
 Date created: 2021-07-28
-Date last modified: 2022-06-10
-Revision comment: Added: column_menu_items
+Date last modified: 2022-07-06
+Revision comment: Cell: updated __repr__
 """
-__version__ = "1.4"
+__version__ = "1.4.1"
 
 import logging
 
@@ -278,7 +278,7 @@ class Spreadsheet_Control:
             self.column = column
 
         def __repr__(self):
-            return f"{self.class_name}({self.table}, {self.row}, {self.column})"
+            return f"{self.table}.cell({self.row}, {self.column})"
 
         @property
         def class_name(self):

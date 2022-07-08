@@ -10,7 +10,7 @@ __version__ = "1.1.1"
 import logging
 import wx
 from handler import handler
-from time_string import date_time
+from date_time import date_time
 
 
 class Event_Control(wx.Panel):

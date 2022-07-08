@@ -9,11 +9,9 @@ __version__ = "1.0"
 import logging
 
 
-def schedule(time, proc, *args, **kwargs):
-    from time import time as now
-    from threading import Timer
-    delay = max(time - now(), 0)
-    timer = Timer(delay, proc, args=args, kwargs=kwargs)
+def start_thread(proc, *args, **kwargs):
+    from threading import Thread
+    timer = Thread(target=proc, args=args, kwargs=kwargs, daemon=True)
     timer.start()
 
 
@@ -21,7 +19,4 @@ if __name__ == '__main__':
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
-    from time import time
-    from date_time import date_time
-
-    schedule(time()+3, logging.info, f"Scheduled at {date_time(time())}")
+    start_thread(logging.info, f"hello")

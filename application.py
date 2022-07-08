@@ -193,7 +193,18 @@ if __name__ == '__main__':
 
     domain_name = "BioCARS"
     # domain_name = "LaserLab"
-    conf_name = "method"
+
+    # conf_name = "Julich_chopper_modes"
+    # conf_name = "heat_load_chopper_modes"
+    # conf_name = "timing_modes"
+    conf_name = "sequence_modes"
+    # conf_name = "delay_configuration"
+    # conf_name = "temperature_configuration"
+    # conf_name = "power_configuration"
+    # conf_name = "scan_configuration"
+    # conf_name = "detector_configuration"
+    # conf_name = "diagnostics_configuration"
+    # conf_name = "method"
 
     print(f'application("{domain_name}.{domain_name}_Panel.{domain_name}_Panel()").start()')
     print(f'application("{domain_name}.Servers_Panel.Servers_Panel(\'{domain_name}\')").start()')

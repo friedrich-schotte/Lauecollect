@@ -2,11 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-07-28
-Date last modified: 2022-06-20
-Revision comment: Fixed: Issue: Copy & Paste from Excel inserts blank lines
-    between rows.
+Date last modified: 2022-07-07
+Revision comment: Made column label editable
 """
-__version__ = "1.5.11"
+__version__ = "1.5.19"
 
 import logging
 import wx
@@ -19,7 +18,6 @@ from thread_property_2 import thread_property
 class Spreadsheet(wx.grid.Grid):
     def __init__(self, parent, name, autosize=True, fast_text=False):
         from collections import defaultdict
-        from event import event
 
         super().__init__(parent)
         self.name = name
@@ -27,8 +25,7 @@ class Spreadsheet(wx.grid.Grid):
         self.fast_text = fast_text
 
         self.menu_item_handlers = {}
-        self.text_events = defaultdict(lambda: event(0))
-        self.background_color_events = defaultdict(lambda: event(0))
+        self.cell_info = defaultdict(Cell_Info)
 
         self.updating_table = False  # for "Instance attribute defined outside __init__"
         self.refreshing_delayed = False  # for "Instance attribute defined outside __init__"
@@ -109,6 +106,16 @@ class Spreadsheet(wx.grid.Grid):
         reference(self.table, "n_rows").monitors.add(self.update_handler)
         reference(self.table, "n_columns").monitors.add(self.update_handler)
 
+    def UpdateRowLabels(self):
+        for row in range(0, self.NumberRows):
+            if not self.GetRowLabelValue(row):
+                self.SetRowLabelText(row, f"{row+1}")
+
+    def UpdateColumnLabels(self):
+        for column in range(0, self.NumberCols):
+            if not self.GetColLabelValue(column):
+                self.SetColumnLabelText(column, f"col{column+1}")
+
     def update_table(self):
         self.updating_table = True
 
@@ -129,15 +136,21 @@ class Spreadsheet(wx.grid.Grid):
         self.table.n_columns = new_table_n_columns
 
         for row in range(0, n_rows):
+            text = self.GetRowLabelValue(row)
+            cell = self.table.cell(row + 1, 0)
+            self.set_cell_text(cell, text)
             for column in range(0, n_columns):
-                value = self.GetCellValue(row, column)
+                text = self.GetCellValue(row, column)
                 cell = self.table.cell(row + 1, column + 1)
-                if value != cell.text:
-                    logging.debug(f"{cell}.text = {value!r}")
-                    from reference import reference
-                    if not reference(cell, "text").monitors:
-                        logging.warning(f"{cell} has no monitors")
-                    cell.text = value
+                self.set_cell_text(cell, text)
+
+    def set_cell_text(self, cell, text):
+        if text != cell.text:
+            logging.debug(f"{self}: {cell}.text = {text!r}")
+            from reference import reference
+            if not reference(cell, "text").monitors:
+                logging.warning(f"{self}: {cell} has no monitors")
+            cell.text = text
 
     def initialize_cells(self, row1, row2, col1, col2):
         self.initialize_cell_text(row1, row2, col1, col2)
@@ -146,7 +159,7 @@ class Spreadsheet(wx.grid.Grid):
     def InitializeCellText(self, row1, row2, col1, col2):
         if col1 == 0:
             for row in range(row1, row2):
-                text = self.table.cell(row + 1, 0).text
+                text = self.table.cell(row+1, 0).text
                 self.SetRowLabelText(row, text)
 
         if row1 == 0:
@@ -184,10 +197,12 @@ class Spreadsheet(wx.grid.Grid):
                 wx.CallAfter(self.AutoSizeColumn, column, setAsMin=False)
 
     def initialize_cell_background_colors(self, row1, row2, col1, col2):
+        default_color = self.DefaultCellBackgroundColour
         for row in range(row1, row2):
             for column in range(col1, col2):
                 color = self.table.cell(row + 1, column + 1).background_color
-                wx.CallAfter(self.SetCellBackgroundColor, row, column, color)
+                if color != default_color:
+                    wx.CallAfter(self.SetCellBackgroundColor, row, column, color)
 
     def monitor_cells(self, row1, row2, col1, col2):
         from reference import reference
@@ -233,49 +248,53 @@ class Spreadsheet(wx.grid.Grid):
                     text = event.value
                     self.SetColumnLabelText(column, text)
                 else:
-                    events = self.text_events
                     row = event.reference.object.row - 1
                     column = event.reference.object.column - 1
-                    last_event = events[row, column]
-                    events[row, column] = event
+                    cell_info = self.cell_info[row, column]
 
-                    if event.time >= last_event.time:
-                        text = event.value
-                        self.SetCellText(row, column, text)
+                    with cell_info.lock:
+                        last_event = cell_info.text_event
 
-                    if event.time < last_event.time:
-                        logging.info(f"{self}: Events out order: Text: Ignoring {event.value!r}, {last_event.time-event.time:.9f} s older than {last_event.value!r}, for cell {event.reference.object.row}, {event.reference.object.column}")
-                    if event.time == last_event.time and event.value != last_event.value:
-                        logging.warning(f"{self}: Conflict: Text: {event.value!r} versus {last_event.value!r} for cell {event.reference.object.row},{event.reference.object.column}")
-                    if event.time == last_event.time and event.value == last_event.value:
-                        logging.debug(f"{self}: Duplicate event: Text: {event.value!r} for cell {event.reference.object.row},{event.reference.object.column}")
+                        if event.time > last_event.time:
+                            self.SetCellText(row, column, event.value)
+                            cell_info.text_event = event
+
+                        if event.time < last_event.time:
+                            logging.info(f"{self}.Cell({row+1}, {column+1}).Text: Ignoring {event} because it is {last_event.time-event.time:.9f} s older than {last_event}")
+                        if event.time == last_event.time and event.value != last_event.value:
+                            logging.warning(f"{self}.Cell({row+1}, {column+1}).Text: Conflict: {event} vs {last_event}")
+                        if event.time == last_event.time and event.value == last_event.value:
+                            logging.debug(f"{self}.Cell({row+1}, {column+1}).Text: Duplicate: {event} and {last_event}")
 
         if event.reference.attribute_name == "background_color":
             if hasattr(event.reference.object, "row") and hasattr(event.reference.object, "column"):
-                events = self.background_color_events
                 row = event.reference.object.row - 1
                 column = event.reference.object.column - 1
-                last_event = events[row, column]
-                events[row, column] = event
+                cell_info = self.cell_info[row, column]
 
-                if event.time >= last_event.time:
-                    color = event.value
-                    self.SetCellBackgroundColor(row, column, color)
+                with cell_info.lock:
+                    last_event = cell_info.background_color_event
 
-                if event.time < last_event.time:
-                    logging.info(f"{self}: Events out order: Background color: Ignoring {event.value!r}, {last_event.time-event.time:.9f} s older than {last_event.value!r}, for cell {event.reference.object.row},{event.reference.object.column}")
-                if event.time == last_event.time and event.value != last_event.value:
-                    logging.warning(f"{self}: Conflict: Background color: {event.value!r} versus {last_event.value!r} for cell {event.reference.object.row},{event.reference.object.column}")
-                if event.time == last_event.time and event.value == last_event.value:
-                    logging.debug(f"{self}: Duplicate event: Background color: {event.value!r} for cell {event.reference.object.row},{event.reference.object.column}")
+                    if event.time > last_event.time:
+                        self.SetCellBackgroundColor(row, column, event.value)
+                        cell_info.background_color_event = event
 
-    def SetRowLabelText(self, row, value):
+                    if event.time < last_event.time:
+                        logging.info(f"{self}.Cell({row+1}, {column+1}).BackgroundColor: Ignoring {event} because it is {last_event.time-event.time:.9f} s older than {last_event}")
+                    if event.time == last_event.time and event.value != last_event.value:
+                        logging.warning(f"{self}.Cell({row+1}, {column+1}).BackgroundColor: Conflict: {event} vs {last_event}")
+                    if event.time == last_event.time and event.value == last_event.value:
+                        logging.debug(f"{self}.Cell({row+1}, {column+1}).BackgroundColor: Duplicate: {event} and {last_event}")
+
+    def SetRowLabelText(self, row, text):
         if 0 <= row < self.NumberRows:
-            self.SetRowLabelValue(row, value)
+            if self.GetRowLabelValue(row) != text:
+                self.SetRowLabelValue(row, text)
 
-    def SetColumnLabelText(self, column, value):
+    def SetColumnLabelText(self, column, text):
         if 0 <= column < self.NumberCols:
-            self.SetColLabelValue(column, value)
+            if self.GetColLabelValue(column) != text:
+                self.SetColLabelValue(column, text)
 
     def SetCellText(self, row, column, text):
         if type(text) != str:
@@ -284,6 +303,13 @@ class Spreadsheet(wx.grid.Grid):
         if 0 <= row < self.NumberRows and 0 <= column < self.NumberCols:
             if self.GetCellValue(row, column) != text:
                 self.SetCellValue(row, column, text)
+
+    def GetCellBackgroundColor(self, row, column):
+        if 0 <= row < self.NumberRows and 0 <= column < self.NumberCols:
+            color = self.GetCellBackgroundColour(row, column)
+        else:
+            color = self.DefaultCellBackgroundColour
+        return color
 
     def SetCellBackgroundColor(self, row, column, color):
         # logging.debug(f"{row}, {column}, {color}")
@@ -418,10 +444,13 @@ class Spreadsheet(wx.grid.Grid):
     ID_CUT = 1
     ID_COPY = 2
     ID_PASTE = 3
-    ID_INSERT = 4
-    ID_INSERT_COPIED_CELLS = 5
-    ID_DUPLICATE = 6
-    ID_DELETE = 7
+    ID_INSERT_BEFORE = 4
+    ID_INSERT_AFTER = 5
+    ID_INSERT_COPIED_CELLS = 6
+    ID_DUPLICATE = 7
+    ID_DELETE = 8
+    ID_SORT = 9
+    ID_LABEL = 10
 
     def ShowRowMenu(self):
         menu = self.RowMenu
@@ -444,49 +473,65 @@ class Spreadsheet(wx.grid.Grid):
                     self.Bind(wx.EVT_MENU, self.OnMenuItem, id=item_id)
                     item_id += 1
             menu.AppendSeparator()
+
         label = "Cu&t Row\tCtrl+X"
         if len(self.SelectedRows) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_CUT, label)
         self.Bind(wx.EVT_MENU, self.OnCutRow, id=self.ID_CUT)
         menu.Enable(self.ID_CUT, self.IsSelection())
+
         label = "&Copy Row\tCtrl+C"
         if len(self.SelectedRows) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_COPY, label)
         self.Bind(wx.EVT_MENU, self.OnCopyRow, id=self.ID_COPY)
         menu.Enable(self.ID_COPY, self.IsSelection())
+
         label = "&Paste Row\tCtrl+V"
         if len(self.ClipboardText.splitlines()) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_PASTE, label)
         self.Bind(wx.EVT_MENU, self.OnPasteRow, id=self.ID_PASTE)
         menu.Enable(self.ID_PASTE, len(self.ClipboardText) > 0)
+
         menu.AppendSeparator()
-        label = "Insert Row"
+
+        label = "Insert Row Above"
         if len(self.SelectedRows) > 1:
             label = label.replace("Row", "Rows")
-        menu.Append(self.ID_INSERT, label)
-        menu.Enable(self.ID_INSERT, len(self.SelectedRows) > 0)
-        self.Bind(wx.EVT_MENU, self.OnInsertRow, id=self.ID_INSERT)
+        menu.Append(self.ID_INSERT_BEFORE, label)
+        menu.Enable(self.ID_INSERT_BEFORE, len(self.SelectedRows) > 0)
+        self.Bind(wx.EVT_MENU, self.OnInsertRowsBefore, id=self.ID_INSERT_BEFORE)
+
+        label = "Insert Row Below"
+        if len(self.SelectedRows) > 1:
+            label = label.replace("Row", "Rows")
+        menu.Append(self.ID_INSERT_AFTER, label)
+        menu.Enable(self.ID_INSERT_AFTER, len(self.SelectedRows) > 0)
+        self.Bind(wx.EVT_MENU, self.OnInsertRowsAfter, id=self.ID_INSERT_AFTER)
+
         label = "Insert Row from Clipboard"
         if len(self.ClipboardText.splitlines()) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_INSERT_COPIED_CELLS, label)
         menu.Enable(self.ID_INSERT_COPIED_CELLS, len(self.ClipboardText) > 0)
         self.Bind(wx.EVT_MENU, self.OnInsertCopiedRows, id=self.ID_INSERT_COPIED_CELLS)
+
         label = "Duplicate Row"
         if len(self.SelectedRows) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_DUPLICATE, label)
         menu.Enable(self.ID_DUPLICATE, len(self.SelectedRows) > 0)
         self.Bind(wx.EVT_MENU, self.OnDuplicateRow, id=self.ID_DUPLICATE)
+
         label = "&Delete Row\tDel"
         if len(self.SelectedRows) > 1:
             label = label.replace("Row", "Rows")
         menu.Append(self.ID_DELETE, label)
         menu.Enable(self.ID_DELETE, len(self.SelectedRows) > 0)
         self.Bind(wx.EVT_MENU, self.OnDeleteRow, id=self.ID_DELETE)
+
         return menu
 
     def ShowColumnMenu(self):
@@ -512,9 +557,37 @@ class Spreadsheet(wx.grid.Grid):
                     item_id += 1
             menu.AppendSeparator()
 
-        ID = 1
-        menu.Append(ID, "Sort by this Column")
-        self.Bind(wx.EVT_MENU, self.OnSort, id=ID)
+        menu.Append(self.ID_SORT, "Sort by this Column")
+        self.Bind(wx.EVT_MENU, self.OnSort, id=self.ID_SORT)
+
+        menu.AppendSeparator()
+
+        menu.Append(self.ID_LABEL, "Column Label...")
+        self.Bind(wx.EVT_MENU, self.OnColumnLabel, id=self.ID_LABEL)
+
+        menu.AppendSeparator()
+
+        label = "Insert Column Before"
+        if len(self.SelectedCols) > 1:
+            label = label.replace("Column", "Columns")
+        menu.Append(self.ID_INSERT_BEFORE, label)
+        menu.Enable(self.ID_INSERT_BEFORE, len(self.SelectedCols) > 0)
+        self.Bind(wx.EVT_MENU, self.OnInsertColumnsBefore, id=self.ID_INSERT_BEFORE)
+
+        label = "Insert Column After"
+        if len(self.SelectedCols) > 1:
+            label = label.replace("Column", "Columns")
+        menu.Append(self.ID_INSERT_AFTER, label)
+        menu.Enable(self.ID_INSERT_AFTER, len(self.SelectedCols) > 0)
+        self.Bind(wx.EVT_MENU, self.OnInsertColumnsAfter, id=self.ID_INSERT_AFTER)
+
+        label = "&Delete Column\tDel"
+        if len(self.SelectedCols) > 1:
+            label = label.replace("Column", "Columns")
+        menu.Append(self.ID_DELETE, label)
+        menu.Enable(self.ID_DELETE, len(self.SelectedCols) > 0)
+        self.Bind(wx.EVT_MENU, self.OnDeleteColumn, id=self.ID_DELETE)
+
         return menu
 
     def OnMenuItem(self, event):
@@ -566,6 +639,7 @@ class Spreadsheet(wx.grid.Grid):
         if self.SelectedRows:
             self.ClipboardText = self.selected_rows_text
             self.DeleteRows(self.SelectedRows[0], len(self.SelectedRows))
+            self.UpdateRowLabels()
             self.update_table()
 
     def OnCopyRow(self, _event):
@@ -667,9 +741,28 @@ class Spreadsheet(wx.grid.Grid):
                 cells.append(row_cells)
         return cells
 
-    def OnInsertRow(self, _event):
+    def OnInsertRowsBefore(self, _event):
         if self.SelectedRows:
             self.InsertRows(self.SelectedRows[0], len(self.SelectedRows))
+        self.UpdateRowLabels()
+        self.update_table()
+
+    def OnInsertColumnsBefore(self, _event):
+        if self.SelectedCols:
+            self.InsertCols(self.SelectedCols[0], len(self.SelectedCols))
+        self.UpdateColumnLabels()
+        self.update_table()
+
+    def OnInsertRowsAfter(self, _event):
+        if self.SelectedRows:
+            self.InsertRows(self.SelectedRows[0]+1, len(self.SelectedRows))
+        self.UpdateRowLabels()
+        self.update_table()
+
+    def OnInsertColumnsAfter(self, _event):
+        if self.SelectedCols:
+            self.InsertCols(self.SelectedCols[0]+1, len(self.SelectedCols))
+        self.UpdateColumnLabels()
         self.update_table()
 
     def OnInsertCopiedRows(self, _event):
@@ -681,6 +774,7 @@ class Spreadsheet(wx.grid.Grid):
                 row = starting_row + row_offset
                 for column, text in enumerate(line.split("\t")):
                     self.SetCellText(row, column, text)
+            self.UpdateRowLabels()
             self.update_table()
 
     def OnDuplicateRow(self, _event):
@@ -693,18 +787,38 @@ class Spreadsheet(wx.grid.Grid):
                 row = starting_row + row_offset
                 for column, text in enumerate(row_cells):
                     self.SetCellText(row, column, text)
+            self.UpdateRowLabels()
             self.update_table()
 
     def OnDeleteRow(self, _event):
         if self.SelectedRows:
             self.DeleteRows(self.SelectedRows[0], len(self.SelectedRows))
+            self.UpdateRowLabels()
             self.update_table()
+
+    def OnDeleteColumn(self, _event):
+        if self.SelectedCols:
+            self.DeleteColumnLabels(self.SelectedCols[0], len(self.SelectedCols))
+            self.DeleteCols(self.SelectedCols[0], len(self.SelectedCols))
+            self.update_table()
+
+    def DeleteColumnLabels(self, starting_column, n_columns):
+        for column in range(starting_column, starting_column + n_columns):
+            new_text = self.GetColLabelValue(column + n_columns)
+            self.SetColumnLabelText(column, new_text)
+            self.SetColumnLabelText(column + n_columns, "")
 
     def OnSort(self, _event):
         if self.SelectedCols:
             logging.debug(f"{self}: Sorting by columns {self.SelectedCols}")
             self.Cells = self.reordered(self.Cells, self.sort_order)
             self.update_table()
+
+    def OnColumnLabel(self, _event):
+        if self.SelectedCols:
+            column = self.SelectedCols[0]
+            from Spreadsheet_Column_Label_Panel import Spreadsheet_Column_Label_Panel
+            Spreadsheet_Column_Label_Panel(self.table, column)
 
     @staticmethod
     def reordered(values, order):
@@ -732,7 +846,7 @@ class Spreadsheet(wx.grid.Grid):
                 text = data_object.Text
         # Remove empty lines (needed for Excel on MacOS)
         while "\n\n" in text:
-            text = text.replace("\n\n","\n")
+            text = text.replace("\n\n", "\n")
         return text
 
     @ClipboardText.setter
@@ -745,20 +859,53 @@ class Spreadsheet(wx.grid.Grid):
             logging.error("Failed update clipboard")
 
 
+class Cell_Info:
+    def __init__(self):
+        from threading import Lock
+        from event import Event
+        self.lock = Lock()
+        self.text_event = Event(time=0)
+        self.background_color_event = Event(time=0)
+
+    def __repr__(self):
+        parameters = []
+        if self.text_event:
+            parameters.append(f"text_event={self.text_event}")
+        if self.background_color_event:
+            parameters.append(f"text_event={self.background_color_event}")
+        parameter_list = ', '.join(parameters)
+        return f"{self.class_name}({parameter_list})"
+
+    @property
+    def class_name(self):
+        return type(self).__name__
+
+
 if __name__ == '__main__':
     from Control_Panel import Control_Panel
 
-    # name = "BioCARS.sequence_modes"
-    # name = "BioCARS.detector_configuration"
-    name = "BioCARS.method"
-
-    domain_name, base_name = name.split(".", 1)
+    domain_name = "BioCARS"
+    # domain_name = "LaserLab"
+    # base_name = "beamline_configuration"
+    # base_name = "Julich_chopper_modes"
+    # base_name = "heat_load_chopper_modes"
+    # base_name = "timing_modes"
+    # base_name = "sequence_modes"
+    # base_name = "delay_configuration"
+    # base_name = "temperature_configuration"
+    # base_name = "power_configuration"
+    base_name = "scan_configuration"
+    # base_name = "detector_configuration"
+    # base_name = "diagnostics_configuration"
+    # base_name = "method"
+    # base_name = "laser_optics_modes"
+    # base_name = "alio_diffractometer_saved"
 
     from redirect import redirect
 
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
-    redirect(f"{domain_name}.Spreadsheet.{name}", format=msg_format, level="DEBUG")
+    redirect(f"{domain_name}.Spreadsheet.{base_name}", format=msg_format, level="DEBUG")
 
     app = wx.GetApp() if wx.GetApp() else wx.App()
-    self = Control_Panel(name, panel_type=Spreadsheet)
+    self = Control_Panel(f"{domain_name}.{base_name}", panel_type=Spreadsheet)
     app.MainLoop()

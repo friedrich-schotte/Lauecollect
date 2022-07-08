@@ -9,6 +9,9 @@ from logging import debug,info,warn,error
 
 __version__ = "2.5" # separate timing logfile
 
+import date_time
+
+
 class TimingStabilityChart (wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self,parent=None)
@@ -397,7 +400,7 @@ def update_data():
     status = "Merging..."
     t = nom_delay = act_delay = zeros(0)
     for logfile in logfiles.values():
-        t = concatenate((t,[timestamp(d,"") for d in logfile.date_time]))
+        t = concatenate((t,[timestamp(d,"") for d in date_time.date_time]))
         nom_delay = concatenate((nom_delay,map(filename_delay,logfile["filename"])))
         act_delay = concatenate((act_delay,logfile.act_delay))
     data.t,data.act_delay,data.nom_delay = t,act_delay,nom_delay

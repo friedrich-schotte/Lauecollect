@@ -4,12 +4,11 @@ in "Piano Player" mode.
 
 Author: Friedrich Schotte
 Date created: 2015-05-01
-Date last modified: 2022-05-09
-Revision comment: Fixed: Issue:
-  queue_repeat_count:0.0
-  queue_sequence_count:0.0
+Date last modified: 2022-07-07
+Revision comment: Issue: running indicates True initially because bool(nan) is
+   True
 """
-__version__ = "8.7.7"
+__version__ = "8.7.8"
 __generator_version__ = "8.7.1"
 
 import logging
@@ -574,8 +573,8 @@ class Timing_System_Sequencer(object):
 
         running = all([
             current_sequence_length > 0,
-            interrupt_enabled,
-            interrupt_handler_enabled,
+            interrupt_enabled == 1,
+            interrupt_handler_enabled == 1,
         ])
 
         # if not running:

@@ -1,10 +1,10 @@
 """Simulate motors of 14-IDB beamline
 Author: Friedrich Schotte,
 Date created: 2016-06-25
-Date last modified: 2021-10-13
-Revision comment: HuberPhi: 14IDB:m16
+Date last modified: 2022-07-06
+Revision comment: Changed speed of HLC, ChopX, ChopY
 """
-__version__ = "1.11.1"
+__version__ = "1.11.2"
 
 
 class Sim_ID14(object):
@@ -72,7 +72,7 @@ class Sim_ID14(object):
                    readback="14IDA:Slit1Vt2.C")
 
     # Heatload chopper
-    HLC = motor("14IDA:m5", name="HLC", description="Heatload chopper")
+    HLC = motor("14IDA:m5", name="HLC", description="Heatload chopper", speed=1.0)
 
     # Vertical deflecting mirror
     # Incidence angle
@@ -110,8 +110,8 @@ class Sim_ID14(object):
     s1vo = motor("14IDC:m38", name="s1vo", description="JJ1 slits vert. offset")
 
     # High-speed X-ray Chopper
-    ChopX = motor("14IDB:m1", name="ChopX", description="High-speed chopper X")
-    ChopY = motor("14IDB:m2", name="ChopY", description="High-speed chopper Y")
+    ChopX = motor("14IDB:m1", name="ChopX", description="High-speed chopper X", speed=1.0)
+    ChopY = motor("14IDB:m2", name="ChopY", description="High-speed chopper Y", speed=1.0)
 
     # JJ2 Sample slits
     shg = motor("14IDB:m25", name="shg", description="Sample slits horiz. gap")

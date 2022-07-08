@@ -1,4 +1,4 @@
 prefix = '14IDA:m5'
 description = 'Heatload chopper'
-target = 2.0
+target = -0.5
 EPICS_enabled = True

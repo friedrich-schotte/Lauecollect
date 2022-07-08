@@ -670,7 +670,7 @@ class PropertyPanel(wx.Panel):
                     return to_SI_format(1. / x, precision) + "Hz"
             text = my_format(value)
         elif self.type == "date":
-            from time_string import date_time
+            from date_time import date_time
             text = date_time(value)
         elif self.type == "binary":
             text = "%g (%s)" % (value, format(value, "#08b"))

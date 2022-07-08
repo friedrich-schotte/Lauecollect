@@ -1,16 +1,17 @@
 """
 Author: Friedrich Schotte
 Date created: 2019-11-05
-Date last modified: 2022-07-01
-Revision comment: Cleanup: removed properties no longer needed
+Date last modified: 2022-07-02
+Revision comment: Keeping track of file ID change to resubscribe
 """
-__version__ = "1.5.5"
+__version__ = "1.5.7"
 
 import logging
 from traceback import format_exc
 import watchdog.events
+from file_id import file_id
 
-from time_string import date_time
+from date_time import date_time
 
 logger = logging.getLogger(__name__)
 if not logger.level:
@@ -28,6 +29,7 @@ class monitor(object):
         self.kwargs = kwargs
         self.file_mtime = file_mtime(self.filename)
         self.file_size = file_size(self.filename)
+        self.file_id = file_id(self.filename)
         # self.monitoring = True
 
     def call_handler(self):
@@ -61,6 +63,7 @@ class monitor(object):
             if monitoring:
                 self.file_mtime = file_mtime(self.filename)
                 self.file_size = file_size(self.filename)
+                self.file_id = file_id(self.filename)
         self._monitoring = monitoring
 
     def update_monitoring(self):
@@ -86,14 +89,19 @@ class monitor(object):
                         event_handler = Event_Handler(self)
                         self.observer = Observer()
                         self.observer.schedule(event_handler, path=directory_name, recursive=False)
-                        logger.debug(f"Started monitoring of {directory_name!r}")
                         # noinspection PyBroadException
                         try:
                             self.observer.start()
                         except Exception:
                             logger.warning(f"{directory_name!r} ({self.observer}): {format_exc()}")
                         else:
+                            logger.debug(f"Started monitoring of {directory_name!r}")
                             self.observer.pathname = directory_name
+                            self.observer.file_id = file_id(directory_name)
+                            if directory_name == self.filename:
+                                self.file_mtime = file_mtime(self.filename)
+                                self.file_size = file_size(self.filename)
+                                self.file_id = file_id(self.filename)
                         break
             else:
                 if self.observer:
@@ -112,25 +120,45 @@ class monitor(object):
         return directory_names(self.filename)
 
     def handle_event(self, event):
-        from os.path import exists
+        from os.path import exists, isfile, isdir
 
         logger.debug("Got %s" % event_info(event))
         self.last_event = event  # for debugging
+
         pathname = getattr(self.observer, "pathname", "")
-        if not exists(pathname):
-            logger.debug(f"Deleted: {pathname!r}")
+        pathname_file_id = getattr(self.observer, "file_id", 0)
         subdirectory = filename_subdirectory(pathname, self.filename)
-        if exists(subdirectory):
-            logger.debug(f"Created: {subdirectory!r}")
+
+        update_monitoring_needed = False
+        if not isfile(self.filename):
+            logger.debug(f"File {self.filename!r} disappeared")
+            update_monitoring_needed = True
+        elif isfile(subdirectory):
+            logger.debug(f"File {subdirectory!r} appeared")
+            update_monitoring_needed = True
+        elif isdir(subdirectory):
+            logger.debug(f"Directory {subdirectory!r} appeared")
+            update_monitoring_needed = True
+        elif file_id(self.filename) != self.file_id:
+            logger.debug(f"File ID of {self.filename!r} changed from {self.file_id} to {file_id(self.filename)}")
+            update_monitoring_needed = True
+        elif not exists(pathname):
+            logger.debug(f"Directory {pathname!r} disappeared")
+            update_monitoring_needed = True
+        elif file_id(pathname) != pathname_file_id:
+            logger.debug(f"File ID of {pathname!r} changed from {pathname_file_id} to {file_id(pathname)}")
+            update_monitoring_needed = True
+
         mtime = file_mtime(self.filename)
         size = file_size(self.filename)
         if self.file_mtime != mtime or self.file_size != size:
-            logger.debug(f"File {self.filename!r} changed ({date_time(mtime)}, {size} B)")
+            logger.debug(f"File {self.filename!r} changed ({date_time(mtime)}, {size} bytes)")
             self.file_mtime = mtime
             self.file_size = size
             self.call_handler()
 
-        self.update_monitoring()
+        if update_monitoring_needed:
+            self.update_monitoring()
 
     last_event = None
 
@@ -249,6 +277,7 @@ if __name__ == "__main__":
 
     print('file_monitor(filename, "created,modified,deleted,moved", handle_change, filename)')
     file_monitor(filename, "created,modified,deleted,moved", handle_change, filename)
+    self = monitors[0]  # for debugging
     # print('open(filename,"a").write("test\\n")')
     # print('from os import remove; remove(filename)')
     # print('file_monitor_clear(filename,"created,modified,deleted,moved",handle_change,filename)')

@@ -1,13 +1,13 @@
 """Caching of Channel Access
 Author: Friedrich Schotte
 Date created: 2022-03-22
-Date last modified: 2022-05-24
+Date last modified: 2022-07-07
 Revision comment: Storing event history in the class object that generates it
 """
 __version__ = "3.0"
 
 import logging
-
+from same import same
 from thread_property_2 import thread_property
 
 
@@ -22,14 +22,14 @@ def event_history(reference, max_count=None):
 
 
 class Event_History:
-    max_count = 5
+    max_count = 25
 
     def __init__(self, reference):
         from threading import Lock
 
         self.reference = reference
 
-        self.events = []
+        self.all_events = []
         self.events_lock = Lock()
         self.initialize_lock = Lock()
 
@@ -40,6 +40,19 @@ class Event_History:
 
     def __repr__(self):
         return f"{self.class_name}({self.reference})"
+
+    @property
+    def events(self):
+        events = []
+        all_events = self.all_events
+        for i in range(0, len(all_events) - 1):
+            event = all_events[i]
+            next_event = all_events[i + 1]
+            if event.real_time < next_event.real_time:
+                events.append(event)
+        if len(all_events) > 0:
+            events.append(all_events[len(all_events) - 1])
+        return events
 
     @property
     def initialized(self):
@@ -80,7 +93,7 @@ class Event_History:
 
     @property
     def recording_started(self):
-        return self.update in self.reference.monitors and self.initialized
+        return self.recording and self.initialized
 
     @recording_started.setter
     def recording_started(self, recording):
@@ -101,109 +114,192 @@ class Event_History:
 
     def update(self, event):
         # logging.debug(f"{event}")
-        self.add(event)
+        self.add(event, versioning=False)
 
-    @staticmethod
-    def is_outdated(event, new_event):
-        is_outdated = event.real_time == new_event.real_time and event.version <= new_event.version
-        if is_outdated:
-            logging.debug(f"{event} is outdated with respect to {new_event}")
-        return is_outdated
-
-    @staticmethod
-    def is_more_recent(event, new_event):
-        is_more_recent = event.real_time == new_event.real_time and event.version > new_event.version
-        if is_more_recent:
-            logging.debug(f"{event} is more recent than {new_event}")
-        return is_more_recent
-
-    def add(self, new_event):
+    def add(self, event, versioning=True):
         with self.events_lock:
             # if new_event in self.events:
             #    logging.debug(f"Ignoring duplicate event {new_event}")
 
-            if new_event not in self.events:
-                self.events = [event for event in self.events if not self.is_outdated(event, new_event)]
-                has_a_more_recent_event = any([self.is_more_recent(event, new_event) for event in self.events])
+            events = self.all_events
+            if event not in events:
+                # logging.debug(f"{new_event}")
+                if versioning:
+                    event = self.event_with_version(event)
 
-                if not has_a_more_recent_event:
-                    pos = len(self.events)
-                    while pos > 0 and new_event.time < self.events[pos - 1].time:
-                        pos -= 1
-                    self.events.insert(pos, new_event)
+                if event in events:
+                    logging.debug(f"Ignoring duplicate event {event}")
 
-            while len(self.events) > self.max_count:
-                self.events.pop(0)
+                if event not in events:
+                    have_newer_version = any([self.is_newer_version(ev, event) for ev in events])
+                    if not have_newer_version:
+                        pos = len(events)
+                        while pos > 0 and event < events[pos - 1]:
+                            pos -= 1
+                        events.insert(pos, event)
+
+                    while len(events) > self.max_count:
+                        events.pop(0)
+
+                    if not sorted(events) == events:
+                        logging.warning("Sorting all events")
+                        events.sort()
+
+    @staticmethod
+    def is_older_version(ev, event):
+        is_outdated = ev.real_time == event.real_time and ev.version < event.version
+        if is_outdated:
+            logging.debug(f"{ev} is older version of {event}")
+        conflicts = ev.real_time == event.real_time and ev.version == event.version and not same(ev.value, event.value)
+        if conflicts:
+            logging.debug(f"{ev} conflicts with {event}")
+        return is_outdated or conflicts
+
+    @staticmethod
+    def is_newer_version(ev, event):
+        is_more_recent = ev.real_time == event.real_time and ev.version > event.version
+        if is_more_recent:
+            logging.debug(f"{ev} is newer version of {event}")
+        conflicts = ev.real_time == event.real_time and ev.version == event.version and not same(ev.value, event.value)
+        if conflicts:
+            logging.debug(f"{ev} conflicts with {event}")
+        return is_more_recent
+
+    def event_with_version(self, event):
+        version = self.event_version(event)
+        if version != 0:
+            logging.debug(f"Assigning version={version} to {event}")
+            from event import Event
+            event_with_version = Event(
+                timestamps=event.timestamps,
+                version=version,
+                value=event.value,
+                reference=event.reference,
+            )
+        else:
+            event_with_version = event
+        return event_with_version
+
+    def event_version(self, event):
+        version = 0
+        events_at_same_time = self.all_events_at_time(event.real_time)
+        identical_events = [ev for ev in events_at_same_time if self.are_identical(ev, event)]
+        conflicting_events = [ev for ev in events_at_same_time if self.are_conflicting(ev, event)]
+        for ev in conflicting_events:
+            logging.warning(f"{ev} conflicts with {event}")
+        if identical_events:
+            version = max([ev.version for ev in identical_events])
+        elif events_at_same_time:
+            is_newest_event = all([event.timestamps >= ev.timestamps for ev in events_at_same_time])
+            if is_newest_event:
+                version = max([ev.version for ev in events_at_same_time]) + 1
+        return version
+
+    @staticmethod
+    def are_identical(ev, event):
+        are_identical = ev.timestamps == event.timestamps and same(ev.value, event.value)
+        if are_identical:
+            logging.debug(f"{ev} and {event} are identical.")
+        return are_identical
+
+    @staticmethod
+    def are_conflicting(ev, event):
+        are_conflicting = ev.timestamps == event.timestamps and not same(ev.value, event.value)
+        if are_conflicting:
+            logging.debug(f"{ev} and {event} are conflicting.")
+        return are_conflicting
 
     def clear(self):
         with self.events_lock:
             self.events.clear()
 
-    def timestamp(self, value):
+    def time(self, value):
         from numpy import nan
-        from same import same
-        timestamp = nan
+        time = nan
         for event in self.events[::-1]:
             if same(event.value, value):
-                timestamp = event.time
+                time = event.real_time
                 break
-        return timestamp
+        return time
 
-    def value_before_or_at(self, timestamp):
-        """
-        timestamp: seconds elapsed since 1970-01-01T00:00:00+0000
-        """
+    def value_before_or_at(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
+        if not self.initialized:
+            logging.warning(f"{self} is not initialized yet")
         value = None
         for event in self.events[::-1]:
-            if event.time <= timestamp:
+            if event.real_time <= time:
                 value = event.value
                 break
         return value
 
     value = value_before_or_at
 
-    def max_value(self, timestamp1, timestamp2):
+    def max_value(self, time1, time2):
         """timestamp1, timestamp2: seconds elapsed since 1970-01-01T00:00:00+0000"""
-        return max(self.values(timestamp1, timestamp2))
+        return max(self.values(time1, time2))
 
-    def min_value(self, timestamp1, timestamp2):
+    def min_value(self, time1, time2):
         """timestamp1, timestamp2: seconds elapsed since 1970-01-01T00:00:00+0000"""
-        return min(self.values(timestamp1, timestamp2))
+        return min(self.values(time1, time2))
 
-    def values(self, timestamp1, timestamp2):
-        last_event_before_timestamp1 = None
+    def values(self, time1, time2):
+        last_event_before_time1 = None
 
         values = []
         for event in self.events:
-            if event.time < timestamp1:
-                last_event_before_timestamp1 = event
-            if timestamp1 <= event.time <= timestamp2:
+            if event.real_time < time1:
+                last_event_before_time1 = event
+            if time1 <= event.real_time <= time2:
                 values.append(event.value)
-                if event.time == timestamp1:
-                    last_event_before_timestamp1 = None
+                if event.real_time == time1:
+                    last_event_before_time1 = None
 
-        if last_event_before_timestamp1:
-            values.insert(0, last_event_before_timestamp1.value)
+        if last_event_before_time1:
+            values.insert(0, last_event_before_time1.value)
 
         return values
 
-    def last_event_time_before_or_at(self, timestamp):
-        """timestamp: seconds elapsed since 1970-01-01T00:00:00+0000
-        return value: None if PV was not connect4ed before the given timestamp
-        """
+    def last_event_time_before_or_at(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
         from numpy import nan
-        time = nan
+        event_time = nan
         for event in self.events:
-            if event.time <= timestamp:
-                time = event.time
-        return time
+            if event.real_time <= time:
+                event_time = event.real_time
+        return event_time
 
-    def closest_event_time(self, timestamp):
-        """timestamp: seconds elapsed since 1970-01-01T00:00:00+0000"""
+    def event_times_after_or_at(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
+        event_times = []
+        for event in self.events:
+            if event.real_time >= time:
+                event_times.append(event.real_time)
+        return event_times
+
+    def event_times_after(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
+        event_times = []
+        for event in self.events:
+            if event.real_time > time:
+                event_times.append(event.real_time)
+        return event_times
+
+    def last_event_timestamps_before_or_at(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
+        from timestamps import Timestamps
+        timestamps = Timestamps()
+        for event in self.events:
+            if event.real_time <= time:
+                timestamps = event.timestamps
+        return timestamps
+
+    def closest_event_time(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
         from numpy import nan, abs, argmin
         t = self.event_times
         if len(t) > 0:
-            dt = abs(timestamp - t)
+            dt = abs(time - t)
             event_time = t[argmin(dt)]
         else:
             event_time = nan
@@ -211,7 +307,7 @@ class Event_History:
 
     @property
     def event_times(self):
-        return [event.time for event in self.events]
+        return [event.real_time for event in self.events]
 
     @property
     def last_value(self):
@@ -240,8 +336,8 @@ class Event_History:
             last_event = None
         return last_event
 
-    def events_at_time(self, time):
-        return [event for event in self.events if event.real_time == time]
+    def all_events_at_time(self, time):
+        return [event for event in self.all_events if event.real_time == time]
 
     @property
     def default_value(self):
@@ -257,6 +353,50 @@ class Event_History:
         )
         self.add(event)
 
+    @property
+    def events_to_be_sent_old(self):
+        events_to_be_sent = []
+        events = self.events
+        if len(events) == 1 and not events[0].sent_time:
+            events_to_be_sent.append(events[0])
+        for i in range(1, len(events)):
+            event = events[i]
+            previous_event = events[i-1]
+            if not event.sent_time and not same(event.value, previous_event.value):
+                events_to_be_sent.append(event)
+        return events_to_be_sent
+
+    @property
+    def events_to_be_sent(self):
+        events_to_be_sent = []
+
+        events = self.all_events
+
+        if len(events) == 1:
+            event = events[0]
+            if not event.sent_time:
+                events_to_be_sent.append(event)
+
+        if events:
+            previous_sent_value = events[0].value
+        else:
+            previous_sent_value = None
+
+        for i in range(1, len(events)):
+            event = events[i]
+            if i+1 < len(events):
+                event_is_valid = event.real_time < events[i+1].real_time
+            else:
+                event_is_valid = True
+            if event_is_valid:
+                if not same(event.value, previous_sent_value):
+                    if not event.sent_time:
+                        events_to_be_sent.append(event)
+            if event.sent_time or event in events_to_be_sent:
+                previous_sent_value = event.value
+
+        return events_to_be_sent
+
 
 if __name__ == "__main__":
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
@@ -271,7 +411,7 @@ if __name__ == "__main__":
     reference1 = _reference(timing_system.channels.xdet.trig_count, "count")
 
     configuration = configuration_client("BioCARS.method")
-    reference = item_reference(configuration.motors_in_position_old, 0)
+    reference = item_reference(configuration.motors_in_position, 0)
 
     self = event_history(reference)
     self.recording = True

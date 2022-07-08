@@ -2,7 +2,7 @@ from os import listdir
 from os.path import basename
 
 from rayonix_image_timestamp import rayonix_image_timestamp
-from time_string import date_time
+from date_time import date_time
 
 directory = "/net/femto-data2/C/Data/2021.07/WAXS/RNA-Poly-U12_Tramp_B-1/xray_images"
 logfile = directory+"/RNA-Poly-U12_Tramp_B-1.log"

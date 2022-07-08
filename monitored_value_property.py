@@ -141,7 +141,7 @@ class timed_value(object):
         if self.value is not None:
             attrs.append("value=%r" % (self.value,))
         if self.time is not None:
-            from time_string import date_time
+            from date_time import date_time
             attrs.append("time=%s" % (date_time(self.time),))
         s = "%s(%s)" % (name, ", ".join(attrs))
         return s

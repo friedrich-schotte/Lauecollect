@@ -2,9 +2,9 @@
 Author: Friedrich Schotte
 Date created: 2022-06-27
 Date last modified: 2022-06-27
-Revision comment:
+Revision comment: Added: scan_speed, normal_speed
 """
-__version__ = "1.0"
+__version__ = "1.1"
 
 import logging
 
@@ -12,6 +12,7 @@ from cached_function import cached_function
 from scan_driver import Scan_Driver
 from alias_property import alias_property
 from db_property import db_property
+from numpy import nan
 
 
 @cached_function()
@@ -24,6 +25,9 @@ class Motor_Scan_Driver(Scan_Driver):
 
     scan_relative = db_property("scan_relative", False)
     scan_return = db_property("scan_return", False)
+
+    scan_speed = db_property("scan_speed", nan)
+    normal_speed = db_property("scan_speed", nan)
 
 
 if __name__ == '__main__':

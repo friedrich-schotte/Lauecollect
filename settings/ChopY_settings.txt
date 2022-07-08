@@ -1,4 +1,4 @@
 EPICS_enabled = True
 description = 'High-speed chopper Y'
 prefix = '14IDB:m2'
-target = 30.832
+target = 31.205

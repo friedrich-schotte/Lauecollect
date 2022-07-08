@@ -2,10 +2,11 @@
 """
 Author: Friedrich Schotte
 Date created: 2020-03-04
-Date last modified: 2022-06-27
-Revision comment: Diff: Using version  to identify last backup filename
+Date last modified: 2022-07-07
+Revision comment: Issue: Diff option missing:
+cp -p ../Lauecollect/monitored_property_2_1_1.py ../backup/Lauecollect/monitored_property-2.1.1.py (New)? (Yes/No)
 """
-__version__ = "1.16.10"
+__version__ = "1.16.14"
 
 from logging import warning
 
@@ -32,7 +33,9 @@ def backup_files(file):
             backup_files.append(backup_file)
         if exists(backup_file) and files_differ(file, backup_file):
             timestamp = file_timestamp(file)
-            backup_file = backup_filename(file, version + "-" + timestamp)
+            # backup_file = backup_filename(file, version + "-" + timestamp)
+            ext = file_extension(backup_file)
+            backup_file = backup_file.replace(ext, f"-{timestamp}{ext}")
             if files_differ(file, backup_file):
                 if version.endswith(".0"):
                     backup_files.append(backup_file)
@@ -117,12 +120,14 @@ def copy_confirmed(file, backup_file, confirm, preview):
 def diff(file, backup_file):
     import difflib
 
+    text = f"diff {file} {backup_file}\n"
+
     lines1 = normalize(file_content(file).splitlines())
     lines2 = normalize(file_content(backup_file).splitlines())
 
     lines = difflib.ndiff(lines2, lines1)
     lines = (line for line in lines if not line.startswith(' '))
-    text = ''.join(lines)
+    text += ''.join(lines)
     return text
 
 
@@ -132,32 +137,21 @@ def normalize(lines):
 
 
 def backup_filename(file, version):
-    from os.path import splitext
-    extension = splitext(file)[1]
+    extension = file_extension(file)
     backup_file = file.replace("../", "../backup/")
-    ending = "_" + version[0:1] + extension
-    if file.endswith(ending):
-        backup_file = backup_file.replace(ending, "-" + version + extension)
+
+    partial_version = version
+    while partial_version:
+        ending = "_" + partial_version.replace(".", "_") + extension
+        if backup_file.endswith(ending):
+            backup_file = backup_file.replace(ending, "-" + version + extension)
+            break
+        partial_version = ".".join(partial_version.split(".")[0:-1])
     else:
         new_ending = "-" + version + extension
         if not backup_file.endswith(new_ending):
             backup_file = backup_file.replace(extension, new_ending)
     return backup_file
-
-
-def last_backup_filename_old(file):
-    filename = ""
-    file_template = file.replace("../", "../backup/")
-    from re import sub
-    file_template = sub(r"_([0-9]+)[.]py", r"-\1.*.py", file_template)
-    file_template = sub(r"([^*]).py", r"\1-*.py", file_template)
-    from glob import glob
-    file_candidates = glob(file_template)
-    if len(file_candidates) > 0:
-        times = [getmtime(file) for file in file_candidates]
-        oldest = times.index(max(times))
-        filename = file_candidates[oldest]
-    return filename
 
 
 def last_backup_filename(file):
@@ -174,7 +168,7 @@ def versioned_last_backup_filename(file, version):
     file_template = file.replace("../", "../backup/")
     from re import sub
     if version:
-        file_template = sub(r"_([0-9]+)[.]py", r"-\1.*.py", file_template)
+        file_template = sub("_([0-9_]+)[.]py", ".py", file_template)
         file_template = sub(r"([^*]).py", rf"\1-{version}.*.py", file_template)
     else:
         file_template = file_template.replace(".py", "-20??????_??????Z.py")
@@ -212,7 +206,7 @@ def do_backup(pathname):
         do_backup = False
     if "_old.py" in pathname:
         do_backup = False
-    if pathname.endswith(".txt") and not "/settings/" in pathname:
+    if pathname.endswith(".txt") and "/settings/" not in pathname:
         do_backup = False
     return do_backup
 
@@ -327,6 +321,11 @@ def get_tag(file, name):
         if name in locals():
             value = locals()[name]
     return value
+
+
+def file_extension(file):
+    from os.path import splitext
+    return splitext(file)[1]
 
 
 def file_timestamp(file):

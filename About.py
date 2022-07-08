@@ -27,7 +27,7 @@ def about_info(object):
     filename = filename.replace(".pyc",".py")
     if exists(filename): mtime = getmtime(filename)
     else: mtime = 0
-    from time_string import date_time
+    from date_time import date_time
     last_modified = date_time(mtime) if mtime else ""
     try: module_version = getmodule(type(object)).__version__
     except: module_version = ""

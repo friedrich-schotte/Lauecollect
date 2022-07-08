@@ -120,7 +120,7 @@ class Configuration_Client(object):
             except Exception as x:
                 logging.error("%s: %s" % (line, x))
 
-    def __getattr__(self, name):
+    def __getattr__old(self, name):
         if name.startswith("__") and name.endswith("__"):
             return object.__getattribute__(self, name)
         if name.startswith("_"):  # needed for IPython
