@@ -1,5 +1,5 @@
 auto_start = False
-command = 'from xray_beam_center_IOC import *; run("BioCARS")'
+command = 'from IOC import *; run("BioCARS.xray_beam_center")'
 format_code = '"Server offline" if value is None else "Detector not acquiring" if isnan(value) else "Online"'
 label = 'X-Ray Beam Center'
 log_level = 'DEBUG'

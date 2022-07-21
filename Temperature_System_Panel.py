@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2009-11-26
-Date last modified: 2021-11-26
-Revision comment:
+Date last modified: 2022-07-11
+Revision comment: temperature_system requires domain_name
 """
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 from Panel_3 import BasePanel
 
@@ -102,7 +102,7 @@ class Temperature_System_Panel(BasePanel):
     @property
     def instrument(self):
         from temperature_system import temperature_system
-        return temperature_system
+        return temperature_system(self.domain_name)
 
 
 if __name__ == '__main__':

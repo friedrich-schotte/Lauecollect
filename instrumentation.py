@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2014-03-14
-Date last modified: 2022-07-02
-Revision comment: Renamed temperature_system_driver
+Date last modified: 2022-07-15
+Revision comment: Updated example
 """
-__version__ = "2.13.1"
+__version__ = "2.15.1"
 
 from instrumentation_id14 import *
 
@@ -16,7 +16,6 @@ from diagnostics import diagnostics
 from configuration_tables import configuration_tables
 from configuration_tables_client import configuration_tables_client
 from configuration_tables_driver import configuration_tables_driver
-from configuration import configuration
 from timing_system import timing_system
 from timing_system_driver import timing_system_driver
 from timing_system_client import timing_system_client
@@ -34,6 +33,13 @@ from motor_scan_client import motor_scan_client
 from temperature_system import temperature_system
 from temperature_system_driver import temperature_system_driver
 from temperature_system_client import temperature_system_client
+from temperature import temperature  # Needed by diagnostics
+from power_scan import power_scan
+from power_scan_client import power_scan_client
+from power_scan_driver import power_scan_driver
+from alio_scan import alio_scan
+from alio_scan_client import alio_scan_client
+
 
 # Still needed?
 from configuration_tables import configuration_tables as configurations
@@ -46,7 +52,8 @@ TestBench = domain("TestBench")
 WetLab = domain("WetLab")
 
 if __name__ == "__main__":
-    print('BioCARS.timing_system')
-    print('BioCARS.acquisition')
-    print('BioCARS.configuration_tables')
-    print('BioCARS.configuration_tables.method')
+    self = domain("BioCARS")
+    print('self.timing_system')
+    print('self.acquisition')
+    print('self.configuration_tables')
+    print('self.configuration_tables.method')

@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2020-05-23
-Date last modified: 2021-05-16
-Revision comment: Cleanup
+Date last modified: 2021-07-18
+Revision comment: Cleanup: Control_Panel
 """
-__version__ = "3.3.6"
+__version__ = "3.3.7"
 
 from logging import debug, warning
 from traceback import format_exc
@@ -23,7 +23,7 @@ class Timing_Channel_Configuration_Panel(Control_Panel):
         if timing_system_name is not None:
             self.timing_system_name = timing_system_name
         self.name = "Timing_Channel_Configuration_Panel.%s" % self.timing_system_name
-        Control_Panel.__init__(self, name=self.name)
+        super().__init__(name=self.name)
 
     @property
     def title(self):

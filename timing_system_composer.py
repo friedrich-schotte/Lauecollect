@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2015-05-27
-Date last modified: 2022-06-15
-Revision comment: Renamed configuration_driver
+Date last modified: 2022-07-17
+Revision comment: Updated example
 """
-__version__ = "5.8.4"
+__version__ = "5.8.6"
 __generator_version__ = "5.6.6"
 
 import logging
@@ -201,10 +201,7 @@ class Timing_System_Composer(object):
     from alias_property import alias_property
     mode = alias_property("timing_modes.value")
 
-    @property
-    def modes(self):
-        """Possible operation modes as list of strings"""
-        return self.timing_modes.values
+    modes = alias_property("timing_modes.values")
 
     @property
     def timing_modes(self):
@@ -847,10 +844,10 @@ if __name__ == "__main__":
     print("sequence = self.Sequences()[0]; print(sequence.packet_representation)")
     print('')
 
-    property_name = "update_later"
+    property_names = ["mode"]
 
     @_handler
-    def report(event=None): logging.info("event = %r" % event)
+    def report(event): logging.info(f"event = {event!r}")
 
-    _reference(self, property_name).monitors.add(report)
-    # print("getattr(self, property_name)")
+    for property_name in property_names:
+        _reference(self, property_name).monitors.add(report)

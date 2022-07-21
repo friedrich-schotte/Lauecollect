@@ -1,9 +1,9 @@
 auto_start = True
-command = "from configuration_IOC import *; run('LaserLab')"
+command = "from IOC import *; run('LaserLab.configuration.method')"
 format_code = '"Not Running" if value is None else "Running"'
 label = 'Configuration Server'
 log_level = 'DEBUG'
-logfile_basename = 'configuration_IOC'
+logfile_basename = 'method_configuration_IOC'
 machine_name = 'FEMTO7'
 mnemonic = 'configuration'
 test_code = 'value is not None'

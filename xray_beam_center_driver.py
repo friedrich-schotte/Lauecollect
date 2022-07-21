@@ -1,10 +1,10 @@
 """
-Date created: 2022-01-28
-Date last modified: 2022-01-31
 Authors: Philip Anfinrud, Friedrich Schotte
-Revision comment: Formatting
+Date created: 2022-01-28
+Date last modified: 2022-07-11
+Revision comment: Renamed: xray_beam_center_driver
 """
-__version__ = "1.0.1"
+__version__ = "1.1"
 
 import logging
 
@@ -12,10 +12,11 @@ from cached_function import cached_function
 
 
 @cached_function()
-def xray_beam_center(domain_name): return XRay_Beam_Center(domain_name)
+def xray_beam_center_driver(domain_name):
+    return XRay_Beam_Center_Driver(domain_name)
 
 
-class XRay_Beam_Center:
+class XRay_Beam_Center_Driver:
     from db_property import db_property
     from alias_property import alias_property
     from monitored_property import monitored_property
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
     domain_name = "BioCARS"
-    self = xray_beam_center(domain_name)
+    self = xray_beam_center_driver(domain_name)
 
 
     @handler

@@ -4,11 +4,11 @@ in "Piano Player" mode.
 
 Author: Friedrich Schotte
 Date created: 2015-05-01
-Date last modified: 2022-07-07
-Revision comment: Issue: running indicates True initially because bool(nan) is
-   True
+Date last modified: 2022-07-17
+Revision comment: Fixed: Issue: queue_length not updating
+
 """
-__version__ = "8.7.8"
+__version__ = "8.7.12"
 __generator_version__ = "8.7.1"
 
 import logging
@@ -454,11 +454,13 @@ class Timing_System_Sequencer(object):
 
     idle = property(get_idle, set_idle)
 
-    def get_queue_active(self):
+    @monitored_property
+    def queue_active(self, current_queue_name):
         """Is the data acquisition queue actively being executed?"""
-        return self.current_queue_name == self.queue_name
+        return current_queue_name == self.queue_name
 
-    def set_queue_active(self, value):
+    @queue_active.setter
+    def queue_active(self, value):
         if bool(value) is True:
             self.next_queue_name = self.queue_name
         if bool(value) is False:
@@ -466,28 +468,25 @@ class Timing_System_Sequencer(object):
             self.next_queue_sequence_count = -1
             self.next_queue_name = self.default_queue_name
 
-    queue_active = property(get_queue_active, set_queue_active)
-
-    def get_queue_length(self):
+    @monitored_property
+    def queue_length(self, queue):
         """How many sequences are left in the acquisition queue?"""
-        return len(self.queue)
+        return len(queue)
 
-    def set_queue_length(self, value):
+    @queue_length.setter
+    def queue_length(self, value):
         if value == 0:
             self.queue = []
 
-    queue_length = property(get_queue_length, set_queue_length)
-
-    def get_current_queue_length(self):
+    @monitored_property
+    def current_queue_length(self, current_queue):
         """How many sequences are left in the idle or acquisition queue?"""
-        return len(self.current_queue)
+        return len(current_queue)
 
-    def set_current_queue_length(self, value):
+    @current_queue_length.setter
+    def current_queue_length(self, value):
         if value == 0:
             self.current_queue = []
-
-    current_queue_length = property(get_current_queue_length,
-                                    set_current_queue_length)
 
     @property
     def generator(self):
@@ -512,7 +511,7 @@ class Timing_System_Sequencer(object):
         dtype: data type
         """
         if name in ["pass_number", "image_number"]:
-            value = getattr(self.timing_system, name)
+            value = getattr(self.timing_system.registers, name)
             if hasattr(value, "value"):
                 value = value.value
         else:
@@ -953,21 +952,21 @@ class Timing_System_Sequencer(object):
         """Full pathnames of files on the timing system's file system"""
         return self.files(self.sequence_dir + "/*")
 
-    def get_sequencer_fs_files(self):
+    @property
+    def sequencer_fs_files(self):
         """Full pathnames of files on the timing system's file system"""
         from timing_system_file_client import wget
         file_list = wget("//" + self.ip_address + self.sequence_dir).decode("utf-8")
         files = file_list.strip("\n").split("\n") if len(file_list) > 0 else []
         return files
 
-    def set_sequencer_fs_files(self, files_remaining):
+    @sequencer_fs_files.setter
+    def sequencer_fs_files(self, files_remaining):
         files = self.sequencer_fs_files
         files_to_remove = [f for f in files if f not in files_remaining]
         # debug("files to remove: %r" % files_to_remove)
         for f in files_to_remove:
             self.remove(self.sequence_dir + "/" + f)
-
-    sequencer_fs_files = property(get_sequencer_fs_files, set_sequencer_fs_files)
 
     def get_sequencer_fs_files_new(self):
         """Full pathnames of files on the timing system's file system"""
@@ -1014,6 +1013,7 @@ class Timing_System_Sequencer(object):
     def remove(self, filename):
         """Delete a file from the timing system's file system
         filename: e.g. '/tmp/sequence/cache' """
+        logging.debug(f"Removing {filename!r}")
         from timing_system_file_client import wdel
         wdel(self.ip_address + filename)
 
@@ -1121,21 +1121,19 @@ class Timing_System_Sequencer(object):
         directory = basedir + "/sequencer/cache"
         return directory
 
-    def get_remote_cache_size(self):
+    @monitored_property
+    def remote_cache_size(self, loaded_sequence_ids):
         """How many sequences are stored in the memory of the FPGA timing
         system?"""
-        return len(self.loaded_sequence_ids)
+        return len(loaded_sequence_ids)
 
-    def set_remote_cache_size(self, count):
-        sequence_ids_to_keep = self.current_queue
+    @remote_cache_size.setter
+    def remote_cache_size(self, count):
+        sequence_ids_to_keep = list(self.current_queue)
         for s in self.loaded_sequence_ids:
-            if len(sequence_ids_to_keep) >= count:
-                break
-            if s not in sequence_ids_to_keep:
+            if s not in sequence_ids_to_keep and len(sequence_ids_to_keep) < count:
                 sequence_ids_to_keep.append(s)
         self.loaded_sequence_ids = sequence_ids_to_keep
-
-    remote_cache_size = property(get_remote_cache_size, set_remote_cache_size)
 
     def remove_unused_sequences(self):
         self.loaded_sequence_ids = self.queued_sequence_ids
@@ -1144,21 +1142,21 @@ class Timing_System_Sequencer(object):
     from re import compile
     sequence_id_pattern = compile("^[0-9a-f]{32}$")
 
-    def get_loaded_sequence_ids(self):
+    @monitored_property
+    def loaded_sequence_ids(self, sequencer_fs_files):
         """ID strings of sequences currently stored in the memory of the
         FPGA timing system."""
-        files = self.sequencer_fs_files
+        files = sequencer_fs_files
         from re import match
         sequence_ids = [f for f in files if match(self.sequence_id_pattern, f)]
         return sequence_ids
 
-    def set_loaded_sequence_ids(self, sequence_ids):
+    @loaded_sequence_ids.setter
+    def loaded_sequence_ids(self, sequence_ids):
         files = self.sequencer_fs_files
         from re import match
         other_files = [f for f in files if not match(self.sequence_id_pattern, f)]
         self.sequencer_fs_files = other_files + sequence_ids
-
-    loaded_sequence_ids = property(get_loaded_sequence_ids, set_loaded_sequence_ids)
 
     def get_queued_sequence_ids(self):
         """ID strings of sequences currently or potentially in use"""
@@ -1565,26 +1563,8 @@ if __name__ == "__main__":
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
-    self = timing_system_sequencer('BioCARS')
-    # self = timing_system_sequencer('LaserLab')
-    # self = timing_system_sequencer('TestBench')
-
-    print("self = timing_system_sequencer('BioCARS')")
-    print("self = timing_system_sequencer('LaserLab')")
-    print("self = timing_system_sequencer('TestBench')")
-    print('')
-    print('self.timing_system.prefix = %r' % self.timing_system.prefix)
-    print('self.timing_system.ip_address = %r' % self.timing_system.ip_address)
-    print('')
-    print('self.cache_size = %r' % self.cache_size)
-    print('self.remote_cache_size = %r' % self.remote_cache_size)
-    print('')
-    print('self.running = %r' % self.running)
-    print('')
-    print('self.running = True')
-    print('self.set_default_sequences()')
-    print("print(self.Sequences()[0].packet_representation)")
-    print('')
+    domain_name = 'BioCARS'
+    self = timing_system_sequencer(domain_name)
 
     from handler import handler as _handler
 
@@ -1592,11 +1572,10 @@ if __name__ == "__main__":
     def report(event=None):
         info("event = %r" % event)
 
-    print("self.acquisition_start_time_setup()")
-    self.acquisition_start_time_setup()
-    print(f'reference(self, "acquisition_start_time").monitors.add(report)')
-    reference(self, "acquisition_start_time").monitors.add(report)
-    print(f'reference(self, "acquisition_end_time").monitors.add(report)')
-    reference(self, "acquisition_end_time").monitors.add(report)
-    # reference(self, "next_queue_name").monitors.add(report)
-    # reference(self, "queue_name").monitors.add(report)
+    property_names = [
+        # "sequencer_fs_files",
+        # "loaded_sequence_ids",
+        "remote_cache_size",
+    ]
+    for property_name in property_names:
+        reference(self, property_name).monitors.add(report)

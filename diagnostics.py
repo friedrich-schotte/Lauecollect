@@ -1,15 +1,16 @@
 """Data Collection diagnostics
 Author: Friedrich Schotte
 Date created: 2018-10-27
-Date last modified: 2022-07-06
-Revision comment: Renamed: ...history.time(...)
+Date last modified: 2022-07-18
+Revision comment: Properties stored locally
 """
-__version__ = "2.0.15"
+__version__ = "2.0.17"
 
 import logging
 
-from alias_property import alias_property
 from cached_function import cached_function
+from db_property import db_property
+from alias_property import alias_property
 
 
 @cached_function()
@@ -31,10 +32,9 @@ class Diagnostics(object):
 
     @property
     def db_name(self):
-        return "diagnostics/%s" % self.domain_name
+        return f"domains/{self.domain_name}/diagnostics"
 
-    from db_property import db_property
-    list = db_property("list", "")
+    list = db_property("list", "", local=True)
     values = {}
     images = {}
 
@@ -150,12 +150,11 @@ class Diagnostics(object):
     @property
     def vars(self):
         my_vars = []
-        import instrumentation
         for variable_name in self.variable_names:
             try:
-                var = getattr(instrumentation, variable_name)
-            except KeyError:
-                logging.error(f"{variable_name!r} not defined in module 'instrumentation'")
+                var = getattr(self.domain, variable_name)
+            except KeyError as x:
+                logging.error(f"{self.domain}{variable_name} {x}")
                 from CA import PV
                 var = PV("")
             my_vars += [var]

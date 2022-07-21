@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-25
-Date last modified: 2022-06-25
-Revision comment:
+Date last modified: 2022-07-12
+Revision comment: in_position: nan if offline
 """
-__version__ = "1.0"
+__version__ = "1.0.2"
 
 import logging
 
@@ -25,7 +25,7 @@ def configuration_table_client(domain_name): return Configuration_Table_Client(d
 class Configuration_Table_Client(PV_record):
     def __init__(self, name):
         domain_name, suffix = name.split(".", 1)
-        name = f"{domain_name}.configuration.{suffix}"
+        name = f"{domain_name}.configuration_table.{suffix}"
         super().__init__(name=name)
 
     online = PV_connected_property("value")
@@ -40,22 +40,21 @@ class Configuration_Table_Client(PV_record):
     selected_description = PV_property(dtype=str)
     applying = PV_property(default_value=False)
     applied_row = PV_property(default_value=-1)
-    in_position = PV_property(default_value=False)
-    show_in_list = PV_property("show_in_list", True)
-
+    in_position = PV_property(dtype=bool)
     n_motors = PV_property(default_value=0)
     n_rows = PV_property(default_value=0)
-    motor_names = array_PV_property("motor_names", "")
+
     names = array_PV_property("names", "")
-    motor_labels = array_PV_property("motor_labels", "")
-    formats = array_PV_property("formats", "%s")
-    tolerance = array_PV_property("tolerance", 0)
+    show_in_list = PV_property("show_in_list", True)
+
     motors_in_position = array_PV_property("motors_in_position", 0)
+
     current_position = PV_array_property("motor{i+1}.current_position", count="n_motors", default_value="")
-    positions = PV_array_property("motor{i+1}.positions", count="n_motors", default_value=())
     choices = PV_array_property("motor{i+1}.choices", count="n_motors", default_value=())
+
     _motors_in_position = PV_array_property("motor{i+1}.in_position", count="n_motors", default_value=False)
     formatted_position = PV_array_property("motor{i+1}.formatted_position", count="n_motors", default_value="")
+    _names = PV_array_property("motor{i+1}.name", count="n_motors", default_value="")
 
     @monitored_property
     def title(self, _title):
@@ -114,3 +113,18 @@ if __name__ == '__main__':
     # name = "BioCARS.alio_diffractometer_saved"
 
     self = configuration_table_client(name)
+
+    from handler import handler as _handler
+    from reference import reference as _reference
+
+    references = [
+        _reference(self, "in_position"),
+        _reference(self.motor[0], "in_position"),
+    ]
+
+    @_handler
+    def report(event=None):
+        logging.info(f'event = {event}')
+
+    for ref in references:
+        ref.monitors.add(report)

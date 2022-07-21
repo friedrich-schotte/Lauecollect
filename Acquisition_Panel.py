@@ -4,10 +4,10 @@ Control Panel for Data Collection
 
 Author: Friedrich Schotte
 Date created: 2018-10-17
-Date last modified: 2022-06-13
-Revision comment: Configure: ToggleButton
+Date last modified: 2022-07-16
+Revision comment: Using collection_variables_with_count
 """
-__version__ = "3.7.1"
+__version__ = "3.7.3"
 
 from logging import debug
 import wx
@@ -148,7 +148,7 @@ class PP_Acquire_Control_Panel(wx.Panel):
 
         group = wx.BoxSizer(wx.HORIZONTAL)
         layout.Add(group, flag=layout_flag, border=border)
-        flag = wx.ALIGN_CENTER_VERTICAL # | wx.EXPAND
+        flag = wx.ALIGN_CENTER_VERTICAL
 
         control = Event_Control(
             self,
@@ -182,7 +182,7 @@ class PP_Acquire_Control_Panel(wx.Panel):
                 'Value': reference(self.acquisition, "repeat_count_text"),
                 'Enabled': reference(self.acquisition, "online"),
             },
-            size = (45, -1),
+            size=(45, -1),
         )
         group.Add(control, flag=flag, border=border)
 
@@ -202,7 +202,7 @@ class PP_Acquire_Control_Panel(wx.Panel):
             control_type=Choice,
             references={
                 'Value': reference(self.acquisition, "finish_series_variable"),
-                'Items': reference(self.acquisition, "collection_variables"),
+                'Items': reference(self.acquisition, "collection_variables_with_count"),
                 'Enabled': reference(self.acquisition, "online"),
             }
         )

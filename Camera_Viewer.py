@@ -3,11 +3,16 @@
 Designed for Prosilica GigE cameras.
 Author: Friedrich Schotte
 Date created: 2008-02-05
-Date last modified: 2021-06-16
-Revision comment: Added: domain_name
+Date last modified: 2022-07-19
+Revision comment: Addressed: Issue:
+    line 973, in scale_image
+    scaled_image = self.wx_image.Scale(w, h)
+    wx._core wxAssertionError: C++ assertion ""(width > 0) && (height > 0)"" failed at
+    image.cpp(439) in Scale(): invalid new image size
 """
-__version__ = "1.6.2"
+__version__ = "1.6.4"
 
+import logging
 from logging import debug, warning
 from math import sqrt, atan2, sin, cos, pi, log10
 from os.path import exists, dirname, basename, splitext
@@ -970,8 +975,12 @@ class Image_Window(wx.ScrolledWindow):
             # Use "quality=wx.IMAGE_QUALITY_HIGH" for bicubic and box averaging
             # resampling methods for up-sampling and down-sampling respectively.
             w, h = int(rint(w)), int(rint(h))
-            scaled_image = self.wx_image.Scale(w, h)
-            self.bitmap = wx.Bitmap(scaled_image)
+            try:
+                scaled_image = self.wx_image.Scale(w, h)
+            except Exception as x:
+                logging.debug(f"wx_image.scale({w}, {h}): {x}")
+            else:
+                self.bitmap = wx.Bitmap(scaled_image)
 
     def draw(self, dc):
         """Re-draw the contents of the window."""
@@ -2628,7 +2637,7 @@ class CameraOptions(wx.Dialog):
             self,
             name=self.name + ".bin_factor",
             choices_name=self.name + ".bin_factors",
-            size=(40, -1),
+            size=(70, -1),
         )
         self.StreamBytesPerSecond = TextCtrl_Control(
             self,
@@ -2951,7 +2960,6 @@ if __name__ == "__main__":  # for testing
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
     redirect(f"{domain_name}.Camera_Viewer", level="DEBUG", format=msg_format)
 
-    # import logging
     # logging.getLogger("EPICS_CA.EPICS_CA").level = logging.DEBUG
 
     from wx_init import wx_init

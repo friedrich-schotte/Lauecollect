@@ -1,11 +1,16 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-30
-Date last modified: 2022-03-30
-Revision comment:
+Date last modified: 2022-07-17
+Revision comment: Addressed Issue:
+    alias_property.py, line 104, in attributes
+    if name not in attributes_cache:
+    TypeError: argument of type 'Dummy_Channel' is not iterable
 """
-__version__ = "1.0"
+__version__ = "1.0.2"
 
+import logging
+from alias_property import alias_property
 from cached_function import cached_function
 from collections.abc import MutableMapping
 
@@ -29,13 +34,15 @@ class Timing_System_Channels(MutableMapping):
         return self.channel(i)
 
     def __getattr__(self, name):
-        if name in self.names:
+        if name.startswith("__") and name.endswith("__"):
+            result = object.__getattribute__(self, name)
+        elif name in self.names:
             i = self.timing_system.channel_mnemonics.index(name)
-            channel = self.channel(i)
+            result = self.channel(i)
         else:
             from timing_system_dummy_channel import dummy_channel
-            channel = dummy_channel(self.timing_system, name)
-        return channel
+            result = dummy_channel(self.timing_system, name)
+        return result
 
     def __len__(self):
         return self.timing_system.channels_count
@@ -58,17 +65,14 @@ class Timing_System_Channels(MutableMapping):
         from timing_system_channel import channel
         return channel(self.timing_system, i)
 
-    @property
-    def names(self):
-        return self.timing_system.channel_mnemonics
+    names = alias_property("timing_system.channel_mnemonics")
 
 
-if __name__ == '__main__':  # for testing
-    import logging
-    from timing_system import timing_system
-
+if __name__ == '__main__':
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
+
+    from timing_system import timing_system
 
     domain_name = "BioCARS"
     self = timing_system_channels(timing_system(domain_name))

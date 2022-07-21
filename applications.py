@@ -32,7 +32,7 @@ class applications:
             application(f"{self.domain_name}.Camera_Viewer.Camera_Viewer('{self.domain_name}.MicroscopeCamera')"),
             application(f"{self.domain_name}.Camera_Viewer.Camera_Viewer('{self.domain_name}.WideFieldCamera')"),
             application(f"{self.domain_name}.SAXS_WAXS_Control_Panel.SAXS_WAXS_Control_Panel('{self.domain_name}')"),
-            application(f"{self.domain_name}.ConfigurationsPanel.ConfigurationsPanel('{self.domain_name}')"),
+            application(f"{self.domain_name}.Environment_Configurations_Panel.Environment_Configurations_Panel('{self.domain_name}')"),
             application(f"{self.domain_name}.Configuration_Tables_Panel.Configuration_Tables_Panel('{self.domain_name}')"),
             application(f"{self.domain_name}.Configuration_Table_Panel.Configuration_Table_Panel('{self.domain_name}')"),
             application(f"{self.domain_name}.Scope_Panel.Scope_Panel('{self.domain_name}.xray_scope')"),

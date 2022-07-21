@@ -1,10 +1,11 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-10-22
-Date last modified: 2022-06-30
-Revision comment: Added: running
+Date last modified: 2022-07-16
+Revision comment: Issue: When collecting discreet temperatures, hanging at first
+   temperature_change
 """
-__version__ = "1.6.3"
+__version__ = "1.8.1"
 
 import logging
 from cached_function import cached_function
@@ -38,7 +39,7 @@ class Scan_Driver:
         self.handling_collecting_dataset = running
 
     # PVs to be hosted
-    values_string = db_property("values_string", "arange(0, 10, 1)", local=True)
+    values_string = db_property("values_string", "", local=True)
     wait = db_property("wait", False, local=True)
     return_value = db_property("return_value", nan, local=True)
 
@@ -55,6 +56,8 @@ class Scan_Driver:
     def values(self, values_string):
         from expand_scan_points import safe_expand_scan_points
         values = safe_expand_scan_points(values_string)
+        if len(values) == 0:
+            values = [self.motor_command_value]
         return values
 
     @values.setter
@@ -72,9 +75,36 @@ class Scan_Driver:
     def formatted_values(self, values):
         return [self.format(value) for value in values]
 
-    @staticmethod
-    def format(value):
-        return str(value)
+    @monitored_property
+    def formatted_command_value(self, motor_command_value):
+        return self.format(motor_command_value)
+
+    @formatted_command_value.setter
+    def formatted_command_value(self, formatted_value):
+        try:
+            value = self.value_of_formatted_value(formatted_value)
+        except Exception as x:
+            logging.error(f"{formatted_value!r}: {x}")
+        else:
+            self.motor_command_value = value
+
+    @monitored_property
+    def formatted_value(self, motor_value):
+        return self.format(motor_value)
+
+    @formatted_value.setter
+    def formatted_value(self, formatted_value):
+        self.formatted_command_value = formatted_value
+
+    def format(self, value):
+        return (self.format_string % value) + self.unit
+
+    def value_of_formatted_value(self, formatted_value):
+        formatted_value = formatted_value.replace(self.unit, "")
+        return float(formatted_value)
+
+    format_string = db_property("format_string", "%s")
+    unit = db_property("unit", "")
 
     # Imported PVs
     enabled = alias_property("acquisition.scanning.scan_motor")
@@ -149,7 +179,8 @@ class Scan_Driver:
         self.handle_values_index_change(values_index, event.time)
 
     def handle_values_index_change(self, values_index, time):
-        if self.collecting_dataset and self.acquiring and self.enabled:
+        # if self.collecting_dataset and self.acquiring and self.enabled:
+        if self.collecting_dataset and self.enabled:
             values = self.values
             if 0 <= values_index < len(values):
                 self.motor_command_value = values[values_index]

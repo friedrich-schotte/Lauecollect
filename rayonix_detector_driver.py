@@ -18,11 +18,10 @@ Rayonix MX series CCD X-ray detector
 
 Author: Friedrich Schotte
 Date created: 2016-06-17
-Date last modified: 2022-07-05
-Revision comment: Added: running
-
+Date last modified: 2022-07-18
+Revision comment: X-ray image extension hard-coded as .mccd
 """
-__version__ = "8.4"
+__version__ = "8.4.3"
 
 import logging
 from os.path import basename
@@ -105,10 +104,6 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
     @property
     def class_name(self):
         return type(self).__name__.lower()
-
-    @property
-    def name(self):
-        return f"{self.domain_name}.{self.class_name}"
 
     domain_name = "BioCARS"
 
@@ -565,20 +560,6 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
         offsets = [image.acquire_timestamp_offset for image in images]
         return offsets
 
-    def timing_system_value(self, name):
-        PV_name = getattr(self.timing_system, name).PV_name
-        from CA import caget
-        value = caget(PV_name)
-        from numpy import nan
-        if value is None:
-            value = nan
-        return value
-
-    def set_timing_system_value(self, name, value):
-        PV_name = getattr(self.timing_system, name).PV_name
-        from CA import caput
-        caput(PV_name, value)
-
     def xray_image_filename(self, xdet_acq_count, warning=True):
         """Where to archive the nth image of the current dataset?
         xdet_acq_count:image number (0 = first image of dataset)
@@ -586,8 +567,7 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
         from numpy import isnan
         file_basenames = self.file_basenames
         if not isnan(xdet_acq_count) and xdet_acq_count in range(0, len(file_basenames)):
-            ext = "." + self.xray_image_extension.strip(".")
-            filename = self.directory + "/xray_images/" + file_basenames[xdet_acq_count] + ext
+            filename = self.directory + "/xray_images/" + file_basenames[xdet_acq_count] + ".mccd"
         else:
             if warning:
                 logging.warning(f"Dataset has no filename for xdet_acq_count={xdet_acq_count}")
@@ -831,7 +811,6 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
     timing_system_sequencer_acquiring = alias_property("timing_system_sequencer.acquiring")
     collecting_dataset = alias_property("acquisition.collecting_dataset")
     file_basenames = alias_property("acquisition.file_basenames")
-    xray_image_extension = alias_property("acquisition.xray_image_extension")
     directory = alias_property("acquisition.directory")
 
     timing_system_sequencer = alias_property("timing_system.sequencer")
@@ -907,7 +886,7 @@ if __name__ == "__main__":  # for debugging
     domain_name = "BioCARS"
     from IOC import ioc as _ioc
     ioc = _ioc(f'{domain_name}.rayonix_detector')
-    self = ioc.object
+    self = ioc.driver
     # self = rayonix_detector_driver(domain_name)
 
     print("ioc.start()")

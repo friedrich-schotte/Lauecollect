@@ -2,6 +2,6 @@
 [Desktop Entry]
 Name=Configurations
 Type=Application
-Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh ConfigurationsPanel.py
+Exec=/reg/neh/home/schotte/Software/Lauecollect/launch.sh Environment_Configurations_Panel.py
 Comment=F. Schotte, 30 Jan 2012
 Icon=/usr/share/icons/gnome/32x32/mimetypes/gnome-mime-text-x-python.png

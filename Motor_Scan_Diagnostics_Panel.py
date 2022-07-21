@@ -10,8 +10,7 @@ from Scan_Diagnostics_Panel import Scan_Diagnostics_Panel
 
 
 class Motor_Scan_Diagnostics_Panel(Scan_Diagnostics_Panel):
-    format = "%g"
-    unit = ""
+    pass
 
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-11-30
-Date last modified: 2022-06-29
-Revision comment: Added: motor_name
+Date last modified: 2022-07-16
+Revision comment: Added: Diagnostics for debugging
 """
-__version__ = "1.7"
+__version__ = "1.8.2"
 
 from PV_record import PV_record
 from cached_function import cached_function
@@ -21,15 +21,18 @@ def scan_client(domain_name=None, base_name=None, prefix=None):
 class Scan_Client(PV_record):
     motor_name = PV_property(dtype=str)
     values_string = PV_property(dtype=str)
-    wait = PV_property(dtype=int)
+    wait = PV_property(dtype=bool)
     return_value = PV_property(dtype=float)
     scan_point_divider = PV_property(dtype=int)
 
     ready = PV_property(dtype=bool)
     formatted_values = PV_property(dtype=list)
+    formatted_command_value = PV_property(dtype=str)
+    formatted_value = PV_property(dtype=str)
 
     values = PV_property(dtype=list)
 
+    # Diagnostics
     scan_point_number = PV_property(dtype=float)
     value_count = PV_property(dtype=int)
     values_index = PV_property(dtype=int)
@@ -56,6 +59,12 @@ class Scan_Client(PV_record):
         return array(trajectory_array)[0:2*n].reshape(2, n)
 
     online = PV_connected_property("values_string")
+
+    # Diagnostics for debugging
+    running = PV_property(dtype=bool)
+    handling_value_index = PV_property(dtype=bool)
+    handling_collecting_dataset = PV_property(dtype=bool)
+    collecting_dataset = PV_property(dtype=bool)
 
 
 if __name__ == "__main__":  # for debugging

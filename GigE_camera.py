@@ -3,10 +3,10 @@
 Driver for Prosilica GigE CCD cameras.
 Author: Friedrich Schotte
 Date created: 2010-10-16
-Date last modified: 2021-01-10
-Revision comment: Issue: Exposure time not updating when auto-exposure
+Date last modified: 2022-07-19
+Revision comment: Identical timestamps for event generated at the same time
 """
-__version__ = "2.13.7"
+__version__ = "2.13.9"
 
 # Copied libPvAPI-1.22-OSX-x86.dylib from  AVT GigE SDK 1.22 for Mac OS X,
 # bin-pc/x86/libPvAPI.dylib
@@ -72,20 +72,19 @@ class GigE_camera(object):
     def __repr__(self):
         return "%s(%r)" % (type(self).__name__, self.name)
 
-    def handle_updates(self, property_names):
+    def handle_updates(self, property_names, time):
         for property_name in property_names:
-            self.handle_update(property_name)
+            self.handle_update(property_name, time)
 
-    def handle_update(self, property_name):
-        event = self.event(property_name)
+    def handle_update(self, property_name, time):
+        event = self.event(property_name, time)
         self.__getattr_monitors__(property_name).call(event=event)
 
-    def event(self, property_name):
-        from event import event
-        from time import time
+    def event(self, property_name, time):
+        from event import Event
         from reference import reference
-        event = event(
-            time=time(),
+        event = Event(
+            time=time,
             value=getattr(self, property_name),
             reference=reference(self, property_name)
         )
@@ -105,7 +104,7 @@ class GigE_camera(object):
             self.queued_time = 0
 
         def mark_as_invalid(self):
-            """Mark frame buffer as "not containing a valid image"""
+            """Mark frame buffer as not containing a valid image"""
             self.frame.FrameCount = 0
             self.frame.TimestampHi = 0
             self.frame.TimestampLo = 0
@@ -349,7 +348,8 @@ class GigE_camera(object):
             self.resume_active -= 1
 
     def handle_frame_update(self):
-        self.handle_updates(self.frame_properties)
+        from time import time
+        self.handle_updates(self.frame_properties, time())
 
     frame_properties = [
         "frame_count",
@@ -471,7 +471,7 @@ class GigE_camera(object):
     rgb_array = RGB_array = property(get_rgb_array)
 
     def get_rgb_data(self):
-        """All this pixels of the last read image as one single chunk
+        """All the pixels of the last read image as one single chunk
         of contiguous data.
         The format is one byte per pixel, in the order R,G,B, by scan line,
         top left to bottom right.
@@ -498,7 +498,7 @@ class GigE_camera(object):
         return rgb_data
 
     def get_image_data(self):
-        """Returns all this pixels of the last read image as one single chunk
+        """Returns all the pixels of the last read image as one single chunk
         of contiguous data."""
         from ctypes import string_at
         frame = self.Frames[self.current_buffer()].frame
@@ -522,10 +522,10 @@ class GigE_camera(object):
         # the following three parameter are the starting addresses for the
         # output R,G and B value respectively. The number 2 is the number of
         # bytes to skip between subsequent of R values (same for G and B),
-        # and the last parameter is the number of bytes the skip and the end
-        # is a scan line as padding.
-        # Although RGB data is contiguous in memory, Prosilica requires to
-        # pass three pointers for the same chunk of memory.
+        # and the last parameter is the number of bytes to skip at the end
+        # of a scan line as padding.
+        # Although RGB data is contiguous in memory, Prosilica requires
+        # passing three pointers for the same chunk of memory.
         # This gives the function the flexibility to also generate BRG images.
         # The number of bytes between R values is also a parameter so the
         # function can generate also RGB32 or RGBA output (skipping 3 bytes)
@@ -538,7 +538,7 @@ class GigE_camera(object):
         Library (PIL)"""
         from PIL import Image
         image = Image.new('RGB', (self.width, self.height))
-        image.fromstring(self.rgb_data)
+        image.frombytes(self.rgb_data)
         image.save(filename)
 
     def get_width(self):
@@ -762,8 +762,8 @@ class GigE_camera(object):
     def current_buffer(self):
         """The index of the buffer that contains the last acquired complete image
         """
-        # In order for an to be completely transferred its "Status" field must
-        # be zero.
+        # In order for an image to be completely transferred, its "Status" field
+        # must be zero.
         current_frame_count = self.current_frame_count
         if current_frame_count == 0:
             return 0
@@ -794,8 +794,8 @@ class GigE_camera(object):
         itself. There is are no unused or general purpose variables that
         could be used for this purpose. However, the upper limits for the 'DSP
         Subregion' (2^32-1 pixels) are much larger that the actual chip size
-        (1360x1024). Thus any value written to the variables larger than 1359
-        will no change the effective subregion used for automatic exposure and
+        (1360x1024). Thus, any value written to the variables larger than 1359
+        will not change the effective subregion used for automatic exposure and
         automatic white balance.
         """
         self.resume_auto()
@@ -1001,7 +1001,7 @@ class GigE_camera(object):
 
     def get_buffer_status(self):
         """[for debugging] list which image buffers are in use and what their
-        their frame number s and timestamps are"""
+        frame numbers and timestamps are"""
         status = ""
         for i in range(0, len(self.Frames)):
             status += "[%d] " % i
@@ -1037,6 +1037,7 @@ class GigE_camera(object):
             # Try to load any of the libraries found, until successful.
             for filename in cls.library_pathnames():
                 debug("Loading %r..." % filename)
+                # noinspection PyBroadException
                 try:
                     cls._PvAPI = cls.LoadLibrary(filename)
                 except Exception:
@@ -1047,6 +1048,7 @@ class GigE_camera(object):
             # Report which files was tried, but were not usable and why.
             message = "None of the following PvAPI was usable:\n"
             for filename in cls.library_pathnames():
+                # noinspection PyBroadException
                 try:
                     cls.LoadLibrary(filename)
                     exception = "OK"
@@ -1232,7 +1234,7 @@ class tPvFrame(Structure):
 def sleep(seconds):
     """Return after for the specified number of seconds"""
     # After load and initializing the PvAPI Python's built-in 'sleep' function
-    # stops working (returns too early). The is a replacement.
+    # stops working (returns too early). This is a replacement.
     from time import sleep, time
     t = t0 = time()
     while t < t0 + seconds:

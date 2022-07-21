@@ -3,12 +3,16 @@ blades
 Author: Friedrich Schotte
 Date created: 2010-12-14
 Date last modified: 2020-11-16
-Revision comment: Using monitored_property calculate=
+Revision comment: Issue:
+    monitors.py:12: UserWarning: <combination_motor.tilt object>.sign.monitors
+    is of type "set", not "Event_Handlers"; "add()" will have no effect
 """
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 from logging import info
 
+from db_property import db_property
+from monitored_value_property import monitored_value_property
 from reference import reference
 
 
@@ -40,12 +44,6 @@ class center(object):
 
 class tilt(object):
     """Combination motor"""
-    name = "tilt"
-    from persistent_property import persistent_property
-    offset = persistent_property("offset", 0.0)
-    sign = persistent_property("sign", +1)
-    unit = persistent_property("unit", "mrad")
-
     def __init__(self, m1, m2, distance=1.0, name=None, unit=None):
         self.m1 = m1
         self.m2 = m2
@@ -54,6 +52,23 @@ class tilt(object):
             self.name = name
         if unit is not None:
             self.unit = unit
+
+    def __repr__(self):
+        return f"{self.class_name}({self.m1}, {self.m2}, name={self.name!r})"
+
+    name = "tilt"
+
+    @property
+    def db_name(self):
+        return f"motors/combination/tilt/{self.name}"
+
+    offset = db_property("offset", 0.0)
+    sign = monitored_value_property(+1)
+    unit = monitored_value_property("mrad")
+
+    @property
+    def class_name(self):
+        return type(self).__name__
 
     from monitored_property import monitored_property
 

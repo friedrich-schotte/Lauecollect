@@ -1,5 +1,5 @@
 auto_start = True
-command = 'import GigE_camera_server; GigE_camera_server.run("Microscope")'
+command = 'import GigE_camera_IOC; GigE_camera_IOC.run("Microscope")'
 format_code = 'value'
 label = 'Lab Microscope'
 log_level = 'DEBUG'

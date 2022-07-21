@@ -1,10 +1,10 @@
 auto_start = True
-command = "from IOC import *; run('BioCARS.rayonix_detector','new')"
-format_code = '"Not Running" if value is None else "Device Online" if value else "Device Offline"'
-label = 'Rayonix Detector IOC (new)'
+command = 'from IOC import *; run("BioCARS.power_scan")'
+format_code = '"IOC offline" if value is None else "Running"'
+label = 'Power Scan IOC'
 log_level = 'DEBUG'
-logfile_basename = 'rayonix_detector_IOC_new'
+logfile_basename = 'power_scan_IOC'
 machine_name = 'ID14B4'
-mnemonic = 'rayonix_detector_IOC_new'
-test_code = 'value == True'
-value_code = 'caget("BIOCARS:RAYONIX_DETECTOR.ONLINE")'
+mnemonic = 'power_scan_IOC'
+test_code = 'value is not None'
+value_code = 'caget("BIOCARS:POWER_SCAN.VALUES_STRING")'

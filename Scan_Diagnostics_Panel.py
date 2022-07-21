@@ -2,8 +2,8 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-05-01
-Date last modified: 2022-05-01
-Revision comment:
+Date last modified: 2022-07-14
+Revision comment: Using formatted_value and formatted_command_value
 """
 __version__ = "1.0"
 
@@ -24,10 +24,6 @@ class Scan_Diagnostics_Panel(BasePanel):
         return self.object_type(self.domain_name)
 
     icon = "Tool"
-
-    dtype = "float"
-    format = "%g"
-    unit = ""
 
     @monitored_property
     def title(self):
@@ -70,10 +66,8 @@ class Scan_Diagnostics_Panel(BasePanel):
             [("Scan Point Number", self.scan, "scan_point_number", "int"), {}],
             [("Values Count", self.scan, "value_count", "int"), {"read_only": True}],
             [("Values Index", self.scan, "values_index", "int"), {"read_only": True}],
-            [("Command Value", self.scan, "motor_command_value", self.dtype),
-             {"unit": self.unit, "format": self.format}],
-            [("Value", self.scan, "motor_value", self.dtype),
-             {"unit": self.unit, "format": self.format}],
+            [("Command Value", self.scan, "formatted_command_value", "str"), {}],
+            [("Value", self.scan, "formatted_value", "str"), {}],
             [("Status", self.scan, "motor_moving", "Stopped/Moving"), {}],
             [("Enabled", self.scan, "enabled", "False/True"), {}],
             [("Collecting Dataset", self.scan, "collecting_dataset", "False/True"), {}],

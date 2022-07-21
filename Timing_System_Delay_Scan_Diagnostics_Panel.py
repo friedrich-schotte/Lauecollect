@@ -10,7 +10,7 @@ from Scan_Diagnostics_Panel import Scan_Diagnostics_Panel
 
 
 class Timing_System_Delay_Scan_Diagnostics_Panel(Scan_Diagnostics_Panel):
-    dtype = "time"
+    pass
 
 
 if __name__ == '__main__':

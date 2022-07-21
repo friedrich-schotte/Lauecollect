@@ -1,2 +1,1 @@
-from configuration_client_1 import configuration_client
-# from configuration_table_client import configuration_table_client as configuration_client
+from configuration_table_client import configuration_table_client as configuration_client

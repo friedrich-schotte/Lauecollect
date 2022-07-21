@@ -4,14 +4,17 @@ FPGA Timing System
 
 Author: Friedrich Schotte
 Date created: 2007-04-02
-Date last modified: 2022-07-07
-Revision comment: Not caching PVs
+Date last modified: 2022-07-17
+Revision comment: Made monitored property: channel_mnemonics
 """
-__version__ = "8.31.1"
+__version__ = "8.31.4"
 
+import logging
 from logging import debug, info, warning, error
 from traceback import format_exc
 
+from triggered_method import triggered_method
+from PV_property import PV_property
 from cached_function import cached_function
 from handler import handler
 from monitored_property import monitored_property
@@ -38,6 +41,9 @@ class Timing_System(object):
 
     def __init__(self, domain_name="BioCARS"):
         self.name = domain_name
+        self.register_names_setup()
+        self.save_register_names = True
+        self.channel_mnemonics_setup()
 
     def __repr__(self):
         return "%s(%r)" % (type(self).__name__.lower(), self.name)
@@ -83,43 +89,31 @@ class Timing_System(object):
         online = ip_address != ""
         return online
 
-    def get_all_register_names(self):
-        self.all_register_names_setup()
-        return self.all_register_names_saved
+    register_name_list = PV_property("registers", dtype=str, upper_case=False)
 
-    def set_all_register_names(self, value):
-        self.all_register_names_saved = value
+    def register_names_setup(self):
+        if not self.saved_register_names and self.register_names:
+            logging.debug(f"{self}.saved_register_names = {self.register_names}")
+            self.saved_register_names = self.register_names
 
-    all_register_names = property(get_all_register_names, set_all_register_names)
+    @triggered_method
+    def save_register_names(self, register_names):
+        if register_names:
+            logging.debug(f"{self}.saved_register_names = {register_names}")
+            self.saved_register_names = register_names
 
-    all_register_names_saved = db_property("all_register_names", [])
+    @monitored_property
+    def register_names(self, register_name_list):
+        names = register_name_list.split(";")
+        while "" in names:
+            names.remove("")
+        return names
 
-    def all_register_names_setup(self):
-        from CA import camonitor_handlers
-        camonitor_handlers(self.all_register_names_PV_name). \
-            add(handler(self.all_register_names_update))
+    saved_register_names = db_property("saved_register_names", [])
 
-    def all_register_names_update(self):
-        from CA import caget
-        register_names = caget(self.all_register_names_PV_name)
-        if register_names is not None:
-            register_names = register_names.split(";")
-            if register_names != self.all_register_names_saved:
-                debug("%.50r" % register_names)
-                self.all_register_names_saved = register_names
+    all_register_names = alias_property("saved_register_names")
 
-    @property
-    def all_register_names_PV_name(self):
-        return self.prefix + "registers"
-
-    def get_channel_mnemonics(self):
-        self.channel_mnemonics_setup()
-        return self.channel_mnemonics_saved
-
-    def set_channel_mnemonics(self, value):
-        self.channel_mnemonics_saved = value
-
-    channel_mnemonics = property(get_channel_mnemonics, set_channel_mnemonics)
+    channel_mnemonics = alias_property("channel_mnemonics_saved")
 
     channel_mnemonics_saved = db_property("channel_mnemonics", [""] * 24)
 
@@ -147,7 +141,9 @@ class Timing_System(object):
                     if mnemonic != mnemonics[i]:
                         debug("mnemonics[%d] = %r" % (i, mnemonic))
                         mnemonics[i] = mnemonic
-            self.channel_mnemonics_saved = mnemonics
+            if self.channel_mnemonics_saved != mnemonics:
+                logging.debug(f"{self}.channel_mnemonics_saved = {mnemonics}")
+                self.channel_mnemonics_saved = mnemonics
 
     def channel_mnemonic_PV_name(self, i):
         return self.parameter_PV_name("%s.mnemonic" % (self.channel_names[i]))
@@ -169,10 +165,6 @@ class Timing_System(object):
     def registers(self):
         from timing_system_registers import timing_system_registers
         return timing_system_registers(self)
-
-    @property
-    def register_names(self):
-        return list(self.register_dict.keys())
 
     channels_count = 24
 
@@ -413,12 +405,12 @@ class Timing_System(object):
 
     @clock_period.setter
     def clock_period(self, value):
-        if self.clk_src.count == 29:
+        if self.clk_src_count == 29:
             self.clock_period_internal = value
         else:
             self.clock_period_external = value
 
-    clk_src_count = alias_property("clk_src.count")
+    clk_src_count = alias_property("registers.clk_src.count")
 
     clock_period_external = Parameter("clock_period_external", 1 / 351933984.0)
     clock_period_internal = Parameter("clock_period_internal", 1 / 350000000.0)
@@ -434,12 +426,12 @@ class Timing_System(object):
 
     @bct.setter
     def bct(self, value):
-        if self.clk_on.count == 0:
+        if self.clk_on_count == 0:
             self.clock_period = value
         else:
             self.clock_period = value * self.clock_multiplier / self.clock_divider
 
-    clk_on_count = alias_property("clk_on.count")
+    clk_on_count = alias_property("registers.clk_on.count")
 
     @monitored_property
     def clock_divider(self, clk_div_count):
@@ -457,7 +449,7 @@ class Timing_System(object):
         else:
             warning("%r must be in range 1 to 32.")
 
-    clk_div_count = alias_property("clk_div.count")
+    clk_div_count = alias_property("registers.clk_div.count")
 
     @monitored_property
     def clock_multiplier(self, clk_mul_count):
@@ -474,27 +466,29 @@ class Timing_System(object):
         else:
             warning("%r must be in range 1 to 32.")
 
-    clk_mul_count = alias_property("clk_mul.count")
+    clk_mul_count = alias_property("registers.clk_mul.count")
 
-    def get_P0t(self):
+    @monitored_property
+    def P0t(self, hsct, p0_div_1kHz_count):
         """Single-bunch clock period (ca. 3.6us)"""
         from numpy import nan
 
         try:
-            value = self.hsct / self.p0_div_1kHz.count
+            value = hsct / p0_div_1kHz_count
         except ZeroDivisionError:
             value = nan
         return value
 
-    def set_P0t(self, value):
+    @P0t.setter
+    def P0t(self, value):
         from numpy import rint
 
         try:
-            self.p0_div_1kHz.count = rint(self.hsct / value)
+            self.p0_div_1kHz_count = rint(self.hsct / value)
         except ZeroDivisionError:
             pass
 
-    P0t = property(get_P0t, set_P0t)
+    p0_div_1kHz_count = alias_property("registers.p0_div_1kHz.count")
 
     @monitored_property
     def hsct(self, bct, clk_88Hz_div_1kHz_count):
@@ -506,11 +500,11 @@ class Timing_System(object):
         from numpy import rint
 
         try:
-            self.clk_88Hz_div_1kHz.count = rint(value / (self.bct * 4))
+            self.clk_88Hz_div_1kHz_count = rint(value / (self.bct * 4))
         except ZeroDivisionError:
             pass
 
-    clk_88Hz_div_1kHz_count = alias_property("clk_88Hz_div_1kHz.count")
+    clk_88Hz_div_1kHz_count = alias_property("registers.clk_88Hz_div_1kHz.count")
 
     def get_hlct(self):
         """X-ray pulse repetition period.
@@ -571,9 +565,9 @@ class Timing_System(object):
         """Reinitialize digital clock manager"""
         from time import sleep
 
-        self.clk_shift_reset.count = 1
+        self.registers.clk_shift_reset.count = 1
         sleep(0.2)
-        self.clk_shift_reset.count = 0
+        self.registers.clk_shift_reset.count = 0
 
     xd = Parameter("xd", 0.000985971429)  # X-ray pulse timing
 
@@ -687,7 +681,7 @@ class Timing_System(object):
 
     @property
     def high_speed_chopper_phase(self):
-        return self.hsc.delay
+        return self.channels.hsc.delay
 
     cache = 0  # for backward compatibility
     cache_timeout = 0  # for backward compatibility
@@ -783,12 +777,10 @@ def is_int(value):
     return "int" in str(type(value))
 
 
-default_timing_system = Timing_System("BioCARS")  # for backward compatibility
-parameters = Parameters(default_timing_system)  # Needed ?
+# default_timing_system = Timing_System("BioCARS")  # for backward compatibility
+# parameters = Parameters(default_timing_system)  # Needed ?
 
 if __name__ == "__main__":
-    import logging
-
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
@@ -803,10 +795,15 @@ if __name__ == "__main__":
     print('self.ip_address = %r' % self.ip_address)
     print('')
 
+    from handler import handler as _handler
+    from reference import reference as _reference
 
-    @handler
+    @_handler
     def report(event=None):
         info(f'event = {event}')
 
-
-    print('reference(self.registers.ch7_acq, "count").monitors.add(report)')
+    property_names = [
+        "names",
+    ]
+    for property_name in property_names:
+        _reference(self.channels, property_name).monitors.add(report)

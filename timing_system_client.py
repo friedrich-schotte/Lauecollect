@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-28
-Date last modified: 2022-06-27
-Revision comment: Cleanup: removed property no longer needed
+Date last modified: 2022-07-17
+Revision comment: Updated example
 """
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 
 from PV_connected_property import PV_connected_property
 from PV_record import PV_record
@@ -82,6 +82,9 @@ if __name__ == '__main__':
     def report(event=None):
         logging.info(f'event = {event}')
 
-    ref = reference(self.registers.ch7_acq, "count")
-    print('reference(self.registers.ch7_acq, "count").monitors.add(report)')
-    print('reference(self.channels.xdet.acq, "count").monitors.add(report)')
+    references = [
+        # reference(self.sequencer, "queue_active"),
+        # reference(self.registers.acquiring, "count"),
+    ]
+    for ref in references:
+        ref.monitors.add(report)

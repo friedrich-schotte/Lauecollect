@@ -4,12 +4,14 @@ Top-level Panel for BioCARS
 
 Author: Friedrich Schotte
 Date created: 2020-02-04
-Date last modified: 2022-06-28
-Revision comment: Renamed: Configuration_Tables_Panel
+Date last modified: 2021-07-14
+Revision comment: Added: Power Scan
 """
-__version__ = "1.10.1"
+__version__ = "1.12"
 
 import wx
+import wx.lib.scrolledpanel
+
 
 from Control_Panel import Control_Panel
 
@@ -22,18 +24,21 @@ class BioCARS_Panel(Control_Panel):
 
     @property
     def ControlPanel(self):
-        panel = wx.Panel(self)
+        panel = wx.lib.scrolledpanel.ScrolledPanel(self, style=wx.RAISED_BORDER)
+        panel.SetupScrolling(scroll_x=False, scroll_y=True)
 
         frame = wx.BoxSizer()
         panel.Sizer = frame
         layout = wx.BoxSizer(wx.VERTICAL)
-        frame.Add(layout, flag=wx.EXPAND | wx.ALL, border=5, proportion=1)
+        frame.Add(layout, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
 
         from Launch_Button import Launch_Button
-        size = (400, -1)
+        size = (170, -1)  # determines minimum width of buttons
         icon_size = 24
         style = wx.BU_LEFT
-        flag = wx.ALIGN_CENTRE | wx.ALL
+        proportion = 1
+        flag = wx.EXPAND | wx.ALL
+        border = 0
         space = 10
 
         control = Launch_Button(
@@ -47,7 +52,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Servers_Panel('{self.domain_name}')",
             icon="Server",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -62,7 +67,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Timing_Panel('{self.domain_name}')",
             icon="Timing System",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -77,7 +82,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Acquisition_Panel('{self.domain_name}')",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -92,7 +97,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Camera_Viewer('{self.domain_name}.MicroscopeCamera')",
             icon="camera",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             panel,
@@ -105,7 +110,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Camera_Viewer('{self.domain_name}.WideFieldCamera')",
             icon="camera",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -120,20 +125,20 @@ class BioCARS_Panel(Control_Panel):
             command=f"SAXS_WAXS_Control_Panel('{self.domain_name}')",
             icon="SAXS-WAXS Control",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
             size=size,
             style=style,
             icon_size=icon_size,
-            label="Configurations...",
+            label="Environment Configurations...",
             domain_name=self.domain_name,
-            module_name="ConfigurationsPanel",
-            command=f"ConfigurationsPanel('{self.domain_name}')",
+            module_name="Environment_Configurations_Panel",
+            command=f"Environment_Configurations_Panel('{self.domain_name}')",
             icon="Utility",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -148,7 +153,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Configuration_Tables_Panel('{self.domain_name}')",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -161,7 +166,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Configuration_Table_Panel('{self.domain_name}.method')",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -176,7 +181,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Scope_Panel('{self.domain_name}.xray_scope')",
             icon="oscilloscope",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -189,7 +194,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Scope_Panel('{self.domain_name}.laser_scope')",
             icon="oscilloscope",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -204,7 +209,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Rayonix_Detector_Panel('{self.domain_name}')",
             icon="Rayonix Detector",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -217,7 +222,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"ADXV_Live_Image_Panel('{self.domain_name}')",
             icon="ADXV",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -232,7 +237,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Configuration_Table_Panel('{self.domain_name}.heat_load_chopper_modes')",
             icon="Utility",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -245,7 +250,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Configuration_Table_Panel('{self.domain_name}.Julich_chopper_modes')",
             icon="Utility",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -260,7 +265,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Motor_Scan_Panel('{self.domain_name}')",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -275,7 +280,7 @@ class BioCARS_Panel(Control_Panel):
             command="Temperature_System_Panel()",
             icon="temperature",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -288,7 +293,7 @@ class BioCARS_Panel(Control_Panel):
             command="Lightwave_Temperature_Controller_Panel()",
             icon="Lightwave Temperature Controller",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -301,7 +306,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Oasis_Chiller_Panel('{self.domain_name}')",
             icon="Oasis Chiller",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -316,7 +321,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Channel_Archiver_Panel('{self.domain_name}')",
             icon="Archiver",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -329,7 +334,7 @@ class BioCARS_Panel(Control_Panel):
             command=f"Channel_Archiver_Viewer('{self.domain_name}')",
             icon="Archiver",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -344,7 +349,7 @@ class BioCARS_Panel(Control_Panel):
             command="XRay_Beam_Check_Panel()",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -359,7 +364,7 @@ class BioCARS_Panel(Control_Panel):
             command="Ensemble_Motors_Panel()",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         layout.AddSpacer(space)
 
@@ -368,13 +373,13 @@ class BioCARS_Panel(Control_Panel):
             size=size,
             style=style,
             icon_size=icon_size,
-            label="Laser Attenuator [in Laser Lab]...",
+            label="Power Scan...",
             domain_name=self.domain_name,
-            module_name="LaserAttenuatorLaserLabPanel",
-            command="LaserAttenuatorLaserLabPanel()",
+            module_name="Power_Scan_Panel",
+            command=f"Power_Scan_Panel('{self.domain_name}')",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
         control = Launch_Button(
             parent=panel,
@@ -387,9 +392,21 @@ class BioCARS_Panel(Control_Panel):
             command="LaserAttenuatorXrayHutchPanel()",
             icon="Tool",
         )
-        layout.Add(control, flag=flag)
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
 
-        panel.Fit()
+        control = Launch_Button(
+            parent=panel,
+            size=size,
+            style=style,
+            icon_size=icon_size,
+            label="Laser Attenuator [in Laser Lab]...",
+            domain_name=self.domain_name,
+            module_name="LaserAttenuatorLaserLabPanel",
+            command="LaserAttenuatorLaserLabPanel()",
+            icon="Tool",
+        )
+        layout.Add(control, proportion=proportion, flag=flag, border=border)
+
         return panel
 
 

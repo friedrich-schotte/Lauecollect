@@ -2,10 +2,10 @@
 """Timing system channel configuration 
 Author: Friedrich Schotte
 Date created: 2020-06-06
-Date last modified: 2022-04-10
-Revision comment: Using timing system server
+Date last modified: 2022-07-14
+Revision comment: Cleanup
 """
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 from logging import debug, info, warning
 
@@ -47,8 +47,6 @@ class Timing_System_Channel_Configuration(object):
         self.timing_system.composer.update_later = True
 
     class Channels(object):
-        from cached_function import cached_function
-
         def __init__(self, config):
             self.config = config
 

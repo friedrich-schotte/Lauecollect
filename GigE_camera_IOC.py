@@ -146,8 +146,8 @@ if __name__ == "__main__":
     # logging.getLogger("EPICS_CA").level = logging.DEBUG
 
     # self = camera_ioc("MicroscopeCamera", simulated=False)
-    # self = camera_ioc("LaserLabCamera", simulated=True)
-    self = camera_ioc("LaserLabCamera", simulated=False)
+    self = camera_ioc("WideFieldCamera", simulated=True)
+    # self = camera_ioc("WideFieldCamera", simulated=False)
 
     print(f'self.name = {self.name}')
     print(f'self.simulated = {self.simulated}')

@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-10-22
-Date last modified: 2022-07-01
-Revision comment: Overriding motor_name of super class rather than motor
+Date last modified: 2022-07-14
+Revision comment: Using format_string and unit
 """
-__version__ = "3.2.3"
+__version__ = "3.2.4"
 
 import logging
 
@@ -25,8 +25,8 @@ class Temperature_Scan_Driver(Scan_Driver):
 
     motor_name = db_property("motor_name", "temperature_system")
 
-    def format(self, value):
-        return f"{value:.3f}C"
+    format_string = db_property("format_string", "%.3f")
+    unit = db_property("unit", "C")
 
 
 if __name__ == '__main__':

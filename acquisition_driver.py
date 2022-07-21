@@ -4,15 +4,14 @@ Data Collection
 
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2022-06-28
-Revision comment: Issue:
-    line 155, in collection_pass_i
-    i = arange(first, first + self.collection_pass_length)
-    ValueError: arange: cannot compute length
+Date last modified: 2022-07-18
+Revision comment: Cleanup: Using f-string for formatting
 """
-__version__ = "7.0.2"
+__version__ = "7.4.9"
 
-from logging import debug, info, warning, error
+import logging
+from warnings import filterwarnings
+from numpy import VisibleDeprecationWarning
 from typing import List, Iterable, Sized
 
 from cached_function import cached_function
@@ -21,12 +20,15 @@ from alias_property import alias_property
 from db_property import db_property
 from monitored_property import monitored_property
 from monitored_value_property import monitored_value_property
-from monitored_method import monitored_method
 from function_property import function_property
 from attribute_property import attribute_property
 from type_property import type_property
 from file import file as file_object
 from run_async import run_async
+
+# Creating a ndarray from ragged nested sequences.
+# If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+filterwarnings('ignore', category=VisibleDeprecationWarning)
 
 
 @cached_function()
@@ -44,23 +46,19 @@ class Acquisition_Driver(object):
         self.logging = False  # to suppress "attribute logging defined outside __init__"
 
     def __repr__(self):
-        return "%s(%r)" % (type(self).__name__.lower(), self.domain_name)
+        return f"{type(self).__name__.lower()}({self.domain_name!r})"
 
     @property
     def db_name(self):
-        return "acquisition/%s" % self.domain_name
+        return f"domains/{self.domain_name}/acquisition"
 
-    delay_configuration = db_property("delay", "")
-    power_configuration = db_property("power", "power(T0=1.0, N_per_decade=4, N_power=6, reverse=False)")
-
-    xray_image_extension = db_property("xray_image_extension", "mccd")
-    description = db_property("description", "[Add description here]")
-    directory_string = db_property("directory", "//femto-data/C/Data")
+    description = db_property("description", "[Add description here]", local=True)
+    directory_string = db_property("directory", "//mx340hs/data/anfinrud_2207/Test/Test1", local=True)
 
     variables = ["Delay", "Laser_on", "Temperature", "Repeat", "Power", "Scan_Motor"]
-    collection_order = db_property("collection_order", "")
+    collection_order = db_property("collection_order", "", local=True)
 
-    detector_configuration = db_property("detector_configuration", "")
+    detector_configuration = db_property("detector_configuration", "", local=True)
 
     cancelled = monitored_value_property(default_value=False)
 
@@ -84,35 +82,73 @@ class Acquisition_Driver(object):
         self.directory = dirname(self.directory) + "/" + basename
 
     @monitored_property
-    def collection_pass_count(self, collection_variables):
+    def collection_first_i(self, acquired):
+        from numpy import where, nan
+        i_not_acquired = where(~acquired)[0]
+        if len(i_not_acquired) > 0:
+            first = i_not_acquired[0]
+        else:
+            first = nan
+        return first
+
+    @property
+    def collection_first_range(self):
+        from numpy import nan
+        ranges = self.ranges(self.collection_first_pass_i)
+        if len(ranges) > 0:
+            first, last = ranges[0]
+        else:
+            first, last = nan, nan
+        return first, last
+
+    def collection_pass_ranges(self, i_pass):
+        """Pairs of starting and ending scan point numbers (range 0, 1, ... n-1)"""
+        return self.ranges(self.collection_pass_i(i_pass))
+
+    @property
+    def collection_first_pass_i(self):
+        from numpy import arange
+
+        acquired, collection_pass = make_same_length(self.acquired, self.collection_pass)
+
+        passes_non_acquired = collection_pass[~acquired]
+        if len(passes_non_acquired) > 0:
+            i_pass = passes_non_acquired[0]
+            all_i = arange(0, len(acquired))
+            i = all_i[(collection_pass == i_pass) & ~acquired]
+        else:
+            i = []
+
+        return i
+
+    @monitored_property
+    def collection_pass_count(
+        self,
+        collection_variables_with_count,
+        collection_variable_wait,
+        collection_variable_value_lists,
+    ):
         """Into how many passes does the data collection need to be broken up?"""
         count = 1
-        for i, variable in enumerate(collection_variables):
-            wait = self.variable_wait(variable)
-            N = len(self.variable_values(i))
+        for i in range(0, len(collection_variables_with_count)):
+            wait = collection_variable_wait[i]
+            N = len(collection_variable_value_lists[i])
             if wait or count > 1:
                 count *= N
         return count
-
-    @collection_pass_count.dependency_references
-    def collection_pass_count(self):
-        return [
-            reference(self, "variable_wait"),
-            reference(self, "variable_values"),
-        ]
 
     @monitored_property
     def collection_pass_length(self, n, collection_pass_count):
         from floordiv import floordiv
         return floordiv(n, collection_pass_count)
 
-    @monitored_property
-    def collection_passes(self, acquired, collection_pass):
+    @property
+    def collection_passes(self,):
         """List of integers, 0,1,...collection_pass_count-1"""
         from numpy import unique
-        acquired, collection_pass = make_same_length(acquired, collection_pass)
-        collection_passes = unique(collection_pass[~acquired])
-        return collection_passes
+        acquired, collection_pass = make_same_length(self.acquired, self.collection_pass)
+        passes = unique(collection_pass[~acquired])
+        return passes
 
     @monitored_property
     def acquired(self, logfile_entries_generated):
@@ -127,16 +163,6 @@ class Acquisition_Driver(object):
         collection_pass = i // collection_pass_length
         return collection_pass
 
-    @monitored_method
-    def collection_pass_ranges(self, collection_pass):
-        """Pairs of starting and ending scan point numbers (range 0,,,n-1)"""
-        ranges = self.ranges(self.collection_pass_i(collection_pass))
-        return ranges
-
-    @collection_pass_ranges.dependencies
-    def collection_pass_ranges(self):
-        return [reference(self, "collection_pass_i")]
-
     @staticmethod
     def ranges(i):
         from numpy import asarray, where, diff, concatenate
@@ -149,51 +175,17 @@ class Acquisition_Driver(object):
         ranges = [(i[first], i[last]) for (first, last) in zip(firsts, lasts)]
         return ranges
 
-    @monitored_method
-    def collection_pass_i(self, collection_pass):
-        """Image numbers of a collection pass
-        collection_pass: 0,1,... collection_pass_count-1"""
-        from numpy import array, isnan, arange, resize
-        i = array([], dtype=int)
-        collection_pass_length = self.collection_pass_length
-        if not isnan(collection_pass_length):
-            first = self.collection_pass_length * collection_pass
-            i = arange(first, first + self.collection_pass_length)
-            acquired = self.acquired
-            if len(i) > 0 and max(i) >= len(acquired):
-                acquired = resize(acquired, max(i) + 1)
-                acquired[max(i):] = False
-            i = i[~acquired[i]]
+    def collection_pass_i(self, i_pass):
+        from numpy import arange
+
+        acquired, collection_pass = make_same_length(self.acquired, self.collection_pass)
+
+        all_i = arange(0, len(acquired))
+        i = all_i[(collection_pass == i_pass) & ~acquired]
         return i
 
-    @collection_pass_i.dependencies
-    def collection_pass_i(self):
-        return [
-            reference(self, "collection_pass_length"),
-            reference(self, "acquired"),
-        ]
-
-    @monitored_property
-    def collection_first_i(self, collection_first_range) -> int:
-        first, last = collection_first_range
-        return first
-
-    @monitored_property
-    def collection_first_range(self, collection_passes):
-        from numpy import nan
-        first, last = nan, nan
-        for collection_pass in collection_passes:
-            for (first, last) in self.collection_pass_ranges(collection_pass):
-                break
-            break
-        return first, last
-
-    @collection_first_range.dependency_references
-    def collection_first_range(self):
-        return [reference(self, "collection_pass_ranges")]
-
-    override_repeat = db_property("override_repeat", False)
-    override_repeat_count = db_property("override_repeat_count", 1)
+    override_repeat = db_property("override_repeat", False, local=True)
+    override_repeat_count = db_property("override_repeat_count", 1, local=True)
 
     @monitored_property
     def finish_series(self, __finish_series__):
@@ -204,7 +196,7 @@ class Acquisition_Driver(object):
         self.__finish_series__ = value
         self.decide_n_collect()
 
-    __finish_series__ = db_property("finish_series", False)
+    __finish_series__ = db_property("finish_series", False, local=True)
 
     @monitored_property
     def finish_series_variable(self, __finish_series_variable__):
@@ -215,7 +207,7 @@ class Acquisition_Driver(object):
         self.__finish_series_variable__ = value
         self.decide_n_collect()
 
-    __finish_series_variable__ = db_property("finish_series_variable", "Temperature")
+    __finish_series_variable__ = db_property("finish_series_variable", "Temperature", local=True)
 
     def decide_n_collect(self):
         if self.finish_series:
@@ -234,246 +226,54 @@ class Acquisition_Driver(object):
     def n_collect(self, value):
         self.__n_collect__ = value
 
-    __n_collect__ = db_property("__n_collect__", 0)
+    __n_collect__ = db_property("__n_collect__", 0, local=True)
 
     def n_finish_series(self, image_number):
         n_finish_series = self.n
         if self.finish_series:
             period = 1
-            for i, variable in enumerate(self.collection_variables):
-                period *= len(self.variable_values(i))
+            for i, variable in enumerate(self.collection_variables_with_count):
+                period *= len(self.collection_variable_value_lists[i])
                 if variable == self.finish_series_variable:
                     break
             n_finish_series = (int(image_number) // period + 1) * period
         return n_finish_series
 
-    def set_collection_variables(self, i, wait=False):
-        """i: range 0 to self.n"""
-        values = self.collection_variable_values(i)
-        variables = self.collection_variables
-        for variable, value in zip(variables, values):
-            self.variable_set(variable, value)
-        if wait:
-            self.wait_for_collection_variables()
-
     def wait_for_collection_variables(self):
         """i: range 0 to self.n"""
         from time import sleep
-        variables = self.collection_variables
+        variables = self.collection_variables_with_count
         while any([self.variable_changing(var) for var in variables]):
             if self.cancelled:
                 break
             self.actual(self.collection_variable_changing_report)
-            sleep(0.2)
+            sleep(1.0)
 
     @property
     def collection_variable_changing_report(self):
         message = ""
-        for variable in self.collection_variables:
+        for variable in self.collection_variables_with_count:
             if self.variable_changing(variable):
-                value = self.variable_value(variable)
-                formatted_value = self.variable_formatted_value(variable, value)
-                message += "%s=%s, " % (variable, formatted_value)
+                formatted_value = self.variable_formatted_value(variable)
+                message += f"{variable}={formatted_value}, "
         message = message.strip(", ")
         return message
 
-    def collection_variables_dataset_start(self):
-        """To be done at the beginning of the data collection"""
-
-    def collection_variables_dataset_stop(self):
-        """To be done at the end of the data collection"""
-
-    collection_values = {}
-
-    def collection_variables_start(self, wait=True):
-        for variable in self.collection_variables:
-            self.collection_variable_start(variable)
-        if wait:
-            self.collection_variables_wait()
-
-    def collection_variables_stop(self):
-        for variable in self.collection_variables:
-            self.collection_variable_stop(variable)
-
-    def collection_variables_wait(self):
-        from time import sleep
-        while not self.collection_variables_started and not self.cancelled:
-            sleep(0.2)
-
-    @property
-    def collection_variables_started(self):
-        value = all([self.collection_variable_started(variable)
-                     for variable in self.collection_variables])
-        return value
-
-    @property
-    def collection_variables_stopped(self):
-        value = all([self.collection_variable_stopped(variable)
-                     for variable in self.collection_variables])
-        return value
-
-    def collection_variable_start(self, variable):
-        if not self.variable_wait(variable):
-            if variable in ["Repeat", "Delay", "Laser_on", "Temperature", "Scan_Motor"]:
-                pass
-            elif variable == "Alio":
-                self.actual("%s start..." % variable)
-                self.Alio.acquiring.command_value = True
-                self.actual("%s started" % variable)
-            else:
-                self.variable_set_scanning(variable, True)
-
-    def collection_variable_started(self, variable):
-        if not self.variable_wait(variable):
-            if variable in ["Repeat", "Delay", "Laser_on", "Temperature", "Scan_Motor"]:
-                value = True
-            elif variable == "Alio":
-                value = bool(self.Alio.acquiring.value) is True
-            else:
-                value = self.variable_get_scanning(variable)
-        else:
-            value = True
-        return value
-
-    def collection_variable_stop(self, variable):
-        if not self.variable_wait(variable):
-            if variable in ["Repeat", "Delay", "Laser_on", "Temperature", "Scan_Motor"]:
-                pass
-            elif variable == "Alio":
-                self.Alio.acquiring.command_value = False
-            else:
-                self.variable_set_scanning(variable, False)
-
-    def collection_variable_stopped(self, variable):
-        if not self.variable_wait(variable):
-            if variable in ["Repeat", "Delay", "Laser_on", "Temperature", "Scan_Motor"]:
-                value = True
-            elif variable == "Alio":
-                value = bool(self.Alio.acquiring.value) is False
-            else:
-                value = not self.variable_get_scanning(variable)
-        else:
-            value = True
-        return value
-
-    def variable_set_scanning(self, variable, value):
-        from reference import reference
-        from handler import handler
-        event_handlers = reference(self.timing_system.registers.image_number, "count").monitors
-        event_handler = handler(self.collection_variables_handle_image_number_update, variable)
-        if bool(value) is True:
-            self.collection_values[variable] = self.collection_all_values(variable)
-            event_handlers.add(event_handler)
-        if bool(value) is False:
-            event_handlers.remove(event_handler)
-            if variable in self.collection_values:
-                del self.collection_values[variable]
-
-    def variable_get_scanning(self, variable):
-        from reference import reference
-        from handler import handler
-        event_handlers = reference(self.timing_system.registers.image_number, "count").monitors
-        event_handler = handler(self.collection_variables_handle_image_number_update, variable)
-        scanning = all([
-            event_handler in event_handlers,
-            variable in self.collection_values,
-        ])
-        return scanning
-
-    def collection_variables_handle_image_number_update(self, variable):
-        i = self.timing_system.registers.image_number.count
-        collection_values = dict(self.collection_values)
-        if variable in collection_values:
-            if 0 <= i < len(collection_values[variable]):
-                value = collection_values[variable][i]
-                debug("Image %r: Setting collection variable %s=%r..." % (i, variable, value))
-                self.variable_set(variable, value)
-                debug("Image %r: Setting collection variable %s=%r done" % (i, variable, value))
-
-    def variable_value(self, variable):
-        """Current read-back value"""
-        from numpy import nan
-        value = nan
-        if variable == "Temperature":
-            value = self.temperature_scan.motor_value
-        if variable == "Power":
-            from instrumentation import trans2
-            value = trans2.value
-        if variable == "Scan_Motor":
-            return self.motor_scan.motor_value
-        return value
-
-    def variable_command_value(self, variable):
-        """Nominal value"""
-        from numpy import nan
-        value = nan
-        if variable == "Temperature":
-            value = self.temperature_scan.motor_command_value
-        if variable == "Power":
-            from instrumentation import trans2
-            value = trans2.value  # has no attribute 'command_value'
-        if variable == "Scan_Motor":
-            return self.motor_scan.command_value
-        return value
-
-    def variable_set(self, variable, value):
-        from time import sleep
-
-        if variable != "Repeat":
-            formatted_value = self.variable_formatted_value(variable, value)
-            self.actual("%s=%s" % (variable, formatted_value))
-
-        if variable == "Temperature":
-            self.temperature_scan.motor_command_value = value
-        if variable == "Power":
-            from instrumentation import trans2
-            trans2.value = value
-        if variable == "Scan_Motor":
-            self.motor_scan.value = value
-            sleep(0.01)
-
-    def variable_changing(self, variable):
-        changing = False
-        if variable == "Temperature":
-            changing = not self.temperature_scan.ready
-        if variable == "Power":
-            from instrumentation import trans2
-            changing = trans2.moving
-        if variable == "Scan_Motor":
-            changing = not self.motor_scan.ready
-        return changing
-
     def collection_variable_values(self, i):
-        """i: range 0 to self.n"""
-        from numpy import nan
-        values = []
-        for j, n in enumerate(self.collection_variable_indices(i)):
-            variable_values = self.variable_values(j)
-            n_max = len(variable_values) - 1
-            if 0 <= n <= n_max:
-                value = variable_values[n]
-            else:
-                warning(f"Variable {j}: index {n} not in range 0..{n_max}")
-                value = nan
-            values += [value]
+        all_values = self.collection_variable_all_values
+        n_var, n = all_values.shape
+        if n > 0:
+            values = list(all_values[:, i % n])
+        else:
+            from numpy import nan
+            values = [nan] * n_var
         return values
 
-    def collection_all_values(self, variable):
-        """variable: e.g. 'Temperature'"""
-        values = []
-        if variable in self.collection_variables:
-            i = self.collection_variables.index(variable)
-            values = self.collection_variable_all_values[i]
-        return values
-
-    @property
-    def collection_variable_all_values(self):
+    @monitored_property
+    def collection_variable_all_values(self, collection_variable_value_lists):
         from numpy import array, repeat, tile, vstack
-        values_list = []
-        for (i, variable) in enumerate(self.collection_variables):
-            values_list += [self.variable_values(i)]
-        all_values = array([values_list[0]])
-        for values in values_list[1:]:
+        all_values = array([collection_variable_value_lists[0]])
+        for values in collection_variable_value_lists[1:]:
             all_values = vstack([
                 tile(all_values, len(values)),
                 repeat(values, len(all_values[0])),
@@ -481,8 +281,20 @@ class Acquisition_Driver(object):
         return all_values
 
     @monitored_property
-    def collection_variable_count(self, collection_variables):
-        return len(collection_variables)
+    def collection_variable_all_formatted_values(self, collection_variable_formatted_value_lists):
+        from numpy import array, repeat, tile, vstack, chararray
+        all_values = array([collection_variable_formatted_value_lists[0]])
+        for values in collection_variable_formatted_value_lists[1:]:
+            all_values = vstack([
+                tile(all_values, len(values)),
+                repeat(values, len(all_values[0])),
+            ])
+        all_values = all_values.view(chararray)
+        return all_values
+
+    @monitored_property
+    def collection_variable_count(self, collection_variables_with_count):
+        return len(collection_variables_with_count)
 
     def collection_variable_indices(self, i):
         """List of integers of length self.collection_variable_count
@@ -521,30 +333,30 @@ class Acquisition_Driver(object):
             return type(self).__name__
 
         @monitored_property
-        def delay(self, collection_variables):
-            return "Delay" in collection_variables
+        def delay(self, collection_variables_with_count):
+            return "Delay" in collection_variables_with_count
 
         @monitored_property
-        def laser_on(self, collection_variables):
-            return "Laser_on" in collection_variables
+        def laser_on(self, collection_variables_with_count):
+            return "Laser_on" in collection_variables_with_count
 
         @monitored_property
-        def temperature(self, collection_variables):
-            return "Temperature" in collection_variables
+        def temperature(self, collection_variables_with_count):
+            return "Temperature" in collection_variables_with_count
 
         @monitored_property
-        def power(self, collection_variables):
-            return "Power" in collection_variables
+        def power(self, collection_variables_with_count):
+            return "Power" in collection_variables_with_count
 
         @monitored_property
-        def scan_motor(self, collection_variables):
-            return "Scan_Motor" in collection_variables
+        def scan_motor(self, collection_variables_with_count):
+            return "Scan_Motor" in collection_variables_with_count
 
         @monitored_property
-        def alio(self, collection_variables):
-            return "Alio" in collection_variables
+        def alio(self, collection_variables_with_count):
+            return "Alio" in collection_variables_with_count
 
-        collection_variables = alias_property("instance.collection_variables")
+        collection_variables_with_count = alias_property("instance.collection_variables_with_count")
 
     @type_property
     class scan_point_dividers:
@@ -586,16 +398,17 @@ class Acquisition_Driver(object):
 
         def divider(self, divider_list, variable_name):
             divider = 1
-            if variable_name in self.instance.collection_variables:
-                i = self.instance.collection_variables.index(variable_name)
+            if variable_name in self.instance.collection_variables_with_count:
+                i = self.instance.collection_variables_with_count.index(variable_name)
                 if i < len(divider_list):
                     divider = divider_list[i]
             return divider
 
     def scan_point_divider(self, variable_name):
         divider = 1
-        if variable_name in self.collection_variables:
-            i = self.collection_variables.index(variable_name)
+        collection_variables_with_count = self.collection_variables_with_count
+        if variable_name in collection_variables_with_count:
+            i = collection_variables_with_count.index(variable_name)
             if i < len(self.scan_point_divider_list):
                 divider = self.scan_point_divider_list[i]
         return divider
@@ -611,12 +424,16 @@ class Acquisition_Driver(object):
         return divider_list
 
     @monitored_property
-    def collection_variables(self, collection_variables_with_options) -> Iterable:
+    def collection_variables_with_count(self, collection_variables_with_options) -> Iterable:
         variables = []
+        repeat_count = 0
         for variable in collection_variables_with_options:
             if "=" in variable:
                 variable = variable.split("=")[0]
-            variables += [variable]
+            if variable == "Repeat":
+                variable = f"Repeat{repeat_count + 1}"
+                repeat_count += 1
+            variables.append(variable)
         return variables
 
     @monitored_property
@@ -627,124 +444,223 @@ class Acquisition_Driver(object):
         return variables
 
     @monitored_property
-    def variable_formatted_value_lists(self, collection_variables, collection_variable_value_lists):
-        lists = []
-        collection_variables, collection_variable_value_lists = make_same_length(collection_variables, collection_variable_value_lists)
-        for (i, values) in enumerate(collection_variable_value_lists):
-            variable = collection_variables[i]
-            lists += [[self.variable_formatted_value(variable, val) for val in values]]
-        return lists
+    def collection_variable_value_lists(self, variable_values_dict, collection_variables_with_count):
+        return [variable_values_dict[v] for v in collection_variables_with_count]
 
     @monitored_property
-    def collection_variable_value_lists(self):
-        return [self.variable_values(i) for i in range(0, len(self.collection_variables))]
-
-    @collection_variable_value_lists.dependency_references
-    def collection_variable_value_lists(self):
-        return [reference(self, "variable_values")]
-
-    @monitored_method
-    def variable_values(self, i):
-        """i range 0 to len(collection_variables)"""
-        # For choices encoded in the "collection_order" string
-        # e.g. Repeat=16, Laser_on=[0,1]
-        values = []
-        if 0 <= i < len(self.collection_variables):
-            variable = self.collection_variables[i]
-            if variable == "Repeat":
-                values = list(range(0, self.repeat_count(i)))
-            else:
-                values = self.variable_choices(variable)
+    def variable_values_dict(
+            self,
+            temperature_scan_values,
+            power_scan_values,
+            motor_scan_values,
+            delay_scan_values,
+            laser_on_scan_values,
+            alio_scan_values,
+            repeat_count_lists,
+    ):
+        values = {
+            "Temperature": temperature_scan_values,
+            "Power": power_scan_values,
+            "Scan_Motor": motor_scan_values,
+            "Delay": delay_scan_values,
+            "Laser_on": laser_on_scan_values,
+            "Alio": alio_scan_values,
+        }
+        for (i, count_list) in enumerate(repeat_count_lists):
+            values[f"Repeat{i + 1}"] = count_list
         return values
 
-    @variable_values.dependencies
-    def variable_values(self):
-        return [
-            reference(self, "collection_variables"),
-            reference(self, "repeat_count"),
-            reference(self, "laser_on_list"),
-            reference(self, "variable_choices"),
-        ]
-
-    @monitored_method
-    def variable_choices(self, variable):
-        # For choices encoded outside the "collection_order" string
-        # in separate tables.
-        if variable == "Temperature":
-            choices = self.temperature_scan.values
-        elif variable == "Power":
-            choices = self.power_list
-        elif variable == "Scan_Motor":
-            choices = self.motor_scan.values
-        elif variable == "Delay":
-            choices = self.delay_scan.values
-        elif variable == "Laser_on":
-            choices = self.laser_on_scan.values
-        elif variable == "Alio":
-            choices = self.Alio.scan_points.value
-        else:
-            choices = []
-        return choices
-
-    @variable_choices.dependencies
-    def variable_choices(self):
-        return [
-            reference(self, "temperature_scan_values"),
-            reference(self, "power_list"),
-            reference(self, "motor_scan_values"),
-            reference(self, "delay_scan_values"),
-            reference(self, "laser_on_scan_values"),
-            reference(self, "Alio_scan_points_value"),
-        ]
-
     temperature_scan_values = alias_property("temperature_scan.values")
+    power_scan_values = alias_property("power_scan.values")
     motor_scan_values = alias_property("motor_scan.values")
     delay_scan_values = alias_property("delay_scan.values")
     laser_on_scan_values = alias_property("laser_on_scan.values")
-    Alio_scan_points_value = alias_property("Alio.scan_points.value")
+    alio_scan_values = alias_property("alio_scan.values")
 
-    @monitored_method
-    def variable_wait(self, variable):
-        """Suspend collection while changing this variable?"""
-        if variable == "Temperature":
-            wait = self.temperature_scan_wait
-        elif variable == "Power":
-            wait = True
-        elif variable == "Scan_Motor":
-            wait = self.motor_scan_wait
-        else:
-            wait = False
-        return wait
+    @monitored_property
+    def repeat_count_lists(self, repeat_count_list):
+        return [list(range(0, count)) for count in repeat_count_list]
 
-    @variable_wait.dependencies
-    def variable_wait(self):
-        return [
-            reference(self, "temperature_scan_wait"),
-            reference(self, "motor_scan_wait"),
-        ]
+    @monitored_property
+    def collection_variable_formatted_value_lists(self, variable_formatted_values_dict, collection_variables_with_count):
+        return [variable_formatted_values_dict[v] for v in collection_variables_with_count]
 
-    temperature_scan_wait = alias_property("temperature_scan.wait")
-    motor_scan_wait = alias_property("motor_scan.wait")
+    @monitored_property
+    def variable_formatted_values_dict(
+            self,
+            temperature_scan_formatted_values,
+            power_scan_formatted_values,
+            motor_scan_formatted_values,
+            delay_scan_formatted_values,
+            laser_on_scan_formatted_values,
+            alio_scan_formatted_values,
+            repeat_count_formatted_lists,
+    ):
+        values = {
+            "Temperature": temperature_scan_formatted_values,
+            "Power": power_scan_formatted_values,
+            "Scan_Motor": motor_scan_formatted_values,
+            "Delay": delay_scan_formatted_values,
+            "Laser_on": laser_on_scan_formatted_values,
+            "Alio": alio_scan_formatted_values,
+        }
+        for (i, count_list) in enumerate(repeat_count_formatted_lists):
+            values[f"Repeat{i + 1}"] = count_list
+        return values
+
+    temperature_scan_formatted_values = alias_property("temperature_scan.formatted_values")
+    power_scan_formatted_values = alias_property("power_scan.formatted_values")
+    motor_scan_formatted_values = alias_property("motor_scan.formatted_values")
+    delay_scan_formatted_values = alias_property("delay_scan.formatted_values")
+    laser_on_scan_formatted_values = alias_property("laser_on_scan.formatted_values")
+    alio_scan_formatted_values = alias_property("alio_scan.formatted_values")
+
+    @monitored_property
+    def repeat_count_formatted_lists(self, repeat_count_lists):
+        formatted_lists = []
+        for count_list in repeat_count_lists:
+            formatted_list = [f"{count + 1:02.0f}" for count in count_list]
+            formatted_lists.append(formatted_list)
+        return formatted_lists
+
+    @monitored_property
+    def variable_formatted_value_dict(
+            self,
+            temperature_scan_formatted_value,
+            power_scan_formatted_value,
+            motor_scan_formatted_value,
+            delay_scan_formatted_value,
+            laser_on_scan_formatted_value,
+            alio_scan_formatted_value,
+            current_repeat_count_formatted_values,
+    ):
+        values = {
+            "Temperature": temperature_scan_formatted_value,
+            "Power": power_scan_formatted_value,
+            "Scan_Motor": motor_scan_formatted_value,
+            "Delay": delay_scan_formatted_value,
+            "Laser_on": laser_on_scan_formatted_value,
+            "Alio": alio_scan_formatted_value,
+        }
+        for (i, value) in enumerate(current_repeat_count_formatted_values):
+            values[f"Repeat{i + 1}"] = value
+        return values
+
+    temperature_scan_formatted_value = alias_property("temperature_scan.formatted_value")
+    power_scan_formatted_value = alias_property("power_scan.formatted_value")
+    motor_scan_formatted_value = alias_property("motor_scan.formatted_value")
+    delay_scan_formatted_value = alias_property("delay_scan.formatted_value")
+    laser_on_scan_formatted_value = alias_property("laser_on_scan.formatted_value")
+    alio_scan_formatted_value = alias_property("alio_scan.formatted_value")
+
+    @monitored_property
+    def current_repeat_count_formatted_values(self, current_repeat_count_values):
+        return [self.formatted_repeat_count(count) for count in current_repeat_count_values]
 
     @staticmethod
-    def variable_formatted_value(variable, value):
-        from time_string import time_string
-        text = str(value)
-        if variable == "Delay":
-            text = time_string(value)
-        if variable == "Temperature":
-            text = "%.3fC" % value
-        if variable == "Laser_on":
-            text = "on" if value else "off"
-        if variable == "Power":
-            text = "%.4f" % value
-        if variable == "Scan_Motor":
-            text = "%.04f" % value
-        if variable == "Repeat":
-            text = "%02.0f" % (value + 1)
-        if variable == "Alio":
-            text = ",".join(["%+1.3f" % x for x in value])
-        return text
+    def formatted_repeat_count(count):
+        try:
+            formatted_count = "%02d" % (count + 1)
+        except ValueError:
+            formatted_count = ""
+        return formatted_count
+
+    @monitored_property
+    def current_repeat_count_values(
+            self,
+            current,
+            collection_variable_is_repeat,
+            scan_point_divider_list,
+    ):
+        counts = []
+        for i, is_repeat in enumerate(collection_variable_is_repeat):
+            if is_repeat:
+                scan_point_divider = scan_point_divider_list[i]
+                count = current // scan_point_divider
+                counts.append(count)
+        while len(counts) < 5:
+            counts.append(0)
+        return counts
+
+    def variable_formatted_value(self, variable):
+        return self.variable_formatted_value_dict[variable]
+
+    @monitored_property
+    def collection_variable_wait(self, variable_wait_dict, collection_variables_with_count):
+        return [variable_wait_dict[v] for v in collection_variables_with_count]
+
+    @monitored_property
+    def variable_wait_dict(
+            self,
+            temperature_scan_wait,
+            power_scan_wait,
+            motor_scan_wait,
+            delay_scan_wait,
+            laser_on_scan_wait,
+            alio_scan_wait,
+            repeat_count_list,
+    ):
+        values = {
+            "Temperature": temperature_scan_wait,
+            "Power": power_scan_wait,
+            "Scan_Motor": motor_scan_wait,
+            "Delay": delay_scan_wait,
+            "Laser_on": laser_on_scan_wait,
+            "Alio": alio_scan_wait,
+        }
+        for i in range(0, len(repeat_count_list)):
+            values[f"Repeat{i + 1}"] = False
+        return values
+
+    temperature_scan_wait = alias_property("temperature_scan.wait")
+    power_scan_wait = alias_property("power_scan.wait")
+    motor_scan_wait = alias_property("motor_scan.wait")
+    delay_scan_wait = alias_property("delay_scan.wait")
+    laser_on_scan_wait = alias_property("laser_on_scan.wait")
+    alio_scan_wait = alias_property("alio_scan.wait")
+
+    def variable_wait(self, variable):
+        return self.variable_wait_dict[variable]
+
+    @monitored_property
+    def collection_variable_ready(self, variable_ready_dict, collection_variables_with_count):
+        return [variable_ready_dict[v] for v in collection_variables_with_count]
+
+    @monitored_property
+    def variable_ready_dict(
+            self,
+            temperature_scan_ready,
+            power_scan_ready,
+            motor_scan_ready,
+            delay_scan_ready,
+            laser_on_scan_ready,
+            alio_scan_ready,
+            repeat_count_list,
+    ):
+        values = {
+            "Temperature": temperature_scan_ready,
+            "Power": power_scan_ready,
+            "Scan_Motor": motor_scan_ready,
+            "Delay": delay_scan_ready,
+            "Laser_on": laser_on_scan_ready,
+            "Alio": alio_scan_ready,
+        }
+        for i in range(0, len(repeat_count_list)):
+            values[f"Repeat{i + 1}"] = True
+        return values
+
+    temperature_scan_ready = alias_property("temperature_scan.ready")
+    power_scan_ready = alias_property("power_scan.ready")
+    motor_scan_ready = alias_property("motor_scan.ready")
+    delay_scan_ready = alias_property("delay_scan.ready")
+    laser_on_scan_ready = alias_property("laser_on_scan.ready")
+    alio_scan_ready = alias_property("alio_scan.ready")
+
+    def variable_ready(self, variable):
+        return self.variable_ready_dict[variable]
+
+    def variable_changing(self, variable):
+        return not self.variable_ready(variable)
 
     @staticmethod
     def variable_log_value(variable, value):
@@ -759,7 +675,7 @@ class Acquisition_Driver(object):
             text = "%.4f" % value
         if variable == "Scan_Motor":
             text = "%.04f" % value
-        if variable == "Repeat":
+        if variable.startswith("Repeat"):
             text = "%02.0f" % (value + 1)
         if variable == "Alio":
             text = "\t".join(["%+1.3f" % x for x in value])
@@ -769,7 +685,7 @@ class Acquisition_Driver(object):
         if variable == "Scan_Motor":
             text = self.motor_scan.motor_name
         elif variable == "Alio":
-            text = "\t".join(self.Alio.scan_points.name)
+            text = "\t".join(self.alio_scan.scan_points.name)
         else:
             text = variable
         return text
@@ -797,50 +713,35 @@ class Acquisition_Driver(object):
                 try:
                     count = int(eval(count_string))
                 except Exception as msg:
-                    error("%s: %s: %s: %s: expecting int" %
-                          (self.collection_order, variable, count_string, msg))
+                    logging.error(f"{self.collection_order}: {variable}: {count_string}: {msg}: expecting int")
             counts.append(count)
         if override_repeat:
             if len(counts) > 0:
                 counts[-1] = override_repeat_count
         return counts
 
-    @monitored_method
-    def repeat_count(self, i):
-        """i: collection variable number 0...len(collection_variables)"""
-        repeat_counts = self.repeat_counts
-        if i < len(repeat_counts):
-            count = repeat_counts[i]
-        else:
-            count = 0
-        return count
-
-    @repeat_count.dependencies
-    def repeat_count(self):
-        return [
-            reference(self, "repeat_counts"),
-        ]
-
-    @monitored_method
-    def laser_on_list(self, i):
-        """i: collection variable number 0...len(collection_variables)"""
-        values = [1]
-        variables = self.collection_variables_with_options
-        if 0 <= i <= len(variables):
-            variable = variables[i]
-            if variable.startswith("Laser_on="):
-                values_string = variable.split("=")[-1]
-                from numpy import nan  # for eval
+    @monitored_property
+    def repeat_count_list(self, collection_variables_with_options, override_repeat, override_repeat_count):
+        counts = []
+        for variable in collection_variables_with_options:
+            if variable.startswith("Repeat="):
+                count_string = variable.split("=")[-1]
                 try:
-                    values = eval(values_string)
+                    count = int(eval(count_string))
                 except Exception as msg:
-                    error("%s: %s: %s: %s: expecting int" %
-                          (self.collection_order, variable, values_string, msg))
-        return values
+                    logging.error(f"{self.collection_order}: {variable}: {count_string}: {msg}: expecting int")
+                else:
+                    counts.append(count)
+        if override_repeat:
+            if len(counts) > 0:
+                counts[-1] = override_repeat_count
+        while len(counts) < 5:
+            counts.append(1)
+        return counts
 
-    @laser_on_list.dependencies
-    def laser_on_list(self):
-        return [reference(self, "collection_variables_with_options")]
+    @monitored_property
+    def collection_variable_is_repeat(self, collection_variables_with_options):
+        return [v.startswith("Repeat=") for v in collection_variables_with_options]
 
     @monitored_property
     def time_to_finish(self, scan_point_acquisition_time, n_remaining):
@@ -852,20 +753,23 @@ class Acquisition_Driver(object):
     @monitored_property
     def n_remaining(self, current_i, n_collect):
         from numpy import isnan
-        i = current_i
-        n_remaining = n_collect - i if not isnan(i) else 0
+        n_remaining = n_collect - current_i if not isnan(current_i) else 0
         return n_remaining
 
     @monitored_property
     def current_i(self, current, acquiring, collection_first_i):
-        i = current if acquiring else collection_first_i
-        return i
+        from numpy import nan
 
-    @monitored_property
-    def power_list(self, power_configuration):
-        from expand_scan_points import safe_expand_scan_points
-        values = safe_expand_scan_points(power_configuration)
-        return values
+        current_i = nan
+
+        if acquiring:
+            if current is not None:
+                current_i = current
+        else:
+            if collection_first_i is not None:
+                current_i = collection_first_i
+
+        return current_i
 
     @monitored_property
     def detector_names(self, detector_configuration) -> List[str]:
@@ -876,15 +780,19 @@ class Acquisition_Driver(object):
 
     @monitored_property
     def info_message(self, dataset_complete, current_i, n_collect, scan_point_name, file_basenames):
+        from numpy import isnan
+
         if dataset_complete:
             message = "Dataset complete"
         elif current_i > n_collect:
             message = "Collection completed"
         else:
-            i = current_i
-            message = "%s %s of %s" % (scan_point_name, i + 1, n_collect)
-            if i < n_collect and i < len(file_basenames):
-                message += ": " + file_basenames[i]
+            if not isnan(current_i):
+                message = f"{scan_point_name} {current_i + 1} of {n_collect}"
+                if current_i < n_collect and current_i < len(file_basenames):
+                    message += ": " + file_basenames[current_i]
+            else:
+                message = ""
         message = message[0:1].upper() + message[1:]
         return message
 
@@ -892,19 +800,28 @@ class Acquisition_Driver(object):
     actual_message = monitored_value_property(default_value="")
 
     @monitored_property
-    def acquisition_status(self, current, file_basenames):
-        i = current
-        if i < self.n_collect:
-            message = "Acquiring %s %.0f of %.0f" % (self.scan_point_name, i + 1, self.n_collect)
-            if 0 <= i < len(file_basenames):
-                message += ": " + file_basenames[i]
-            values = self.collection_variable_values(i)
-            variables = self.collection_variables
-            for variable, value in zip(variables, values):
-                formatted_value = self.variable_formatted_value(variable, value)
-                message += ", %s %s" % (variable, formatted_value)
+    def acquisition_status(
+            self,
+            acquiring,
+            current,
+            n_collect,
+            scan_point_name,
+            file_basenames,
+            collection_variables_with_count,
+            collection_variable_all_formatted_values,
+    ):
+        if acquiring and current < n_collect:
+            message = f"Acquiring {scan_point_name} {current + 1:.0f} of {n_collect:.0f}"
+            if 0 <= current < len(file_basenames):
+                message += ": " + file_basenames[current]
+            if 0 <= current < collection_variable_all_formatted_values.shape[1]:
+                formatted_values = collection_variable_all_formatted_values[:, current]
+                for variable, formatted_value in zip(collection_variables_with_count, formatted_values):
+                    message += f", {variable} {formatted_value}"
+        elif not acquiring and current < n_collect:
+            message = "Collection suspended"
         else:
-            message = "Collection Completed"
+            message = "Collection completed"
         return message
 
     @monitored_property
@@ -949,17 +866,17 @@ class Acquisition_Driver(object):
     def erase_dataset(self):
         self.actual("Erasing Dataset...")
         for i, filename in enumerate(self.xray_images_collected):
-            self.actual("Erasing X-ray image %r" % (i + 1))
+            self.actual(f"Erasing X-ray image {i + 1!r}")
             if self.cancelled:
                 break
             self.remove(filename)
         for i, filename in enumerate(self.scope_traces_collected("xray_scope")):
-            self.actual("Erasing X-ray scope trace %r" % (i + 1))
+            self.actual(f"Erasing X-ray scope trace {i + 1!r}")
             if self.cancelled:
                 break
             self.remove(filename)
         for i, filename in enumerate(self.scope_traces_collected("laser_scope")):
-            self.actual("Erasing Laser scope trace %r" % (i + 1))
+            self.actual(f"Erasing Laser scope trace {i + 1!r}")
             if self.cancelled:
                 break
             self.remove(filename)
@@ -978,7 +895,7 @@ class Acquisition_Driver(object):
             try:
                 remove(filename)
             except Exception as x:
-                warning("%s: %s" % (filename, x))
+                logging.warning(f"{filename}: {x}")
 
     @property
     def filenames(self):
@@ -1016,7 +933,7 @@ class Acquisition_Driver(object):
             N = self.sequences_per_scan_point
             i = i // N
             filename = self.file_basenames[i]
-            suffix = "_%02.0f" % (i % N + 1)
+            suffix = f"_{i % N + 1:02.0f}"
             filename = filename + suffix
 
             scope_name = detector_name.split(".")[0]
@@ -1037,12 +954,12 @@ class Acquisition_Driver(object):
 
     def status(self, message):
         if message:
-            info(message)
+            logging.info(message)
         self.status_message = message
 
     def actual(self, message):
         if message:
-            info(message)
+            logging.info(message)
         self.actual_message = message
 
     from thread_property import thread_property
@@ -1054,9 +971,6 @@ class Acquisition_Driver(object):
         self.status("Collection started")
 
         self.configuration_save()
-        self.collection_variables_dataset_start()
-        # for temperature equilibration
-        self.set_collection_variables(self.collection_first_i, wait=False)
 
         self.timing_system_sequences_load()
         self.actual("Timing system setup...")
@@ -1071,8 +985,6 @@ class Acquisition_Driver(object):
         self.scope_timing_system_setup("laser_scope")
         self.diagnostics_start()
         self.logging_start()
-        self.instrumentation_start()
-        self.collection_variables_start()
         self.update_status_start()
 
         while len(self.collection_passes) > 0:
@@ -1088,15 +1000,21 @@ class Acquisition_Driver(object):
                     self.xray_detector_timing_system_setup(first)
                     self.scope_timing_system_setup("xray_scope", first)
                     self.scope_timing_system_setup("laser_scope", first)
-                    self.set_collection_variables(first, wait=False)
 
                     sleep(1)  # needed for temperature?
                     self.wait_for_collection_variables()
 
                     self.timing_system_acquisition_start()
 
-                    while not self.completed(last) and not self.cancelled:
-                        if self.current >= self.n_collect:
+                    while True:
+                        if not self.timing_system_sequencer.queue_active:
+                            logging.debug("Acquisition completed.")
+                            break
+                        if self.cancelled:
+                            logging.debug("Cancelled. Stopping acquisition.")
+                            break
+                        if self.data_collection_completed:
+                            logging.debug("Data collection completed. Stopping acquisition.")
                             break
                         sleep(0.1)
 
@@ -1112,11 +1030,8 @@ class Acquisition_Driver(object):
                 break
 
         self.update_status_stop()
-        self.instrumentation_stop()
-        self.collection_variables_stop()
         self.diagnostics_stop()
         self.timing_system_cleanup()
-        self.collection_variables_dataset_stop()
         self.sleep(5)
         self.logging_stop()
         self.scope_stop("laser_scope")
@@ -1128,6 +1043,10 @@ class Acquisition_Driver(object):
         self.finish_series = False
 
         self.status("Collection ended")
+
+    @property
+    def data_collection_completed(self):
+        return self.current >= self.n_collect
 
     def update_status_start(self):
         from reference import reference
@@ -1144,17 +1063,6 @@ class Acquisition_Driver(object):
     def update_status_handle_update(self, event):
         self.status(event.value)
 
-    def completed(self, i):
-        if self.current > i:
-            completed = True
-        elif not self.timing_system_sequencer.queue_active:
-            completed = True
-        else:
-            completed = False
-        if completed:
-            debug("Completed %r" % i)
-        return completed
-
     generating_packets = alias_property("timing_system_acquisition.generating_packets")
 
     timing_system = alias_property("domain.timing_system_client")
@@ -1163,44 +1071,14 @@ class Acquisition_Driver(object):
     delay_scan = alias_property("timing_system.delay_scan")
     laser_on_scan = alias_property("timing_system.laser_on_scan")
     motor_scan = alias_property("domain.motor_scan")
+    power_scan = alias_property("domain.power_scan")
     temperature_scan = alias_property("domain.temperature_scan")
+    alio_scan = alias_property("domain.alio_scan")
 
     @property
     def domain(self):
         from domain import domain
         return domain(self.domain_name)
-
-    @property
-    def Alio(self):
-        from Alio import Alio
-        return Alio
-
-    def instrumentation_start(self, wait=True):
-        """Other instrumentation that needs setup on-related to scans and
-        detectors"""
-        if self.Alio.cmd.value != "" and "Alio" not in self.collection_variables:
-            self.Alio.acquiring.command_value = True
-            self.actual("Alio started")
-        if wait:
-            self.instrumentation_wait()
-
-    @property
-    def instrumentation_started(self):
-        started = True
-        if self.Alio.cmd.value != "" and "Alio" not in self.collection_variables:
-            started = started and bool(self.Alio.acquiring.command_value) is True
-        return started
-
-    def instrumentation_stop(self):
-        if self.Alio.cmd.value != "" and "Alio" not in self.collection_variables:
-            self.Alio.acquiring.command_value = False
-            self.actual("Alio stopped")
-
-    def instrumentation_wait(self):
-        from time import sleep
-        while not self.instrumentation_started and not self.cancelled:
-            self.actual("Waiting for instrumentation...")
-            sleep(0.25)
 
     def timing_system_sequences_load(self):
         from time import sleep
@@ -1221,27 +1099,28 @@ class Acquisition_Driver(object):
         self.actual("Timing system cleaned up.")
 
     def timing_system_acquisition_start(self):
-        from time import sleep
+        from time import sleep, time
         self.actual("Timing system acquisition start...")
 
         self.timing_system.sequencer.queue_active = True
+        t = time()
         while not self.timing_system.sequencer.queue_active and not self.cancelled:
-            self.actual("Timing system: Idle > Acquiring: Waiting %s"
-                        % self.timing_system.sequencer.current_queue_sequence_count)
-            sleep(1.0)
-            self.timing_system.sequencer.queue_active = True
+            count = self.timing_system.sequencer.current_queue_sequence_count
+            self.actual(f"Timing system: Idle > Acquiring: {time()-t:.3f} s (seq {count})")
+            sleep(0.25)
 
         self.actual(f"Timing system acquisition started: {self.timing_system.sequencer.queue_active}")
 
     def timing_system_acquisition_stop(self):
-        from time import sleep
+        from time import sleep, time
         self.actual("Timing system acquisition stop...")
 
         self.timing_system.sequencer.queue_active = False
+        t = time()
         while self.timing_system.sequencer.queue_active and not self.cancelled:
-            self.actual("Timing system: Acquiring > Idle: Waiting %s"
-                        % self.timing_system.sequencer.current_queue_sequence_count)
-            sleep(1.0)
+            count = self.timing_system.sequencer.current_queue_sequence_count
+            self.actual(f"Timing system: Acquiring > Idle: {time()-t:.3f} s (seq {count})")
+            sleep(0.25)
 
         self.actual(f"Timing system acquisition stopped: {not self.timing_system.sequencer.queue_active}")
 
@@ -1265,7 +1144,7 @@ class Acquisition_Driver(object):
     def xray_detector_timing_system_setup(self, first=None):
         if "xray_detector" in self.detector_names:
             if first is None:
-                first = self.collection_first_range[0]
+                first = self.collection_first_i
             count = first
             channel_mnemonic = "xdet"
             if channel_mnemonic in self.timing_system.channel_mnemonics:
@@ -1284,7 +1163,7 @@ class Acquisition_Driver(object):
         name: "xray_scope" or "laser_scope" """
         if self.scope_enabled(name):
             if first is None:
-                first = self.collection_first_range[0]
+                first = self.collection_first_i
             N_traces = self.sequences_per_scan_point
             count = first * N_traces
             channel_mnemonic = name
@@ -1324,7 +1203,8 @@ class Acquisition_Driver(object):
         N = self.sequences_per_scan_point
         i = acq_count // N
         filename = self.file_basenames[i]
-        suffix = "_%02.0f" % (acq_count % N + 1)
+        pass_count = acq_count % N
+        suffix = f"_{pass_count + 1:02.0f}"
         filename = filename + suffix
         filename = filename + "_" + channel_name
         subdir = name.replace("_scope", "") + "_traces"
@@ -1416,7 +1296,8 @@ class Acquisition_Driver(object):
     configuration_file_content = attribute_property("configuration_file", "content")
 
     @property
-    def configuration_tables(self): return self.domain.configuration_tables
+    def configuration_tables(self):
+        return self.domain.configuration_tables
 
     @monitored_property
     def configuration_filename(self, directory):
@@ -1428,14 +1309,12 @@ class Acquisition_Driver(object):
         from numpy import isnan
         file_basenames = self.file_basenames
         if not isnan(i) and i in range(0, len(file_basenames)):
-            ext = "." + self.xray_image_extension.strip(".")
-            filename = self.directory + "/xray_images/" + file_basenames[i] + ext
+            filename = self.directory + "/xray_images/" + file_basenames[i] + ".mccd"
         return filename
 
     @property
     def xray_image_filenames(self):
-        ext = "." + self.xray_image_extension.strip(".")
-        filenames = self.directory + "/xray_images/" + self.file_basenames + ext
+        filenames = self.directory + "/xray_images/" + self.file_basenames + ".mccd"
         return filenames
 
     @property
@@ -1447,11 +1326,28 @@ class Acquisition_Driver(object):
         return filenames
 
     @monitored_property
-    def file_basenames(self, basename, variable_formatted_value_lists):
+    def file_basenames(self, basename, file_suffixes):
+        """numpy chararray"""
+        return basename + file_suffixes
+
+    @monitored_property
+    def file_suffixes_new(self, collection_variable_all_formatted_values):
+        from numpy import chararray, array
+        suf = "_" + collection_variable_all_formatted_values
+        suffixes = suf[0]
+        for s in suf[1:]:
+            suffixes = suffixes + s
+        serial = [f"_{i + 1:04.0f}" for i in range(0, len(suffixes))]
+        serial = array(serial, dtype=str).view(chararray)
+        suffixes = serial + suffixes
+        return suffixes
+
+    @monitored_property
+    def file_suffixes(self, collection_variable_formatted_value_lists):
         """numpy chararray"""
         from numpy import array, chararray, repeat, tile
         suffixes = []
-        for value_list in variable_formatted_value_lists:
+        for value_list in collection_variable_formatted_value_lists:
             suffix = ["_" + val for val in value_list]
             suffix = array(suffix, dtype=str).view(chararray)
             suffixes += [suffix]
@@ -1460,7 +1356,7 @@ class Acquisition_Driver(object):
             names = tile(names, len(suffix)) + repeat(suffix, len(names))
         serial = ["_%04.0f" % (i + 1) for i in range(0, len(names))]
         serial = array(serial, dtype=str).view(chararray)
-        names = basename + serial + names
+        names = serial + names
         return names
 
     def diagnostics_start(self):
@@ -1529,7 +1425,7 @@ class Acquisition_Driver(object):
         line += [date_time(started)]
         line += [date_time(finished)]
         line += [basename(self.xray_image_filename(i))]
-        names = self.collection_variables
+        names = self.collection_variables_with_count
         values = self.collection_variable_values(i)
         line += [self.variable_log_value(n, v) for (n, v) in zip(names, values)]
         values = self.diagnostics.average_values(i)
@@ -1550,7 +1446,7 @@ class Acquisition_Driver(object):
         labels += ["started"]
         labels += ["finished"]
         labels += ["file"]
-        labels += [self.variable_log_label(v) for v in self.collection_variables]
+        labels += [self.variable_log_label(v) for v in self.collection_variables_with_count]
         labels += self.diagnostics.variable_names
         header += "#" + "\t".join(labels) + "\n"
         return header
@@ -1725,20 +1621,21 @@ def make_same_length(*args):
 
 
 if __name__ == '__main__':
-    import logging
-
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
-    logging.basicConfig(level=logging.DEBUG, format=msg_format)
+    logging.basicConfig(level=logging.INFO, format=msg_format)
 
     domain_name = "BioCARS"
     # domain_name = "LaserLab"
 
+    from IOC import ioc as _ioc
+
     self = acquisition_driver(domain_name)
-    print('self.domain_name = %r' % self.domain_name)
-    print('')
+    ioc = _ioc(driver=self)
+    print('ioc.run')
+    # ioc.run()
 
     property_names = [
-        "file_basenames",
+        # "acquisition_status",
     ]
 
     from handler import handler as _handler
@@ -1746,7 +1643,7 @@ if __name__ == '__main__':
 
     @_handler
     def report(event=None):
-        info(f'event = {event}')
+        logging.info(f'event = {event}')
 
 
     for property_name in property_names:

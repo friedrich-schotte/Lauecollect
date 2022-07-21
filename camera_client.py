@@ -4,20 +4,19 @@ Prosilica GigE CCD cameras.
 Author: Friedrich Schotte
 Python Version: 2.7, 3.6
 Date created: 2020-04-02
-Date last modified: 2021-06-18
-Revision comment: Using db_property, domain_name
+Date last modified: 2021-07-19
+Revision comment: Using monitored_property_1
 """
-__version__ = "3.4"
+__version__ = "3.4.3"
 
-from logging import debug, warning
+import logging
+from PV_property import PV_property
+from db_property import db_property
+from monitored_property_1 import monitored_property
+from PV_info_property import PV_info_property
 
 
 class Camera(object):
-    from PV_property import PV_property
-    from db_property import db_property
-    from monitored_property import monitored_property
-    from PV_info_property import PV_info_property
-
     def __init__(self, name):
         self.name = name
 
@@ -40,7 +39,7 @@ class Camera(object):
         prefix = f'NIH:CAMERA.{self.base_name}'
         # prefix = f'{self.domain_name}:CAMERA.{self.base_name}'
         prefix = prefix.upper()
-        prefix = prefix.replace("BIOCARS:","NIH:")
+        prefix = prefix.replace("BIOCARS:", "NIH:")
         return prefix
 
     @property
@@ -113,40 +112,34 @@ def reshape(array, shape):
 def resize(array, size):
     if len(array) < size:
         if len(array) > 0:
-            debug("Padding data from %d to %d bytes" % (len(array), size))
+            logging.debug(f"Padding data from {len(array)} to {size} bytes")
         from numpy import zeros, concatenate
         padding = zeros(size - len(array), array.dtype)
         array = concatenate([array, padding])
     if len(array) > size:
-        warning("Truncating data from %d to %d bytes" % (len(array), size))
+        logging.warning(f"Truncating data from {len(array)} to {size} bytes")
         array = array[0:size]
     return array
 
 
 if __name__ == "__main__":
-    import logging
-
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: %(message)s")
 
     from handler import handler as _handler
     from reference import reference as _reference
 
-    self = Camera("BioCARS.MicroscopeCamera")
-    # self = Camera("BioCARS.WideFieldCamera")
+    # self = Camera("BioCARS.MicroscopeCamera")
+    self = Camera("BioCARS.WideFieldCamera")
     # self = Camera("TestBench.Microscope")
     # self = Camera("TestBench.MicrofluidicsCamera")
     # self = Camera("LaserLab.LaserLabCamera")
-
 
     @_handler
     def report(event=None):
         logging.info(f"event={event}")
 
-
-    _reference(self, "server_ip_address").monitors.add(report)
-    print("self.server_ip_address")
-    # print('camera.camera_ip_address')
-    # print('camera.acquiring = True')
-    # print('camera.state')
-    # print('rgb_array_flat = camera.rgb_array_flat')
-    # print('RGB_array = camera.RGB_array')
+    property_names = [
+        "rgb_array_flat",
+    ]
+    for property_name in property_names:
+        _reference(self, property_name).monitors.add(report)

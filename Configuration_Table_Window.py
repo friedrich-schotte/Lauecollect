@@ -3,17 +3,17 @@
 Table-like client side interface for configurations
 Author: Friedrich Schotte
 Date created: 2021-07-07
-Date last modified: 2022-06-12
-Revision comment: Fast initialization
+Date last modified: 2022-07-12
+Revision comment: Renamed Configuration_Table_Window
 """
-__version__ = "1.2.4"
+__version__ = "1.3"
 
 import logging
 import wx
 from Spreadsheet import Spreadsheet
 
 
-class Configuration_Table(wx.Panel):
+class Configuration_Table_Window(wx.Panel):
     def __init__(self, parent, name):
         import wx.grid
         self.name = name
@@ -122,5 +122,5 @@ if __name__ == '__main__':
     redirect(f"{domain_name}.Configuration_Table_Panel.{base_name}", format=msg_format, level="DEBUG")
 
     app = wx.GetApp() if wx.GetApp() else wx.App()
-    self = Control_Panel(name, panel_type=Configuration_Table)
+    self = Control_Panel(name, panel_type=Configuration_Table_Window)
     app.MainLoop()

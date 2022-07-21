@@ -1,4 +1,4 @@
-MicroscopeCamera.camera.IP_addr = 'id14b-prosilica1.cars.aps.anl.gov'
+MicroscopeCamera.camera.IP_addr = 'id14b-prosilica4.cars.aps.anl.gov'
 WideFieldCamera.camera.IP_addr = 'id14b-prosilica2.cars.aps.anl.gov'
 Microscope.camera.IP_addr = 'pico22.niddk.nih.gov'
 MicrofluidicsCamera.camera.IP_addr = 'femto5.niddk.nih.gov'

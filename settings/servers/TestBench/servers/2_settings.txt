@@ -1,5 +1,5 @@
 auto_start = True
-command = "from configuration_IOC import *; run('TestBench')"
+command = "from IOC import *; run('TestBench.configuration.method')"
 format_code = '"Not Running" if value is None else "Running"'
 label = 'Configuration Server'
 log_level = 'DEBUG'

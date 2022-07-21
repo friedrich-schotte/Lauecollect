@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2019-07-16
-Date last modified: 2022-06-28
-Revision comment: Renamed: configuration_tables_driver
+Date last modified: 2022-07-18
+Revision comment: Using db_name for Control_Panel
 """
-__version__ = "1.6.2"
+__version__ = "1.6.4"
 
 from logging import info
 
@@ -25,11 +25,17 @@ class Configuration_Tables_Panel(Control_Panel):
         if domain_name is not None:
             self.domain_name = domain_name
         self.title = "Modes/Configurations (%s)" % self.domain_name
-        Control_Panel.__init__(self)
+        super().__init__()
+
+        self.schedule_update = False  # otherwise: Instance attribute ... defined outside __init__
+
+    @property
+    def db_name(self):
+        return f"domains/{self.domain_name}/{self.class_name.lower()}"
 
     @property
     def name(self):
-        return type(self).__name__ + "." + self.domain_name
+        return f"{self.class_name}.{self.domain_name}"
 
     @property
     def ControlPanel(self):
@@ -85,15 +91,15 @@ class Configuration_Tables_Panel(Control_Panel):
         # Menus
         menuBar = wx.MenuBar()
         # View
-        self.ViewMenu = wx.Menu()
+        menuBar.ViewMenu = wx.Menu()
         for i in range(0, self.count):
-            self.ViewMenu.AppendCheckItem(100 + i, " " + self.label(i) + " ")
-        self.ViewMenu.AppendSeparator()
-        menuBar.Append(self.ViewMenu, "&View")
+            menuBar.ViewMenu.AppendCheckItem(100 + i, " " + self.label(i) + " ")
+        menuBar.ViewMenu.AppendSeparator()
+        menuBar.Append(menuBar.ViewMenu, "&View")
         # More
-        self.MoreMenu = wx.Menu()
-        self.MoreMenu.AppendCheckItem(201, "Configure this Panel")
-        menuBar.Append(self.MoreMenu, "&More")
+        menuBar.MoreMenu = wx.Menu()
+        menuBar.MoreMenu.AppendCheckItem(201, "Configure this Panel")
+        menuBar.Append(menuBar.MoreMenu, "&More")
         # Help
         menu = wx.Menu()
         menu.Append(wx.ID_ABOUT, "About...", "Show version number")
@@ -109,11 +115,11 @@ class Configuration_Tables_Panel(Control_Panel):
 
         return menuBar
 
-    def OnOpenView(self, event):
+    def OnOpenView(self, _event):
         """Called if the "View" menu is selected"""
         for i in range(0, self.count):
-            self.ViewMenu.Check(100 + i, self.show_in_list(i))
-        self.MoreMenu.Check(201, self.panel.configure)
+            self.MenuBar.ViewMenu.Check(100 + i, self.show_in_list(i))
+        self.MenuBar.MoreMenu.Check(201, self.panel.configure)
 
     def OnView(self, event):
         """Called if one of the items of the "View" menu is selected"""
@@ -121,7 +127,7 @@ class Configuration_Tables_Panel(Control_Panel):
         self.set_show_in_list(i, not self.show_in_list(i))
         self.update()
 
-    def OnConfigure(self, event):
+    def OnConfigure(self, _event):
         self.panel.configure = not self.panel.configure
         self.update()
 

@@ -2,10 +2,10 @@
 EPICS-controlled motors
 Author: Friedrich Schotte
 Date created: 2007-11-07
-Date last modified: 2022-07-06
-Revision comment: Cleanup: pylint; updated example
+Date last modified: 2022-07-19
+Revision comment: Added: done_moving
 """
-__version__ = "3.3.3"
+__version__ = "3.4"
 
 import logging
 from time import time
@@ -47,6 +47,7 @@ class EPICS_motor(Record):
             name=None,
             command="VAL",
             readback="RBV",
+            done_moving="DMOV",
             readback_slop=0.001,
             timeout=20.0,
             min_step=0,
@@ -74,6 +75,7 @@ class EPICS_motor(Record):
 
         self.__command__ = command
         self.__readback__ = readback
+        self.__done_moving__ = done_moving
 
         self.__readback_slop__ = readback_slop
         self.__timeout__ = timeout
@@ -135,6 +137,16 @@ class EPICS_motor(Record):
             PV_name = self.__readback__
         return PV_name
 
+    @property
+    def done_moving_PV_name(self):
+        """Process variable value for the actual position as measured.
+        Usually the value of the RBV process variable, but may be overridden."""
+        if ":" not in self.__done_moving__:
+            PV_name = self.__prefix__ + "." + self.__done_moving__
+        else:
+            PV_name = self.__done_moving__
+        return PV_name
+
     def inputs_command_value(self):
         from reference import reference
         from CA import PV
@@ -191,6 +203,11 @@ class EPICS_motor(Record):
         """Position of motor (user value)."""
         return as_float(readback_PV_value)
 
+    @monitored_property
+    def done_moving(self, done_moving_PV_value):
+        """Position of motor (user value)."""
+        return bool(done_moving_PV_value)
+
     @value.setter
     def value(self, value):
         self.command_value = value
@@ -202,6 +219,14 @@ class EPICS_motor(Record):
         from reference import reference
         from CA import PV
         return reference(PV(self.readback_PV_name), "value")
+
+    done_moving_PV_value = value_property("done_moving_PV_reference")
+
+    @property
+    def done_moving_PV_reference(self):
+        from reference import reference
+        from CA import PV
+        return reference(PV(self.done_moving_PV_name), "value")
 
     @monitored_property
     def command_dial(self, DVAL):
@@ -285,8 +310,8 @@ class EPICS_motor(Record):
     unit = property(get_unit, set_unit)
 
     @monitored_property
-    def _moving(self, DMOV):
-        return not DMOV
+    def _moving(self, done_moving):
+        return not done_moving
 
     @monitored_property
     def moving(self, _moving, value, command_value, move_timed_out):
@@ -456,25 +481,27 @@ def as_bool(x):
 
 if __name__ == "__main__":  # for testing
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
-    logging.basicConfig(level=logging.DEBUG, format=msg_format)
+    logging.basicConfig(level=logging.INFO, format=msg_format)
 
     from handler import handler as _handler
     from reference import reference as _reference
 
-    self = motor("14IDB:m16", name="HuberPhi")
+    # self = motor("14IDB:m16", name="HuberPhi")
+    self = motor("14IDA:Slit1Vsize", name="Slit1V", readback="14IDA:Slit1Vt2.C", done_moving="14IDA:m1.DMOV",
+                 readback_slop=0.002)
 
     @_handler
     def report(event):
         logging.info(f"event={event}")
 
-    _reference(self, "command_value").monitors.add(report)
-    _reference(self, "value").monitors.add(report)
+    # _reference(self, "command_value").monitors.add(report)
+    # _reference(self, "value").monitors.add(report)
     # _reference(self, "RBV").monitors.add(report)
     # _reference(self, "VAL").monitors.add(report)
     # _reference(self, "DMOV").monitors.add(report)
-    _reference(self, "_moving").monitors.add(report)
+    # _reference(self, "_moving").monitors.add(report)
     _reference(self, "moving").monitors.add(report)
 
     print(f"self = {self}")
     print(f"self.value = {self.command_value}")
-    print(f"self.value += 4")
+    print(f"self.value -= 0.02")

@@ -1,10 +1,12 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-05-01
-Date last modified: 2022-06-20
-Revision comment: Renamed: sequences_per_scan_point
+Date last modified: 2022-07-17
+Revision comment: Updated example
 """
-__version__ = "1.0.1"
+__version__ = "1.1.1"
+
+import logging
 
 from cached_function import cached_function
 from PV_record import PV_record
@@ -35,20 +37,31 @@ class Timing_System_Acquisition_Client(PV_record):
     first_scan_point = PV_property(dtype=int)
     last_scan_point = PV_property(dtype=int)
     generating_packets = PV_property(dtype=int)
-    xray_images_per_sequence_queue = PV_property(dtype=int)
+    scan_points_per_sequence_queue = PV_property(dtype=int)
     sequences_per_scan_point = PV_property(dtype=int)
 
 
 if __name__ == '__main__':
-    import logging
-
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
-    domain_name = "BioCARS"
     from timing_system_client import timing_system_client
 
+    domain_name = "BioCARS"
     timing_system = timing_system_client(domain_name)
     self = timing_system_acquisition_client(timing_system, "acquisition")
 
-    print("self.xray_images_per_sequence_queue")
+    from handler import handler as _handler
+    from reference import reference as _reference
+
+    @_handler
+    def report(event=None):
+        logging.info(f'event = {event}')
+
+    property_names = [
+        # "first_scan_point",
+        # "last_scan_point",
+    ]
+
+    for property_name in property_names:
+        _reference(self, property_name).monitors.add(report)

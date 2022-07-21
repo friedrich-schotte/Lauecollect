@@ -15,11 +15,24 @@ self.Y.speed = 5.0
 self.Z.speed = 100.0
 
 Date created: 2022-01-28
-Date last modified: 2022-02-03
+Date last modified: 2022-07-20
 Authors: Philip Anfinrud, Friedrich Schotte
-Revision comment: Issue: Not aborting sequence of motions if one motor times outs
+Revision comment: Issue: GonY not starting if command send 40 ms after Phi finished move
+2022-07-19 22:52:16,115 DEBUG: Alio_diffractometer.move: Gon Z: -3.4679687500000003 -> -50.0
+...
+2022-07-19 22:52:17,080 DEBUG: Alio_diffractometer.move: Gon Z: -50.0
+2022-07-19 22:52:17,085 DEBUG: Alio_diffractometer.move: Phi: -6.858684256584979 -> -15.0
+...
+2022-07-19 22:52:17,830 DEBUG: Alio_diffractometer.move: Phi: -14.999285433139818
+2022-07-19 22:52:17,871 DEBUG: Alio_diffractometer.move: Gon Y: 0.1809375 -> 0.411
+2022-07-19 22:52:17,885 DEBUG: Alio_diffractometer.move: Gon Y: 0.1809375
+...
+2022-07-19 22:52:37,968 DEBUG: Alio_diffractometer.move: Gon Y: 0.1809375
+2022-07-19 22:52:37,970 ERROR: Alio_diffractometer.move: Gon Y: Move 0.1809375 -> 0.411 timed out at 0.1809375 after 20.084911346435547 s
+2022-07-19 22:52:37,972 ERROR: Alio_diffractometer.move_motors: Gon Y: Move 0.1809375 -> 0.411 timed out at 0.1809375 after 20.084911346435547 s
+2022-07-19 22:52:38,478 DEBUG: Alio_diffractometer.move: Gon Z: -50.0 -> -50.0
 """
-__version__ = "1.0.1"
+__version__ = "1.0.3"
 
 import logging
 from cached_function import cached_function
@@ -131,22 +144,37 @@ def need_move(motor, target):
 
 def move(motor, target):
     from time import sleep, time
+    global last_move_time
+
+    after_move_wait_time = 1.0
+    earliest_start_time = last_move_time + after_move_wait_time
+    wait_time = max(earliest_start_time - time(), 0)
+    if wait_time:
+        logging.debug(f"Waiting {wait_time:.3f} s")
+        sleep(wait_time)
+
     initial_value = motor.value
-    logging.debug(f"{motor.name}: {initial_value} -> {target}")
+    logging.debug(f"{motor.name}: {initial_value:.3f} -> {target:.3f}")
     motor.command_value = target
+
     start_time = time()
+    last_move_time = start_time
     start_timeout = 2.0
 
-    while abs(motor.value - target) > motor.readback_slop:
-        logging.debug(f"{motor.name}: {motor.value}")
+    while abs(motor.value - target) >= motor.readback_slop:
+        logging.debug(f"{motor.name}: {motor.value:.3f}")
         dt = time() - start_time
-        if dt > start_timeout and not motor.moving:
-            message = f"{motor.name}: Move {initial_value} -> {target} timed out at {motor.value} after {dt} s"
+        if dt > start_timeout and abs(motor.value - initial_value) < motor.readback_slop:
+            message = f"{motor.name}: Move {initial_value:.3f} -> {target:.3f} timed out at {motor.value:.3f} after {dt:.1f} s"
             logging.error(message)
             raise TimeoutError(message)
         sleep(0.1)
 
-    logging.debug(f"{motor.name}: {motor.value}")
+    last_move_time = time()
+    logging.debug(f"{motor.name}: {motor.value:.3f}")
+
+
+last_move_time = 0.0
 
 
 @cached_function()

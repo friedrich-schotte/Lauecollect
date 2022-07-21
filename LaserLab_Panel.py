@@ -88,8 +88,8 @@ class LaserLab_Panel(Control_Panel):
             icon_size=icon_size,
             label="Configurations...",
             domain_name=self.domain_name,
-            module_name="ConfigurationsPanel",
-            command=f"ConfigurationsPanel('{self.domain_name}')",
+            module_name="Environment_Configurations_Panel",
+            command=f"Environment_Configurations_Panel('{self.domain_name}')",
             icon="Utility",
         )
         layout.Add(control, flag=flag)

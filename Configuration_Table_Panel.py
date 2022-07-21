@@ -3,14 +3,14 @@
 Table-like client side interface for configurations
 Author: Friedrich Schotte
 Date created: 2021-07-07
-Date last modified: 2022-07-07
-Revision comment: Updated example
+Date last modified: 2022-07-18
+Revision comment: Using db_name for Control_Panel
 """
-__version__ = "1.0.9"
+__version__ = "1.0.12"
 
 import wx
 
-from Configuration_Table import Configuration_Table
+from Configuration_Table_Window import Configuration_Table_Window
 from Control_Panel import Control_Panel
 
 
@@ -20,17 +20,12 @@ class Configuration_Table_Panel(Control_Panel):
         super().__init__(name=name)
 
     @property
+    def db_name(self):
+        return f"domains/{self.domain_name}/{self.class_name.lower()}/{self.base_name}"
+
+    @property
     def ControlPanel(self):
-        panel = wx.Panel(self)
-
-        layout = wx.BoxSizer(wx.VERTICAL)
-        panel.Sizer = layout
-
-        panel.table = Configuration_Table(panel, self.name)
-        layout.Add(panel.table, flag=wx.ALIGN_LEFT | wx.ALL, proportion=1)
-
-        panel.Fit()
-        return panel
+        return Configuration_Table_Window(self, self.name)
 
     @property
     def menuBar(self):
@@ -88,6 +83,10 @@ class Configuration_Table_Panel(Control_Panel):
     def domain_name(self):
         return self.configuration.domain_name
 
+    @property
+    def base_name(self):
+        return self.configuration.base_name
+
 
 if __name__ == '__main__':
     domain_name = "BioCARS"
@@ -100,10 +99,10 @@ if __name__ == '__main__':
     # base_name = "delay_configuration"
     # base_name = "temperature_configuration"
     # base_name = "power_configuration"
-    base_name = "scan_configuration"
+    # base_name = "scan_configuration"
     # base_name = "detector_configuration"
     # base_name = "diagnostics_configuration"
-    # base_name = "method"
+    base_name = "method"
     # base_name = "laser_optics_modes"
     # base_name = "alio_diffractometer_saved"
 

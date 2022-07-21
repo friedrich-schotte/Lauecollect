@@ -1,14 +1,14 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-25
-Date last modified: 2022-06-20
-Revision comment: Renamed: sequences_per_scan_point
+Date last modified: 2022-07-17
+Revision comment: Made monitored_property:
+    first_scan_point
+    last_scan_point
 """
-__version__ = "1.0.2"
+__version__ = "1.2"
 
 import logging
-
-from reference import reference
 
 from monitored_property import monitored_property
 from thread_property_2 import thread_property, cancelled
@@ -35,45 +35,51 @@ class Timing_System_Acquisition(object):
         self.sequencer.set_queue_sequences(self.sequences)
         logging.info("Timing system sequences loaded")
 
-    @property
-    def first_scan_point(self):
-        N = self.xray_images_per_sequence_queue
-        n = self.sequences_per_scan_point
-        first = self.sequencer.queue_repeat_count * N + \
-            self.sequencer.queue_sequence_count / n
-        # first = self.registers.image_number.count
+    @monitored_property
+    def first_scan_point(
+            self,
+            sequencer_queue_repeat_count,
+            sequencer_queue_length,
+            sequencer_queue_sequence_count,
+            sequences_per_scan_point,
+    ):
+        first = (sequencer_queue_repeat_count * sequencer_queue_length +
+                 sequencer_queue_sequence_count) // sequences_per_scan_point
+        # assert(first == self.registers.image_number.count)
         return first
 
     @first_scan_point.setter
     def first_scan_point(self, first):
+        first = float(first)
         from numpy import isnan
         if not isnan(first):
-            logging.info(f"{first} started")
-            N = self.xray_images_per_sequence_queue
-            n = self.sequences_per_scan_point
-            self.sequencer.queue_repeat_count = first // N
-            # Switch from idle to acquisition mode only when sequence_count = 0.
-            self.sequencer.next_queue_sequence_count = 0
-            self.sequencer.queue_sequence_count = first % N * n
+            first = int(first)
+            self.sequencer_queue_repeat_count = (first * self.sequences_per_scan_point) // self.sequencer_queue_length
+            self.sequencer_queue_sequence_count = (first * self.sequences_per_scan_point) % self.sequencer_queue_length
+
             self.registers.image_number.count = first
             self.registers.pass_number.count = 0
             self.registers.pulses.count = 0
-            logging.info(f"{first} complete")
 
-    @property
-    def last_scan_point(self):
-        N = self.xray_images_per_sequence_queue
-        last = self.sequencer.queue_max_repeat_count * N - 1
+    @monitored_property
+    def last_scan_point(
+            self,
+            sequencer_queue_max_repeat_count,
+            sequencer_queue_length,
+            sequences_per_scan_point,
+    ):
+        last = (sequencer_queue_max_repeat_count * sequencer_queue_length
+                // sequences_per_scan_point - 1)
         return last
 
     @last_scan_point.setter
     def last_scan_point(self, last):
+        last = float(last)
         from numpy import isnan
         if not isnan(last):
-            logging.info(f"{last} started")
-            N = self.xray_images_per_sequence_queue
-            self.sequencer.queue_max_repeat_count = (last + 1) // N
-            logging.info(f"{last} complete")
+            last = int(last)
+            self.sequencer_queue_max_repeat_count = ((last + 1) * self.sequences_per_scan_point
+                                                     // self.sequencer_queue_length)
 
     @thread_property
     def generating_packets(self):
@@ -109,6 +115,11 @@ class Timing_System_Acquisition(object):
                 setattr(sequence, attribute, value)
         return sequences
 
+    delay_scan_values = alias_property("delay_scan.values")
+    laser_on_scan_values = alias_property("laser_on_scan.values")
+    delay_scan_scan_point_divider = alias_property("delay_scan.scan_point_divider")
+    laser_on_scan_scan_point_divider = alias_property("laser_on_scan.scan_point_divider")
+
     @property
     def sequences_simple(self):
         delay_values = repeat(self.delay_scan.sequences, self.delay_scan.scan_point_divider)
@@ -134,23 +145,16 @@ class Timing_System_Acquisition(object):
     def Sequences(self, sequences=None, acquiring=True, **kwargs):
         return self.sequencer.Sequences(sequences=sequences, acquiring=acquiring, **kwargs)
 
-    @property
-    def xray_images_per_sequence_queue(self):
-        """How many X-ray images per repeating sequence pattern?"""
-        xray_images = sum([s.xdet_on for s in self.sequences])
-        return xray_images
+    sequencer_queue_length = alias_property("sequencer.queue_length")
+    sequencer_queue_repeat_count = alias_property("sequencer.queue_repeat_count")
+    sequencer_queue_sequence_count = alias_property("sequencer.queue_sequence_count")
+    sequencer_queue_max_repeat_count = alias_property("sequencer.queue_max_repeat_count")
 
-    @monitored_property
-    def sequences_per_scan_point(self):
-        """How many single timing sequences (=packets) per X-ray image"""
-        return len(self.Sequences())
-
-    @sequences_per_scan_point.dependency_references
-    def sequences_per_scan_point(self):
-        return [reference(self.timing_system, "sequence")]
+    sequences_per_scan_point = alias_property("composer.sequences_per_scan_point")
 
     registers = alias_property("timing_system.registers")
     sequencer = alias_property("timing_system.sequencer")
+    composer = alias_property("timing_system.composer")
     delay_scan = alias_property("timing_system.delay_scan")
     laser_on_scan = alias_property("timing_system.laser_on_scan")
 
@@ -192,3 +196,18 @@ if __name__ == '__main__':
     from timing_system import timing_system
 
     self = timing_system_acquisition(timing_system(name))
+
+    from handler import handler as _handler
+    from reference import reference as _reference
+
+    @_handler
+    def report(event=None):
+        logging.info(f'event = {event}')
+
+    property_names = [
+        "first_scan_point",
+        "last_scan_point",
+    ]
+
+    for property_name in property_names:
+        _reference(self, property_name).monitors.add(report)

@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2019-10-29
-Date last modified: 2022-06-27
-Revision comment: Renamed acquisition_client
+Date last modified: 2022-07-18
+Revision comment: Removed PV no longer needed
 """
-__version__ = "2.11"
+__version__ = "2.15"
 
 import logging
 
@@ -41,15 +41,20 @@ class Acquisition_Client(PV_record):
     final_repeat_count = PV_property(default_value=1)
     finish_series = PV_property(default_value=False)
     finish_series_variable = PV_property(dtype=str)
-    collection_variables = PV_property(dtype=list)
+    collection_variables_with_count = PV_property(dtype=list)
     delay_configuration = PV_property(dtype=str)
     collection_order = PV_property(dtype=str)
     file_basenames = PV_property(dtype=list)
-    xray_image_extension = PV_property(dtype=str)
     sequences_per_scan_point = PV_property(default_value=1)
     n = PV_property("n", dtype=int)
     sequence_variables = PV_property(dtype=list)
     collection_variables_with_options = PV_property(dtype=list)
+    detector_configuration = PV_property(dtype=str)
+    power_configuration = PV_property(dtype=str)
+
+    current = PV_property(dtype=int)
+    current_i = PV_property(dtype=int)
+    collection_first_i = PV_property(dtype=int)
 
     scanning = PV_record_property(type_name="acquisition_scanning_client")
     scan_point_dividers = PV_record_property(type_name="acquisition_scan_point_dividers_client")

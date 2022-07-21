@@ -32,10 +32,10 @@ Commands are not case-sensitive.
 
 Author: Friedrich Schotte
 Date created: 2008-04-16
-Date last modified: 2022-05-09
-Revision comment: Issue: reporting online = False if setup fails
+Date last modified: 2022-07-11
+Revision comment: Prefix: Added LECROY_SCOPE: BIOCARS:LECROY_SCOPE.XRAY_SCOPE
 """
-__version__ = "4.8.1"
+__version__ = "4.8.4"
 
 from logging import debug, warning
 from numpy import nan
@@ -55,6 +55,7 @@ def value_property(query_string, default_value=nan):
         value = self.query(query_string)
         dtype = type(default_value)
         if dtype != str:
+            # noinspection PyBroadException
             try:
                 value = dtype(eval(value))
             except Exception:
@@ -74,10 +75,10 @@ def function(property_name, formula, reverse_formula):
     """
 
     def fget(self):
-        x = getattr(self, property_name)  # variable x needed for eval
+        x = getattr(self, property_name)  # noqa - variable x needed for eval
         return eval(formula)
 
-    def fset(self, x):  # variable x needed for eval
+    def fset(self, x):  # noqa - variable x needed for eval
         setattr(self, property_name, eval(reverse_formula))
 
     return property(fget, fset)
@@ -104,7 +105,11 @@ class Lecroy_Scope(object):
             self.name = name
 
     def __repr__(self):
-        return "%s(%r)" % (type(self).__name__, self.name)
+        return f"{self.class_name}({self.name!r})"
+
+    @property
+    def class_name(self):
+        return type(self).__name__
 
     domain_name = "BioCARS"
     base_name = "lecroy_scope"
@@ -122,9 +127,9 @@ class Lecroy_Scope(object):
 
     @property
     def prefix(self):
-        prefix = "%s:%s." % (self.domain_name, self.base_name)
+        class_name = self.class_name.replace("_client", "")
+        prefix = f"{self.domain_name}:{class_name}.{self.base_name}."
         prefix = prefix.upper()
-        # prefix = prefix.replace("BIOCARS", "NIH")
         return prefix
 
     def get_ip_address(self):
@@ -250,8 +255,8 @@ class Lecroy_Scope(object):
                 except (ValueError, TypeError):
                     return nan
 
-        def get_start(self, n=1):
-            return self.gate_object.start_object(self)
+        def get_start(self):
+            return self.start_object(self)
 
         start = property(get_start, doc="low limit of measurement gate")
 
@@ -306,8 +311,8 @@ class Lecroy_Scope(object):
                 except (ValueError, TypeError):
                     return nan
 
-        def get_stop(self, n=1):
-            return self.gate_object.stop_object(self)
+        def get_stop(self):
+            return self.stop_object(self)
 
         stop = property(get_stop, doc="low limit of measurement gate")
 
@@ -317,14 +322,14 @@ class Lecroy_Scope(object):
     class measurement_object(object):
         """For automated measurements, including averaging and statistics"""
 
-        def __init__(self, scope, n=1, type="value"):
+        def __init__(self, scope, n=1, measurement_type="value"):
             """n=1,2...6 is the waveform parameter number.
             The parameter is defined from the "Measure" menu, e.g. P1:delay(C3).
-            The optional 'type' can by "value","min","max","stdev",or "count".
+            The optional 'type' can be "value","min","max","stdev",or "count".
             """
             self.scope = scope
             self.n = n
-            self.type = type
+            self.type = measurement_type
 
         def __repr__(self):
             return repr(self.scope) + ".measurement(" + str(self.n) + ")." + self.type
@@ -427,8 +432,8 @@ class Lecroy_Scope(object):
 
         enabled = property(get_enabled, set_enabled)
 
-    def measurement(self, n=1, type="value"):
-        return self.measurement_object(self, n, type)
+    def measurement(self, n=1, measurement_type="value"):
+        return self.measurement_object(self, n, measurement_type)
 
     P1 = PV_object_property("P1")
     P2 = PV_object_property("P2")
@@ -441,6 +446,7 @@ class Lecroy_Scope(object):
 
     def get_measurement_enabled(self):
         """Is the measurement active and usable?"""
+        # noinspection PyBroadException
         try:
             return eval(self.query("LeCroy.XStreamDSO.Measure.ShowMeasure.Value"))
         except Exception:
@@ -571,6 +577,7 @@ class Lecroy_Scope(object):
     def exists(self, pathname):
         """Does the file exist on the file system of the oscilloscope computer?"""
         reply = self.query("exists(%r)" % pathname)
+        # noinspection PyBroadException
         try:
             return eval(reply)
         except Exception:
@@ -596,6 +603,7 @@ class Lecroy_Scope(object):
     def migration_in_progress(self):
         """Are there files remaining to be copied?"""
         reply = self.query("migration_in_progress")
+        # noinspection PyBroadException
         try:
             return eval(reply)
         except Exception:
@@ -605,6 +613,7 @@ class Lecroy_Scope(object):
     def copied(self):
         """Which files are already copied? List of booleans"""
         reply = self.query("copied")
+        # noinspection PyBroadException
         try:
             return eval(reply)
         except Exception:
@@ -614,6 +623,7 @@ class Lecroy_Scope(object):
     def n_copied(self):
         """How many files are remaining to be copied?"""
         reply = self.query("sum(copied)")
+        # noinspection PyBroadException
         try:
             return eval(reply)
         except Exception:
@@ -846,6 +856,7 @@ class Lecroy_Scope(object):
         value = self.query(query_string)
         dtype = type(default_value)
         if dtype != str:
+            # noinspection PyBroadException
             try:
                 value = dtype(eval(value))
             except Exception:
@@ -896,32 +907,17 @@ class Lecroy_Scope(object):
     server_version = value_property("version()", "")
 
     def save_setup(self, name):
-        """Store setup to setup file in Lauecollect directory"""
+        """Store setup to file in Lauecollect directory"""
         self.setup_name = name
         self.setup_save = True
 
     def recall_setup(self, name):
-        """Load setup from setup file in Lauecollect directory"""
+        """Load setup from file in Lauecollect directory"""
         self.setup_name = name
         self.setup_recall = True
 
     setup_dirname = value_property("LeCroy.XStreamDSO.SaveRecall.Setup.PanelDir.Value", "")
     setup_basename = value_property("LeCroy.XStreamDSO.SaveRecall.Setup.PanelFilename.Value", "")
-
-    def get_setup_filename(self):
-        filename = self.setup_dirname + "\\" + self.setup_basename
-        from normpath import normpath
-        filename = normpath(filename)
-        return filename
-
-    def set_setup_filename(self, filename):
-        from os.path import dirname, basename
-        directory, file = dirname(filename), basename(filename)
-        directory = Windows_pathname(directory)
-        self.setup_dirname = directory
-        self.setup_basename = file
-
-    setup_filename = property(get_setup_filename, set_setup_filename)
 
     @property
     def local_setup_dirname(self):
@@ -986,9 +982,13 @@ def Windows_pathname(pathname):
     # Try to expand a Windows drive letter to a UNC name.
     # E.g. "J:/anfinrud_1106" to "//id14bxf/data/anfinrud_1106"
     try:
-        import win32wnet
-        pathname = win32wnet.WNetGetUniversalName(pathname)
-    except Exception:
+        from win32wnet import WNetGetUniversalName, error
+    except ImportError:
+        def WNetGetUniversalName(pathname): return pathname
+        error = OSError
+    try:
+        pathname = WNetGetUniversalName(pathname)
+    except error:
         pass
     # Convert from UNIX to Windows style.
     # E.g. "/net/id14bxf/data/anfinrud_1106" to "//id14bxf/data/anfinrud_1106"

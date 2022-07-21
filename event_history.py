@@ -1,12 +1,14 @@
 """Caching of Channel Access
 Author: Friedrich Schotte
 Date created: 2022-03-22
-Date last modified: 2022-07-07
+Date last modified: 2022-07-14
 Revision comment: Storing event history in the class object that generates it
 """
 __version__ = "3.0"
 
 import logging
+
+from date_time import date_time
 from same import same
 from thread_property_2 import thread_property
 
@@ -168,7 +170,7 @@ class Event_History:
     def event_with_version(self, event):
         version = self.event_version(event)
         if version != 0:
-            logging.debug(f"Assigning version={version} to {event}")
+            # logging.debug(f"Assigning version={version} to {event}")
             from event import Event
             event_with_version = Event(
                 timestamps=event.timestamps,
@@ -186,7 +188,8 @@ class Event_History:
         identical_events = [ev for ev in events_at_same_time if self.are_identical(ev, event)]
         conflicting_events = [ev for ev in events_at_same_time if self.are_conflicting(ev, event)]
         for ev in conflicting_events:
-            logging.warning(f"{ev} conflicts with {event}")
+            if ev.real_time:
+                logging.debug(f"{ev} conflicts with {event}")
         if identical_events:
             version = max([ev.version for ev in identical_events])
         elif events_at_same_time:
@@ -199,13 +202,21 @@ class Event_History:
     def are_identical(ev, event):
         are_identical = ev.timestamps == event.timestamps and same(ev.value, event.value)
         if are_identical:
-            logging.debug(f"{ev} and {event} are identical.")
+            if ev == event:
+                logging.debug(f"{ev} and {event} are identical.")
+            else:
+                differences = []
+                for attribute_name in ["real_time", "version", "sent_time"]:
+                    if getattr(ev, attribute_name) != getattr(event, attribute_name):
+                        differences.append(attribute_name)
+                differences = ", ".join(differences)
+                logging.debug(f"{ev} and {event} are the same, except for: {differences}")
         return are_identical
 
     @staticmethod
     def are_conflicting(ev, event):
         are_conflicting = ev.timestamps == event.timestamps and not same(ev.value, event.value)
-        if are_conflicting:
+        if are_conflicting and ev.real_time and event.real_time:
             logging.debug(f"{ev} and {event} are conflicting.")
         return are_conflicting
 
@@ -231,9 +242,22 @@ class Event_History:
             if event.real_time <= time:
                 value = event.value
                 break
+        else:
+            logging.warning(f"{self} has no value before or at {date_time(time)}")
         return value
 
     value = value_before_or_at
+
+    def has_value_before_or_at(self, time):
+        """time: seconds elapsed since 1970-01-01T00:00:00+0000"""
+        has_value = False
+        for event in self.events[::-1]:
+            if event.real_time <= time:
+                has_value = True
+                break
+        return has_value
+
+    has_value = has_value_before_or_at
 
     def max_value(self, time1, time2):
         """timestamp1, timestamp2: seconds elapsed since 1970-01-01T00:00:00+0000"""

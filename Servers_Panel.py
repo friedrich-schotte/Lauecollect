@@ -3,118 +3,26 @@
 
 Authors: Friedrich Schotte
 Date created: 2017-11-13
-Date last modified: 2022-05-01
-Revision comment: multiple local_machine_names
+Date last modified: 2022-07-19
+Revision comment: Fixed: Issue: Checked items in "View" menu not saved
 """
-__version__ = "2.6"
+__version__ = "3.0.3"
 
 import logging
 import traceback
 
 import wx
+import wx.lib.scrolledpanel
+from Control_Panel import Control_Panel
+from db_property import db_property
 
 
-class Servers_Panel(wx.Frame):
-    domain_name = "BioCARS"
-    title = "IOCs & Servers"  # for name of App bundle
+class Servers_Panel(Control_Panel):
     icon = "Server"
 
-    @property
-    def db_name(self):
-        return "Servers_Panel/%s" % self.domain_name
-
-    from db_property import db_property
-    default_size = (300, 200)
-    size = db_property("size", default_size, local=True)
-    min_size = (150, 50)
-
-    from collections import OrderedDict
-    AllView = list(range(0, 30))
-    CustomView = db_property("CustomView", list(range(0, 3)), local=True)
-    views = OrderedDict([("All", "AllView"), ("Custom", "CustomView")])
-    view = db_property("view", "All", local=True)
-
-    attributes = [
-        "N_running",
-        "machine_names",
-    ]
-    refresh_period = 10.0  # s
-    setup = db_property("setup", False, local=True)
-
-    @property
-    def default_filename(self):
-        return self.servers.default_filename
-
-    filename = db_property("filename", default_filename, local=True)
-
-    def __init__(self, domain_name=None):
-        if domain_name is not None:
-            self.domain_name = domain_name
-
-        wx.Frame.__init__(self, parent=None)
-        self.title = "%s [%s]" % (self.title, self.domain_name)
-        self.Title = self.title
-        from Icon import SetIcon
-        SetIcon(self, self.icon)
-
-        # Controls
-        self.panel = wx.Panel(self)
-        self.controls = []
-
-        # Menus
-        menuBar = wx.MenuBar()
-
-        menu = wx.Menu()
-        menu.Append(wx.ID_OPEN, "&Open...\tCtrl+O")
-        menu.Append(wx.ID_SEPARATOR)
-        menu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+S")
-        menuBar.Append(menu, "&File")
-
-        self.ViewMenu = wx.Menu()
-        for i, label in enumerate(self.views):
-            self.ViewMenu.AppendCheckItem(10 + i, label)
-        self.ViewMenu.AppendSeparator()
-        menuBar.Append(self.ViewMenu, "&View")
-
-        self.SetupMenu = wx.Menu()
-        self.ID_SETUP = 200
-        self.SetupMenu.AppendCheckItem(self.ID_SETUP, "Setup")
-        self.SetupMenu.Check(self.ID_SETUP, self.setup)
-        self.SetupMenu.AppendSeparator()
-        self.SetupMenu.Append(201, "Add Line")
-        self.SetupMenu.Append(202, "Remove Line")
-        self.SetupMenu.AppendSeparator()
-        self.SetupMenu.Append(203, "Server Setup...")
-        menuBar.Append(self.SetupMenu, "&More")
-
-        menu = wx.Menu()
-        menu.Append(wx.ID_ABOUT, "About...")
-        menuBar.Append(menu, "&Help")
-
-        self.SetMenuBar(menuBar)
-
-        # Callbacks
-        self.Bind(wx.EVT_MENU, self.OnOpen, id=wx.ID_OPEN)
-        self.Bind(wx.EVT_MENU, self.OnSaveAs, id=wx.ID_SAVEAS)
-
-        self.Bind(wx.EVT_MENU_OPEN, self.OnOpenView)
-        for i in range(0, len(self.views)):
-            self.Bind(wx.EVT_MENU, self.OnSelectView, id=10 + i)
-        self.Bind(wx.EVT_MENU, self.OnSetup, id=self.ID_SETUP)
-        self.Bind(wx.EVT_MENU, self.OnAdd, id=201)
-        self.Bind(wx.EVT_MENU, self.OnRemove, id=202)
-        self.Bind(wx.EVT_MENU, self.OnServerSetup, id=203)
-
-        self.Bind(wx.EVT_MENU, self.OnAbout, id=wx.ID_ABOUT)
-
-        self.Bind(wx.EVT_SIZE, self.OnResize)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-
-        # Layout
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.panel.Sizer = self.sizer
-        self.update_controls()
-        self.Show()
+    def __init__(self, domain_name):
+        self.domain_name = domain_name
+        super().__init__()
 
         # Refresh
         self.values = {}
@@ -126,138 +34,64 @@ class Servers_Panel(wx.Frame):
         self.thread.daemon = True
         self.thread.start()
 
-    @property
-    def servers(self):
-        from servers import Servers
-        return Servers(self.domain_name)
-
-    def keep_updated(self):
-        """Periodically refresh the displayed settings."""
-        from time import time, sleep
-        while True:
-            try:
-                t0 = time()
-                while time() < t0 + self.refresh_period:
-                    sleep(0.5)
-                if self.Shown:
-                    self.update_data()
-                    if self.data_changed:
-                        event = wx.PyCommandEvent(wx.EVT_TIMER.typeId, self.Id)
-                        # call OnUpdate in GUI thread
-                        wx.PostEvent(self.EventHandler, event)
-            except RuntimeError:
-                break
-
-    def refresh(self):
-        """Force update"""
-        from threading import Thread
-        self.thread = Thread(target=self.refresh_background)
-        self.thread.daemon = True
-        self.thread.start()
-
-    def refresh_background(self):
-        """Force update"""
-        self.update_data()
-        if self.data_changed:
-            event = wx.PyCommandEvent(wx.EVT_TIMER.typeId, self.Id)
-            wx.PostEvent(self.EventHandler, event)  # call OnUpdate in GUI thread
-
-    def update_data(self):
-        """Retrieve status information"""
-        self.old_values = dict(self.values)  # make a copy
-        for n in self.attributes:
-            try:
-                self.values[n] = getattr(self, n)
-            except Exception as msg:
-                logging.error("%s\n%s" % (msg, traceback.format_exc()))
+    def __repr__(self):
+        return f"{self.class_name}({self.domain_name!r})"
 
     @property
-    def N_running(self):
-        return sum([c.server.running for c in self.controls_shown])
+    def db_name(self):
+        return f"domains/{self.domain_name}/servers_panel"
 
     @property
-    def machine_names(self):
-        return self.servers.local_machine_names
+    def title(self):
+        title = f"IOCs & Servers [{self.domain_name}]"
+        return title
 
     @property
-    def NShown(self):
-        return len(self.controls_shown)
+    def ControlPanel(self):
+        return Servers_Control_Panel(self, self.domain_name)
 
     @property
-    def controls_shown(self):
-        return [c for c in self.controls if c.Shown]
+    def menuBar(self):
+        menuBar = super().menuBar
 
-    @property
-    def data_changed(self):
-        """Did the last 'update_data' change the data to be plotted?"""
-        changed = (self.values != self.old_values)
-        return changed
+        menu = wx.Menu()
+        menu.Append(wx.ID_OPEN, "&Open...\tCtrl+O")
+        menu.Append(wx.ID_SEPARATOR)
+        menu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+S")
+        menuBar.Insert(0, menu, "&File")
 
-    def OnUpdate(self, _event):
-        """Periodically refresh the displayed settings."""
-        self.refresh_status()
+        menuBar.ViewMenu = wx.Menu()
+        for i, label in enumerate(self.panel.views):
+            menuBar.ViewMenu.AppendCheckItem(10 + i, label)
+        menuBar.ViewMenu.AppendSeparator()
+        menuBar.Insert(2, menuBar.ViewMenu, "&View")
 
-    def refresh_status(self, _event=None):
-        """Update title to show whether all checks passed"""
-        title = self.title
-        if "machine_names" in self.values:
-            title += ", " + ", ".join(self.values["machine_names"])
-        if "N_running" in self.values:
-            title += ", %r of %r running" % (self.values["N_running"], self.NShown)
-        self.Title = title
+        menuBar.SetupMenu = wx.Menu()
+        menuBar.ID_SETUP = 200
+        menuBar.SetupMenu.AppendCheckItem(menuBar.ID_SETUP, "Setup")
+        menuBar.SetupMenu.Check(menuBar.ID_SETUP, self.panel.setup)
+        menuBar.SetupMenu.AppendSeparator()
+        menuBar.SetupMenu.Append(201, "Add Line")
+        menuBar.SetupMenu.Append(202, "Remove Line")
+        menuBar.SetupMenu.AppendSeparator()
+        menuBar.SetupMenu.Append(203, "Server Setup...")
+        menuBar.Insert(3, menuBar.SetupMenu, "&More")
 
-    def update_controls(self):
-        if len(self.controls) != self.servers.N:
-            for control in self.controls:
-                control.Destroy()
-            self.controls = []
-            for server in self.servers:
-                self.controls += [Server_Control(self.panel, server.name)]
-            for i in range(0, len(self.controls)):
-                self.sizer.Add(self.controls[i], flag=wx.ALL | wx.EXPAND)
-            self.setup = self.SetupMenu.IsChecked(self.ID_SETUP)
-            for control in self.controls:
-                control.setup = self.setup
-            self.set_size()
+        # Callbacks
+        self.Bind(wx.EVT_MENU, self.OnOpen, id=wx.ID_OPEN)
+        self.Bind(wx.EVT_MENU, self.OnSaveAs, id=wx.ID_SAVEAS)
 
-        if self.view not in self.views:
-            self.view = list(self.views)[0]
-        self.View = getattr(self, self.views[self.view])
+        self.Bind(wx.EVT_MENU_OPEN, self.OnOpenView)
+        for i in range(0, len(self.panel.views)):
+            self.Bind(wx.EVT_MENU, self.OnSelectView, id=10 + i)
+        self.Bind(wx.EVT_MENU, self.OnSetup, id=menuBar.ID_SETUP)
+        self.Bind(wx.EVT_MENU, self.OnAdd, id=201)
+        self.Bind(wx.EVT_MENU, self.OnRemove, id=202)
+        self.Bind(wx.EVT_MENU, self.OnServerSetup, id=203)
 
-    def set_size(self):
-        if self.size == self.default_size:
-            self.panel.Sizer.Fit(self)
-        else:
-            # debug("Saved size: %r" % (self.size,))
-            w, h = self.size
-            w_min, h_min = self.min_size
-            if w < w_min:
-                w = w_min
-            if h < h_min:
-                h = h_min
-            self.size = w, h
-            # debug("Setting size to %r" % (self.size,))
-            w, h = self.size
-            self.Size = w, h + 1  # size change needed, otherwise panel does not fill window
-            self.Size = w, h
+        self.Bind(wx.EVT_MENU, self.OnAbout, id=wx.ID_ABOUT)
 
-    def get_View(self):
-        """Which control to show? List of 0-based integers"""
-        view = [i for (i, c) in enumerate(self.controls) if c.Shown]
-        return view
-
-    def set_View(self, value):
-        currently_shown = [c.Shown for c in self.controls]
-        shown = [False] * len(self.controls)
-        for i in value:
-            if i < len(shown):
-                shown[i] = True
-        if shown != currently_shown:
-            for i in range(0, len(self.controls)):
-                self.controls[i].Shown = shown[i]
-            self.set_size()
-
-    View = property(get_View, set_View)
+        return menuBar
 
     def OnOpen(self, _event):
         from os.path import exists, dirname, basename
@@ -306,52 +140,51 @@ class Servers_Panel(wx.Frame):
 
     def OnOpenView(self, _event):
         """Called if the "View" menu is selected"""
-        for i in range(0, len(self.views)):
-            self.ViewMenu.Check(10 + i, list(self.views)[i] == self.view)
-        for i in range(0, len(self.controls)):
-            title = self.controls[i].Title
+        for i in range(0, len(self.panel.views)):
+            self.MenuBar.ViewMenu.Check(10 + i, list(self.panel.views)[i] == self.panel.view)
+        for i in range(0, len(self.panel.controls)):
+            title = self.panel.controls[i].Title
             if title == "":
                 title = "Untitled %d" % (i + 1)
             ID = 100 + i
-            if not self.ViewMenu.FindItemById(ID):
-                self.ViewMenu.AppendCheckItem(ID, title)
-            self.ViewMenu.SetLabel(ID, title)
-            self.ViewMenu.Check(ID, self.controls[i].Shown)
-            self.ViewMenu.Enable(ID, self.view != "All")
+            if not self.MenuBar.ViewMenu.FindItemById(ID):
+                self.MenuBar.ViewMenu.AppendCheckItem(ID, title)
+            self.MenuBar.ViewMenu.SetLabel(ID, title)
+            self.MenuBar.ViewMenu.Check(ID, self.panel.controls[i].Shown)
+            self.MenuBar.ViewMenu.Enable(ID, self.panel.view != "All")
             self.Bind(wx.EVT_MENU, self.OnView, id=100 + i)
-        for i in range(len(self.controls), 50):
+        for i in range(len(self.panel.controls), 50):
             ID = 100 + i
-            if self.ViewMenu.FindItemById(ID):
-                self.ViewMenu.RemoveItem(ID)
+            if self.MenuBar.ViewMenu.FindItemById(ID):
+                self.MenuBar.ViewMenu.RemoveItem(ID)
 
     def OnSelectView(self, event):
         """Called if the view is toggled between 'All' and 'Custom'
         from the 'View ' menu."""
         n = event.Id - 10
-        if 0 <= n < len(self.views):
-            self.view = list(self.views)[n]
-            self.View = getattr(self, list(self.views.values())[n])
+        if 0 <= n < len(self.panel.views):
+            self.panel.view = list(self.panel.views)[n]
+            self.panel.View = getattr(self, list(self.panel.views.values())[n])
 
     def OnView(self, event):
         """Called if one of the items of the "View" menu is checked or
         unchecked."""
         n = event.Id - 100
-        self.controls[n].Shown = event.IsChecked()
-        self.set_size()
-        setattr(self, self.views[self.view], self.View)  # save modified view
+        self.panel.controls[n].Shown = event.IsChecked()
+        self.panel.RefreshLayout()
+        setattr(self.panel, self.panel.views[self.panel.view], self.panel.View)  # save modified view
 
     def OnSetup(self, _event):
         """Enable 'setup' mode, allowing the panel to be configured"""
-        self.setup = self.SetupMenu.IsChecked(self.ID_SETUP)
-        for control in self.controls:
-            control.setup = self.setup
-        self.set_size()
+        self.panel.setup = self.MenuBar.SetupMenu.IsChecked(self.MenuBar.ID_SETUP)
+        for control in self.panel.controls:
+            control.setup = self.panel.setup
 
     def OnAdd(self, _event):
         self.servers.N += 1
         new_line = self.servers.N - 1
-        if new_line not in self.CustomView:
-            self.CustomView += [new_line]
+        if new_line not in self.panel.CustomView:
+            self.panel.CustomView += [new_line]
         self.update_controls()
 
     def OnRemove(self, _event):
@@ -363,6 +196,12 @@ class Servers_Panel(wx.Frame):
         self.server_setup_panel.start()
 
     @property
+    def default_filename(self):
+        return self.servers.default_filename
+
+    filename = db_property("filename", default_filename, local=True)
+
+    @property
     def server_setup_panel(self):
         from application import application
         return application(
@@ -371,19 +210,170 @@ class Servers_Panel(wx.Frame):
             command=f"Server_Setup_Panel({self.domain_name!r})",
         )
 
-    def OnAbout(self, _event):
-        """Show panel with additional parameters"""
-        from About import About
-        About(self)
+    attributes = [
+        "N_running",
+        "machine_names",
+    ]
 
-    def OnResize(self, event):
-        # debug("%r" % event.Size)
-        event.Skip()
-        self.size = tuple(self.Size)
+    refresh_period = 10.0  # s
 
-    def OnClose(self, _event):
-        """Called when the window's close button is clicked"""
-        self.Destroy()
+    @property
+    def data_changed(self):
+        """Did the last 'update_data' change the data to be plotted?"""
+        changed = (self.values != self.old_values)
+        return changed
+
+    def OnUpdate(self, _event):
+        """Periodically refresh the displayed settings."""
+        self.refresh_status()
+
+    def refresh_status(self, _event=None):
+        """Update title to show whether all checks passed"""
+        title = self.title
+        if "machine_names" in self.values:
+            title += ", " + ", ".join(self.values["machine_names"])
+        if "N_running" in self.values:
+            title += ", %r of %r running" % (self.values["N_running"], self.panel.NShown)
+        self.Title = title
+
+    def keep_updated(self):
+        """Periodically refresh the displayed settings."""
+        from time import time, sleep
+        while True:
+            try:
+                t0 = time()
+                while time() < t0 + self.refresh_period:
+                    sleep(0.5)
+                if self.Shown:
+                    self.update_data()
+                    if self.data_changed:
+                        event = wx.PyCommandEvent(wx.EVT_TIMER.typeId, self.Id)
+                        # call OnUpdate in GUI thread
+                        wx.PostEvent(self.EventHandler, event)
+            except RuntimeError:
+                break
+
+    def refresh_background(self):
+        """Force update"""
+        self.update_data()
+        if self.data_changed:
+            event = wx.PyCommandEvent(wx.EVT_TIMER.typeId, self.Id)
+            wx.PostEvent(self.EventHandler, event)  # call OnUpdate in GUI thread
+
+    def refresh(self):
+        """Force update"""
+        from threading import Thread
+        self.thread = Thread(target=self.refresh_background)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def update_data(self):
+        """Retrieve status information"""
+        self.old_values = dict(self.values)  # make a copy
+        for n in self.attributes:
+            try:
+                self.values[n] = getattr(self, n)
+            except Exception as msg:
+                logging.error("%s\n%s" % (msg, traceback.format_exc()))
+
+    @property
+    def N_running(self):
+        return sum([c.server.running for c in self.panel.controls_shown])
+
+    @property
+    def machine_names(self):
+        return self.servers.local_machine_names
+
+    @property
+    def servers(self):
+        from servers import Servers
+        return Servers(self.domain_name)
+
+
+class Servers_Control_Panel(wx.lib.scrolledpanel.ScrolledPanel):
+    def __init__(self, parent, domain_name):
+        self.domain_name = domain_name
+        super().__init__(parent=parent, style=wx.RAISED_BORDER)
+        self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+        # Controls
+        self.controls = []
+
+        # Layout
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.Sizer = self.sizer
+        self.update_controls()
+
+    def __repr__(self):
+        return f"{self.class_name}({self.domain_name!r})"
+
+    @property
+    def class_name(self):
+        return type(self).__name__
+
+    @property
+    def db_name(self):
+        # return "Servers_Panel/%s" % self.domain_name
+        return f"domains/{self.domain_name}/servers_panel"
+
+    setup = db_property("setup", False, local=True)
+
+    from collections import OrderedDict
+    AllView = list(range(0, 30))
+    CustomView = db_property("CustomView", list(range(0, 3)), local=True)
+    views = OrderedDict([("All", "AllView"), ("Custom", "CustomView")])
+    view = db_property("view", "All", local=True)
+
+    @property
+    def servers(self):
+        from servers import Servers
+        return Servers(self.domain_name)
+
+    @property
+    def NShown(self):
+        return len(self.controls_shown)
+
+    @property
+    def controls_shown(self):
+        return [c for c in self.controls if c.Shown]
+
+    def update_controls(self):
+        if len(self.controls) != self.servers.N:
+            for control in self.controls:
+                control.Destroy()
+            self.controls = []
+            for server in self.servers:
+                self.controls += [Server_Control(self, server.name)]
+            for i in range(0, len(self.controls)):
+                self.sizer.Add(self.controls[i], proportion=1, flag=wx.ALL | wx.EXPAND)
+            for control in self.controls:
+                control.setup = self.setup
+
+        if self.view not in self.views:
+            self.view = list(self.views)[0]
+        self.View = getattr(self, self.views[self.view])
+
+    def RefreshLayout(self):
+        w, h = self.Size
+        self.Size = w, h + 1  # size change needed, otherwise panel does not fill window
+        self.Size = w, h
+
+    def get_View(self):
+        """Which control to show? List of 0-based integers"""
+        view = [i for (i, c) in enumerate(self.controls) if c.Shown]
+        return view
+
+    def set_View(self, value):
+        currently_shown = [c.Shown for c in self.controls]
+        shown = [False] * len(self.controls)
+        for i in value:
+            if i < len(shown):
+                shown[i] = True
+        if shown != currently_shown:
+            for i in range(0, len(self.controls)):
+                self.controls[i].Shown = shown[i]
+
+    View = property(get_View, set_View)
 
 
 class Server_Control(wx.Panel):
@@ -408,7 +398,7 @@ class Server_Control(wx.Panel):
         self.myEnabled = wx.CheckBox(self)
         self.myEnabled.Enabled = False
         style = wx.TE_READONLY | wx.BORDER_NONE  # | wx.TE_DONTWRAP
-        self.myLabel = wx.TextCtrl(self, size=(470, -1), style=style)
+        self.myLabel = wx.TextCtrl(self, size=(170, -1), style=style)
         self.myLabel.BackgroundColour = self.BackgroundColour
         from wx.lib.buttons import GenButton
         self.State = GenButton(self, size=(25, 20))
@@ -425,15 +415,15 @@ class Server_Control(wx.Panel):
         self.layout = wx.BoxSizer(wx.HORIZONTAL)
         flag = wx.ALL | wx.EXPAND
         self.layout.Add(self.myEnabled, flag=flag)
-        self.layout.Add(self.myLabel, flag=flag, proportion=1)
+        self.layout.Add(self.myLabel, proportion=1, flag=flag)
         self.layout.Add(self.State, flag=flag)
         self.layout.Add(self.Setup, flag=flag)
         self.layout.Add(self.Log, flag=flag)
 
-        # Leave a 10 pixel wide border.
+        # Generate an outer border spacing
         self.box = wx.BoxSizer(wx.VERTICAL)
-        self.box.Add(self.layout, flag=wx.ALL, border=5)
-        self.SetSizer(self.box)
+        self.box.Add(self.layout, flag=flag, border=5)
+        self.Sizer = self.box
         self.Fit()
 
         self.refresh_label()
@@ -444,6 +434,9 @@ class Server_Control(wx.Panel):
         self.thread = Thread(target=self.keep_updated, name=self.name)
         self.thread.daemon = True
         self.thread.start()
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.name!r})"
 
     @property
     def attributes(self):
@@ -531,7 +524,6 @@ class Server_Control(wx.Panel):
         red = (255, 0, 0)
         green = (0, 255, 0)
         gray = (180, 180, 180)
-        black = (0, 0, 0)
 
         if self.values["is_local"]:
             color = (0, 0, 0)

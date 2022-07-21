@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-11-26
-Date last modified: 2021-12-01
-Revision comment: Added: chiller_set_T_OK
+Date last modified: 2022-07-11
+Revision comment: temperature_system requires domain_name
 """
-__version__ = "1.4"
+__version__ = "1.4.1"
 
 from Panel_3 import BasePanel
 from monitored_property import monitored_property
@@ -65,7 +65,7 @@ class Temperature_System_Diagnostics_Panel(BasePanel):
     @property
     def instrument(self):
         from temperature_system import temperature_system
-        return temperature_system
+        return temperature_system(self.domain_name)
 
 
 if __name__ == '__main__':

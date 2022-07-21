@@ -1,17 +1,16 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-11-30
-Date last modified: 2022-05-01
-Revision comment: Refactored
+Date last modified: 2022-07-14
+Revision comment: Simplified
 """
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 
 from Scan_Diagnostics_Panel import Scan_Diagnostics_Panel
 
 
 class Temperature_Scan_Diagnostics_Panel(Scan_Diagnostics_Panel):
-    format = "%.3f"
-    unit = "C"
+    pass
 
 
 if __name__ == '__main__':

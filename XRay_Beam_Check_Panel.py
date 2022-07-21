@@ -2,10 +2,10 @@
 """Graphical User Interface for X-ray beam stabilization
 Author: Friedrich Schotte
 Date created: 2015-11-23
-Date last modified: 2020-03-09
-Revision comment: Cleanup
+Date last modified: 2022-07-20
+Revision comment: Removed settings no longer needed
 """
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 import wx
 
@@ -30,8 +30,6 @@ class XRay_Beam_Check_Panel(BasePanel):
 
     def __init__(self, parent=None):
         self.parameters = [
-            [[PropertyPanel, "Timing Mode", self.settings, "timing_mode"], {"choices": self.settings.timing_modes}],
-            [[PropertyPanel, "Beamline Mode", self.settings, "beamline_mode"], {"choices": self.settings.beamline_modes}],
             [[TimeChart, "X Control History", self.xray_beam_check.log, "date time", "x_control"],
              {"axis_label": "Control X [mrad]", "name": self.name + ".TimeChart"}],
             [[TimeChart, "Y Control History", self.xray_beam_check.log, "date time", "y_control"],
@@ -81,8 +79,6 @@ class Settings(BasePanel):
 
     def __init__(self, parent=None):
         self.parameters = [
-            [[PropertyPanel, "Timing System", self.settings, "timing_system_ip_address"], {}],
-            [[PropertyPanel, "Oscilloscope", self.settings, "scope_ip_address"], {}],
             [[PropertyPanel, "X1 Motor", self.settings, "x1_motor"], {}],
             [[PropertyPanel, "X2 Motor", self.settings, "x2_motor"], {}],
             [[PropertyPanel, "Y Motor", self.settings, "y_motor"], {}],

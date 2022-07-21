@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-27
-Date last modified: 2022-06-27
-Revision comment: Added: scan_speed, normal_speed
+Date last modified: 2022-07-19
+Revision comment: default format string: %.3f
 """
-__version__ = "1.1"
+__version__ = "1.1.2"
 
 import logging
 
@@ -23,11 +23,13 @@ class Motor_Scan_Driver(Scan_Driver):
     enabled = alias_property("acquisition.scanning.scan_motor")
     scan_point_divider = alias_property("acquisition.scan_point_dividers.scan_motor")
 
-    scan_relative = db_property("scan_relative", False)
-    scan_return = db_property("scan_return", False)
+    format_string = db_property("format_string", "%.3f")
 
-    scan_speed = db_property("scan_speed", nan)
-    normal_speed = db_property("scan_speed", nan)
+    scan_relative = db_property("scan_relative", False, local=True)
+    scan_return = db_property("scan_return", False, local=True)
+
+    scan_speed = db_property("scan_speed", nan, local=True)
+    normal_speed = db_property("scan_speed", nan, local=True)
 
 
 if __name__ == '__main__':

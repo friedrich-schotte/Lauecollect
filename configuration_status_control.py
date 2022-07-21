@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-09
-Date last modified: 2022-06-13
-Revision comment:
+Date last modified: 2022-07-12
+Revision comment: Background color indicates status
 """
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 import logging
 
@@ -47,6 +47,20 @@ class Configuration_Status_Control(Spreadsheet_Base_Control):
     class Cell(Spreadsheet_Base_Control.Cell):
         from color import light_gray
         background_color = monitored_value_property(light_gray)
+
+        @monitored_property
+        def background_color(self, in_position):
+            from numpy import isnan
+            from color import white, green, red
+            if isnan(in_position):
+                color = white
+            elif in_position:
+                color = green
+            else:
+                color = red
+            return color
+
+        in_position = alias_property("configuration.in_position")
         configuration = alias_property("table.configuration")
 
     class Name_Cell(Cell):
@@ -72,6 +86,7 @@ class Configuration_Status_Control(Spreadsheet_Base_Control):
             return choices
 
         motor_choices = alias_property("motor.choices")
+        in_position = alias_property("motor.in_position")
 
         @property
         def motor(self):

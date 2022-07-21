@@ -2,10 +2,10 @@
 Manage settings for different locations / instruments
 Author: Friedrich Schotte
 Date created: 2015-06-12
-Date last modified: 2021-11-29
-Revision comment: Updated IOC & Servers Machine names
+Date last modified: 2021-07-13
+Revision comment: Using settings/domains/BioCARS/environment_configurations/
 """
-__version__ = "2.5"
+__version__ = "2.6.1"
 
 from cached_function import cached_function
 
@@ -94,11 +94,11 @@ parameters = {
 
 
 @cached_function()
-def configurations(domain_name=None):
-    return Configurations(domain_name)
+def environment_configurations(domain_name=None):
+    return Environment_Configurations(domain_name)
 
 
-class Configurations(object):
+class Environment_Configurations(object):
     """Manage settings for different locations / instruments"""
     domain_name = "BioCARS"
 
@@ -109,6 +109,10 @@ class Configurations(object):
     def __repr__(self):
         name = type(self).__name__.lower()
         return "%s(%r)" % (name, self.domain_name)
+
+    @property
+    def db_name(self):
+        return f"domains/{self.domain_name}/environment_configurations"
 
     @property
     @cached_function()
@@ -128,13 +132,14 @@ class Configurations(object):
     def get_values(self, configuration_name):
         """list of Python objects of builtin Python data types"""
         from DB import dbget
-        prefix = "configurations/"+configuration_name+"." if configuration_name else ""
+        prefix = f'{self.db_name}/{configuration_name}.' if configuration_name else ""
         values = []
         for name, default_value in zip(self.parameters.names, self.parameters.default_values):
             s = dbget(prefix+name)
             if s == "":
                 s = default_value
             dtype = type(eval(default_value))
+            # noinspection PyBroadException
             try:
                 value = dtype(eval(s))
             except Exception:
@@ -144,7 +149,7 @@ class Configurations(object):
 
     def set_values(self, configuration_name, values):
         from DB import dbput
-        prefix = "configurations/"+configuration_name+"." if configuration_name else ""
+        prefix = f"{self.db_name}/{configuration_name}." if configuration_name else ""
         for name, value, default_value, current_value in \
                 zip(self.parameters.names, values, self.default_values, self.current_values):
             dbput(prefix + name, to_str(value, default_value, current_value))
@@ -161,7 +166,7 @@ class Configurations(object):
         """List of currently in use configuration names, e.g.
         "BioCARS Diffractometer","NIH Diffractometer","LCLS Diffractometer" """
         from DB import dbdir
-        return dbdir("configurations")
+        return dbdir(self.db_name)
     configuration_names = property(get_configuration_names)
 
     def get_current_configuration(self):
@@ -204,6 +209,7 @@ def to_str(value, type_value, default_value):
     """String representation of a value
     type_value: example value, defines data type
     default_value: if conversion fails use this value instead"""
+    # noinspection PyBroadException
     try:
         value = to_type(value, type_value)
     except Exception:
@@ -223,7 +229,7 @@ def to_type(value, type_value):
 
 
 if __name__ == "__main__":
-    self = configurations(domain_name="BioCARS")
+    self = environment_configurations(domain_name="BioCARS")
     # self = configurations(domain_name="LaserLab")
     print('print(self.parameters)')
     print('self.show()')

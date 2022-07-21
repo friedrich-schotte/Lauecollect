@@ -3,10 +3,10 @@
 Manage settings for different locations and instruments
 Author: Friedrich Schotte
 Date created: 2015-06-15
-Date last modified: 2020-11-06
-Revision comment: Cleanup: redirect domain_name
+Date last modified: 2021-07-18
+Revision comment: Cleanup: Control_Panel
 """
-__version__ = "2.0.1"
+__version__ = "2.1.2"
 
 from logging import debug
 
@@ -16,18 +16,18 @@ import wx.lib.scrolledpanel
 from Control_Panel import Control_Panel
 
 
-class ConfigurationsPanel(Control_Panel):
+class Environment_Configurations_Panel(Control_Panel):
     icon = "Utility"
     domain_name = "BioCARS"
 
     def __init__(self, domain_name=None):
         if domain_name is not None:
             self.domain_name = domain_name
-        Control_Panel.__init__(self)
+        super().__init__()
 
     @property
     def title(self):
-        return "Configurations (%s)" % self.domain_name
+        return "Environment Configurations (%s)" % self.domain_name
 
     @property
     def name(self):
@@ -141,8 +141,8 @@ class Configurations_Subpanel(wx.Panel):
 
     @property
     def configurations(self):
-        from configurations import configurations
-        return configurations(domain_name=self.domain_name)
+        from environment_configurations import environment_configurations
+        return environment_configurations(domain_name=self.domain_name)
 
     def keep_alive(self, _event=None):
         """Periodically refresh the displayed settings (every second)."""
@@ -251,6 +251,7 @@ class Configurations_Subpanel(wx.Panel):
     @staticmethod
     def eval(x):
         """Convert x to a built-in Python data type, by default to string"""
+        # noinspection PyBroadException
         try:
             return eval(x)
         except Exception:
@@ -271,5 +272,5 @@ if __name__ == '__main__':
     redirect(f"{domain_name}.ConfigurationPanel", format=msg_format)
 
     app = wx.GetApp() if wx.GetApp() else wx.App()
-    self = ConfigurationsPanel(domain_name)
+    self = Environment_Configurations_Panel(domain_name)
     app.MainLoop()

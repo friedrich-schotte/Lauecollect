@@ -54,10 +54,10 @@ Reads the number of measurement that where averaged.
 
 Author: Friedrich Schotte
 Date created: 2008-03-28
-Date last modified: 2022-06-20
-Revision comment: Renamed: sequences_per_scan_point
+Date last modified: 2022-07-11
+Revision comment: Prefix: Added LECROY_SCOPE: BIOCARS:LECROY_SCOPE.XRAY_SCOPE
 """
-__version__ = "2.15.8"
+__version__ = "2.15.10"
 
 import traceback
 from logging import debug, info, warning, error
@@ -1143,9 +1143,9 @@ class Lecroy_Scope_IOC(object):
 
     @property
     def prefix(self):
-        prefix = "%s:%s." % (self.instrument.domain_name, self.instrument.base_name)
+        class_name = 'lecroy_scope'
+        prefix = f"{self.instrument.domain_name}:{class_name}.{self.instrument.base_name}."
         prefix = prefix.upper()
-        # prefix = prefix.replace("BIOCARS", "NIH")
         return prefix
 
     @property

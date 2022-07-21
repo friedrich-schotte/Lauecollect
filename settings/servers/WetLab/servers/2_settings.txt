@@ -1,5 +1,5 @@
 auto_start = True
-command = 'import GigE_camera_server; GigE_camera_server.run("MicrofluidicsCamera")'
+command = 'import GigE_camera_IOC; GigE_camera_IOC.run("MicrofluidicsCamera")'
 format_code = 'value'
 label = 'Microfluidics Camera'
 log_level = 'INFO'

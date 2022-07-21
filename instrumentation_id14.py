@@ -2,10 +2,10 @@
 Instrumentation of the 14-ID beamline
 Author: Friedrich Schotte
 Date created: 2007-12-08
-Date last modified: 2022-05-04
-Revision comment: Cleanup: modules no longer needed
+Date last modified: 2022-07-19
+Revision comment: Added: Slit1H, Slit1V: done_moving=
 """
-__version__ = "3.29.3"
+__version__ = "3.29.6"
 
 from pdb import pm
 # from refill import time_to_next_refill #Needs to be deleted Valentyn Sept 5 2019
@@ -29,12 +29,7 @@ from camera_control import Camera_Control as Camera  # needed?
 from camera_control import camera_control
 from cameras import cameras  # Needed?
 from Alio_diffractometer import alio_diffractometer
-from Alio import Alio
 from rayonix_detector import rayonix_detector
-
-# Sample Temperature
-from temperature_system import temperature_system
-temperature = temperature_system
 
 # Fast NIH Diffractometer, Aerotech "Ensemble" controller, F. Schotte, 30 Jan 2013
 from Ensemble import SampleX, SampleY, SampleZ, SamplePhi, PumpA, PumpB, msShut
@@ -56,8 +51,8 @@ U27 = undulator("ID14us")
 # Motors in ID14-C optics hutch
 
 # white beam slits (at 28 m)
-Slit1H = motor("14IDA:Slit1Hsize", name="Slit1H", readback="14IDA:Slit1Ht2.C", readback_slop=0.002)
-Slit1V = motor("14IDA:Slit1Vsize", name="Slit1V", readback="14IDA:Slit1Vt2.C", readback_slop=0.002)
+Slit1H = motor("14IDA:Slit1Hsize", name="Slit1H", readback="14IDA:Slit1Ht2.C", done_moving="14IDA:m3.DMOV", readback_slop=0.002)
+Slit1V = motor("14IDA:Slit1Vsize", name="Slit1V", readback="14IDA:Slit1Vt2.C", done_moving="14IDA:m1.DMOV", readback_slop=0.002)
 
 # Heat-load chopper
 HLC = motor("14IDA:m5", name="HLC")

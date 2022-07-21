@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-05-29
-Date last modified: 2022-06-16
-Revision comment:
+Date last modified: 2022-07-20
+Revision comment: Fixed: Issue: Two blank choices
 """
-__version__ = "1.0"
+__version__ = "1.0.3"
 
 import logging
 
@@ -12,7 +12,6 @@ from alias_property import alias_property
 from cached_function import cached_function
 from monitored_property import monitored_property
 from spreadsheet_control import Spreadsheet_Control
-from numpy import isnan
 
 
 @cached_function()
@@ -29,16 +28,22 @@ class Configuration_Table_Control(Spreadsheet_Control):
             cell = self.Cell(self, row, column)
         return cell
 
-    class Cell(Spreadsheet_Control.Cell):
+    @cached_function()
+    def row(self, row):
+        return self.Row(self, row)
+
+    class Row:
+        def __init__(self, table, row):
+            self.table = table
+            self.row = row
+
         @monitored_property
-        def background_color(self, is_selected, in_position):
-            from color import white, green, orange
-            color = white
+        def background_color(self, is_selected):
+            from color import white, gray
             if is_selected:
-                if in_position:
-                    color = green
-                else:
-                    color = orange
+                color = gray
+            else:
+                color = white
             return color
 
         @monitored_property
@@ -49,36 +54,28 @@ class Configuration_Table_Control(Spreadsheet_Control):
         def configuration_row(self):
             return self.table.configuration_row(self.row)
 
-        command_row = alias_property("configuration.command_row")
-        in_position = alias_property("configuration.in_position")
-        configuration = alias_property("table.configuration")
+        command_row = alias_property("table.configuration.command_row")
+
+    class Cell(Spreadsheet_Control.Cell):
+        background_color = alias_property("Row.background_color")
+
+        @property
+        def Row(self):
+            return self.table.row(self.row)
 
     class Motor_Cell(Cell):
         @monitored_property
         def choices(self, motor_choices):
             choices = list(motor_choices)
-            if choices:
+            if choices and choices[0] != "":
                 choices.insert(0, "")
             return choices
 
-        @monitored_property
-        def background_color(self, is_selected, in_position):
-            from color import white, green, red
-            color = white
-            if is_selected:
-                if in_position is not None and not isnan(in_position):
-                    if in_position:
-                        color = green
-                    else:
-                        color = red
-            return color
-
         motor_choices = alias_property("motor.choices")
-        in_position = alias_property("motor.in_position")
 
         @property
         def motor(self):
-            return self.configuration.motor[self.motor_num]
+            return self.table.configuration.motor[self.motor_num]
 
         @property
         def motor_num(self):
@@ -207,7 +204,5 @@ if __name__ == '__main__':
     def report(event=None):
         logging.info(f"event={event}")
 
-    _reference(self.cell(25, 1), "in_position").monitors.add(report)
     _reference(self.cell(25, 1), "background_color").monitors.add(report)
-    _reference(self.cell(25, 3), "in_position").monitors.add(report)
     _reference(self.cell(25, 3), "background_color").monitors.add(report)

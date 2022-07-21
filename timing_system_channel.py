@@ -1,15 +1,16 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-05
-Date last modified: 2022-04-07
-Revision comment:
+Date last modified: 2022-07-18
+Revision comment: Issue:
+    output_status_choices: Channel.monitors() is deprecated, create a method Channel.__getattr_monitors__() instead.
+    gated_choices: Channel.monitors() is deprecated, create a method Channel.__getattr_monitors__() instead
 """
-__version__ = "1.0"
-
-import warnings
+__version__ = "1.0.1"
 
 from EPICS_CA.cached_function import cached_function
 
+from monitored_value_property import monitored_value_property
 from timing_system_parameter import Parameter
 
 
@@ -43,44 +44,6 @@ class Channel(object):
             PV_name = getattr(obj, "PV_name", "")
         return PV_name
 
-    def monitor(self, property_name, handler, *args, **kwargs):
-        warnings.warn("monitor() is deprecated, use __getattr_monitors__",
-                      DeprecationWarning, stacklevel=2)
-        prop = getattr(type(self), property_name, None)
-        if hasattr(prop, "monitor"):
-            prop.monitor(self, handler, *args, **kwargs)
-        else:
-            property_name = property_name.split(".")[0]
-            obj = getattr(self, property_name, None)
-            if hasattr(obj, "monitor"):
-                obj.monitor(handler, *args, **kwargs)
-
-    def monitor_clear(self, property_name, handler, *args, **kwargs):
-        warnings.warn("monitor_clear() is deprecated, use __getattr_monitors__",
-                      DeprecationWarning, stacklevel=2)
-        prop = getattr(type(self), property_name, None)
-        if hasattr(prop, "monitor_clear"):
-            prop.monitor_clear(self, handler, *args, **kwargs)
-        else:
-            property_name = property_name.split(".")[0]
-            obj = getattr(self, property_name, None)
-            if hasattr(obj, "monitor_clear"):
-                obj.monitor_clear(handler, *args, **kwargs)
-
-    def monitors(self, property_name):
-        warnings.warn("monitors() is deprecated, use __getattr_monitors__",
-                      DeprecationWarning, stacklevel=2)
-        monitors = []
-        prop = getattr(type(self), property_name, None)
-        if hasattr(prop, "monitors"):
-            monitors = prop.monitors(self)
-        else:
-            property_name = property_name.split(".")[0]
-            obj = getattr(self, property_name, None)
-            if hasattr(obj, "monitors"):
-                monitors = obj.monitors
-        return monitors
-
     @property
     def name(self):
         name = "ch%d" % (int(self.count) + 1)
@@ -97,18 +60,18 @@ class Channel(object):
     mnemonic = Parameter("mnemonic", "")
     offset_HW = Parameter("offset", nan)
     offset_sign = Parameter("offset_sign", 1.0)
-    offset_sign_choices = 1, -1
+    offset_sign_choices = monitored_value_property([1, -1])
     pulse_length_HW = Parameter("pulse_length", nan)
     offset_PP = Parameter("offset_PP", nan)
     pulse_length_PP = Parameter("pulse_length_PP", nan)
     counter_enabled = Parameter("counter_enabled", 0)
     sign = Parameter("sign", 1)
     timed = Parameter("timed", "")  # timing relative to pump or probe
-    timed_choices = "pump", "probe", "pump+probe", "pump-probe", "period"
+    timed_choices = monitored_value_property(["pump", "probe", "pump+probe", "pump-probe", "period"])
     gated = Parameter("gated", "")  # enable?
-    gated_choices = "detector", "pump", "probe", "trans"
+    gated_choices = monitored_value_property(["detector", "pump", "probe", "trans"])
     repeat_period = Parameter("repeat_period", "")  # how often?
-    repeat_period_choices = (
+    repeat_period_choices = monitored_value_property([
         "pulse",
         "burst start",
         "burst end",
@@ -116,17 +79,17 @@ class Channel(object):
         "50 ms",
         "100 ms",
         "",
-    )
+    ])
     on = Parameter("on", True)
     bit_code = Parameter("bit_code", 0)
     special = Parameter("special", "")
-    special_choices = (
+    special_choices = monitored_value_property([
         "ms",  # X-ray millisecond shutter
         "ms_legacy",  # X-ray millisecond shutter
         "trans",  # Sample translation trigger
         "pso",  # Picosecond oscillator reference clock
         "nsf",  # Nanosecond laser flash lamp trigger
-    )
+    ])
 
     def get_pulse_length(self):
         from numpy import nan, isnan
@@ -222,7 +185,7 @@ class Channel(object):
             self.timing_system, self.register_name("pulse"), stepsize="bct*4"
         )
 
-    pulse_choices = [1e-3, 2e-3, 3e-3, 10e-3, 30e-3, 100e-3]
+    pulse_choices = monitored_value_property([1e-3, 2e-3, 3e-3, 10e-3, 30e-3, 100e-3])
 
     @property
     def input(self):
@@ -295,7 +258,7 @@ class Channel(object):
         if value.upper() == "PP":
             self.override.count = False
 
-    output_status_choices = ["PP", "Low", "High"]
+    output_status_choices = monitored_value_property(["PP", "Low", "High"])
 
     @property
     def specout(self):

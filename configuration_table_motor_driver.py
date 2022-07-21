@@ -3,10 +3,13 @@
 Database save and recall motor positions
 Author: Friedrich Schotte
 Date created: 2022-06-16
-Date last modified: 2022-07-07
-Revision comment: Updated example
+Date last modified: 2022-07-10
+Revision comment: Fixed: Issue:
+    configuration_name:
+    Was: 'BioCARS.configuration_table.timing_modes'
+    Should be: 'BioCARS.timing_modes'
 """
-__version__ = "2.0.5"
+__version__ = "2.0.10"
 
 import logging
 from traceback import format_exc
@@ -50,8 +53,13 @@ class Configuration_Table_Motor_Driver:
         return formatted_value_from_value(current_position, format_string)
 
     @formatted_position.setter
-    def formatted_position(self, formatted_value):
-        self.current_position = value_from_formatted_value(formatted_value, self.format_string)
+    def formatted_position(self, formatted_position):
+        value = value_from_formatted_value(formatted_position, self.format_string)
+
+        if not (formatted_position == "" and self.formatted_position == ""):
+            self.current_position = value
+        else:
+            logging.debug(f"Reasserting {self.position_reference} = {value!r} not necessary")
 
     @monitored_property
     def current_position(self, position):
@@ -169,11 +177,6 @@ class Configuration_Table_Motor_Driver:
     def in_position(self, nominal_position, current_position):
         return self.position_matches(nominal_position, current_position)
 
-    def formatted_position_matches(self, formatted_position):
-        nominal_pos = value_from_formatted_value(formatted_position, self.format_string)
-        match = self.position_matches(nominal_pos, self.current_position)
-        return match
-
     def position_matches(self, nominal_position, current_position):
         """
         nominal_pos: position of motor number *motor_number*
@@ -233,6 +236,8 @@ class Configuration_Table_Motor_Driver:
         """If this is a linked configuration, what is its name?"""
         if is_configuration:
             name = getattr(motor_object, "name", "")
+            # BioCARS.configuration_table.timing_modes -> BioCARS.timing_modes
+            name = name.replace(".configuration_table", "")
         else:
             name = ""
         return name
@@ -297,11 +302,19 @@ def value_from_formatted_value(formatted_value, format_string):
     elif "%s" in format_string:
         value = formatted_value  # "%s" -> keep as string
     else:
-        try:
-            value = float(eval(formatted_value))
-        except Exception as x:
-            logging.error(f"float({formatted_value!r}): {x}")
+        if formatted_value == "":
             value = nan
+        else:
+            try:
+                value = eval(formatted_value)
+            except Exception as x:
+                logging.error(f"eval({formatted_value!r}): {x}")
+                value = nan
+            try:
+                value = float(value)
+            except (ValueError, TypeError) as x:
+                logging.error(f"float({value!r}): {x}")
+                value = nan
     return value
 
 
@@ -313,7 +326,7 @@ if __name__ == '__main__':
     # base_name = "beamline_configuration"
     # base_name = "Julich_chopper_modes"
     # base_name = "heat_load_chopper_modes"
-    base_name = "timing_modes"
+    # base_name = "timing_modes"
     # base_name = "sequence_modes"
     # base_name = "delay_configuration"
     # base_name = "temperature_configuration"
@@ -321,7 +334,7 @@ if __name__ == '__main__':
     # base_name = "scan_configuration"
     # base_name = "diagnostics_configuration"
     # base_name = "detector_configuration"
-    # base_name = "method"
+    base_name = "method"
     # base_name = "laser_optics_modes"
     # base_name = "alio_diffractometer_saved"
 

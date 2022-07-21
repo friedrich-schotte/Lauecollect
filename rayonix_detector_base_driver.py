@@ -34,11 +34,10 @@ Chapter 9: The Legacy Remote Mode for HS Detector Control
 
 Author: Friedrich Schotte
 Date created: 2013-09-20
-Date last modified: 2022-06-21
-Revision comment: Issue:
-    polling_monitor.monitoring_setup: Starting polling of rayonix_detector_driver('BioCARS').ip_address_choices
+Date last modified: 2022-07-12
+Revision comment: Cleanup: Removed property no longer needed
 """
-__version__ = "4.2.5"
+__version__ = "4.2.6"
 
 from logging import info, error
 
@@ -79,10 +78,8 @@ class Rayonix_Detector(object):
 
     ignore_first_trigger = db_property("ignore_first_trigger", True)
 
-    def __init__(self, name=None):
+    def __init__(self):
         """name: used for IP address, in case there is more than one detector"""
-        if name is not None:
-            self.name = name
         self.timeout = 1.0
         # This is to make the query method multi-thread safe.
         from threading import Lock

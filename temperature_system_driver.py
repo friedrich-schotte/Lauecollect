@@ -4,10 +4,12 @@ chiller
 
 Authors: Friedrich Schotte, Philip Anfinrud
 Date created: 2021-11-26
-Date last modified: 2022-07-02
-Revision comment: Renamed temperature_system_driver
+Date last modified: 2022-07-17
+Revision comment: Fixed: Issue:
+   Despite name change to "temperature_system_driver", settings are
+   still stored in settings/temperature_system/BioCARS_settings.txt
 """
-__version__ = "1.7"
+__version__ = "1.7.1"
 
 import logging
 
@@ -262,7 +264,11 @@ class Temperature_System_Driver:
 
     @property
     def db_name(self):
-        return f"{self.class_name}/{self.domain_name}"
+        return f"{self.class_base_name}/{self.domain_name}"
+
+    @property
+    def class_base_name(self):
+        return self.class_name.replace('_driver', '')
 
 
 def allclose(x, y):

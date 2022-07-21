@@ -4,11 +4,10 @@ Viewer for log messages
 
 Authors: Friedrich Schotte
 Date created: 2019-11-15
-Date last modified: 2020-11-12
-Revision comment: Issue:
-    Module 'monitor' is deprecated, use 'monitors' instead
+Date last modified: 2020-07-19
+Revision comment: Cleanup: example
 """
-__version__ = "1.6.2"
+__version__ = "1.6.3"
 
 from logging import debug
 
@@ -113,11 +112,7 @@ class Log_Control_Panel(wx.Panel):
 
 
 if __name__ == '__main__':
-    # from pdb import pm
-
-    # import autoreload
-
-    name = "LaserLab.acquisition_IOC"
+    name = "BioCARS.acquisition_IOC"
     domain_name, base_name = name.split(".")
 
     from redirect import redirect

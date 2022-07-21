@@ -1,10 +1,10 @@
 auto_start = False
-command = 'from DI_245_DL import dev; dev.run();'
-format_code = "str(value) == '1'"
-label = 'DI-245 Server'
+command = 'from IOC import *; run("BioCARS.alio_scan_simulator")'
+format_code = '"Online" if value is not None else "Offline"'
+label = 'Alio Scan Simulator'
 log_level = 'DEBUG'
-logfile_basename = 'DI_245_server'
-machine_name = 'PICO1'
-mnemonic = 'DI_245'
-test_code = 'value'
-value_code = 'caget("NIH:DI245.RUNNING")'
+logfile_basename = 'alio_scan_simulator'
+machine_name = 'ID14B4'
+mnemonic = 'alio_scan_simulator'
+test_code = 'value is not None'
+value_code = 'caget("BIOCARS:ALIO_SCAN.CMD.VAL")'

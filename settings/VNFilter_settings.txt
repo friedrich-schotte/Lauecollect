@@ -1,4 +1,4 @@
 EPICS_enabled = True
 description = 'Laser atten. X-Ray hutch'
 prefix = '14IDB:m32'
-target = 68.3747359292592
+target = 46.88842196547764

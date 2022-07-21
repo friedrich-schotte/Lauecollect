@@ -3,13 +3,13 @@
 Simulator for Prosilica GigE CCD cameras.
 Author: Friedrich Schotte
 Date created: 2020-05-07
-Date last modified: 2022-06-16
-Revision comment: db_name: Using "domains"
+Date last modified: 2022-07-19
+Revision comment: Cleanup: logging, f-strings
 """
-__version__ = "1.0.6"
+__version__ = "1.0.8"
 
 import warnings
-from logging import info
+import logging
 
 
 class GigE_camera_simulator(object):
@@ -85,7 +85,8 @@ class GigE_camera_simulator(object):
         self.handle_frame_update()
 
     def handle_frame_update(self):
-        self.handle_updates(self.frame_properties)
+        from time import time
+        self.handle_updates(self.frame_properties, time())
 
     frame_properties = [
         "frame_count",
@@ -97,20 +98,19 @@ class GigE_camera_simulator(object):
         "exposure_time",
     ]
 
-    def handle_updates(self, property_names):
+    def handle_updates(self, property_names, time):
         for property_name in property_names:
-            self.handle_update(property_name)
+            self.handle_update(property_name, time)
 
-    def handle_update(self, property_name):
-        event = self.event(property_name)
+    def handle_update(self, property_name, time):
+        event = self.event(property_name, time)
         self.__getattr_monitors__(property_name).call(event=event)
 
-    def event(self, property_name):
-        from event import event
-        from time import time
+    def event(self, property_name, time):
+        from event import Event
         from reference import reference
-        event = event(
-            time=time(),
+        event = Event(
+            time=time,
             value=getattr(self, property_name),
             reference=reference(self, property_name)
         )
@@ -301,18 +301,17 @@ def noise(average, shape, dtype=int):
 
 
 if __name__ == "__main__":
-    import logging
-
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     camera = GigE_camera_simulator("MicroscopeCamera")
     self = camera
-    print("camera.IP_addr = %r" % camera.IP_addr)
+    print(f"camera.IP_addr = {camera.IP_addr!r}")
     print("camera.acquiring = True")
     print("camera.state")
-    print('"%.70r" % camera.rgb_array_flat')
+    print('f"{camera.rgb_array_flat!r:.70}"')
 
 
-    def report(name): info("%s = %.70r" % (name, getattr(camera, name)))
+    def report(name):
+        logging.info(f"{name} = {getattr(camera, name)!r:.70}")
 
 
     print("camera.monitor('state',report,'state')")

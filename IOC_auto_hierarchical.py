@@ -2,10 +2,10 @@
 EPICS Input/Output Controller
 Author: Friedrich Schotte
 Date created: 2020-12-02
-Date last modified: 2022-06-15
-Revision comment: Updated examples
+Date last modified: 2022-07-11
+Revision comment: Refactored: driver_base_name
 """
-__version__ = "1.2.10"
+__version__ = "1.3.1"
 
 from logging import debug, exception
 from cached_function import cached_function
@@ -26,32 +26,40 @@ class IOC:
         return type(self).__name__
 
     @property
-    def object(self):
+    def driver(self):
         return example(self.name)
 
     @property
     @cached_function()
     def prefix(self):
-        if self.object_class_name:
-            prefix = f"{self.domain_name}:{self.object_class_name}.{self.base_name}"
+        if self.driver_class_name:
+            prefix = f"{self.driver_domain_name}:{self.driver_class_name}.{self.driver_base_name}"
         else:
-            prefix = f"{self.domain_name}:{self.base_name}"
+            prefix = f"{self.driver_domain_name}:{self.driver_base_name}"
         prefix = prefix.strip(".:") + "."
         prefix = prefix.upper()
         return prefix
 
     @property
-    def domain_name(self):
-        return self.name.split(".", 1)[0]
+    def driver_domain_name(self):
+        return self.driver.domain_name
 
     @property
-    def base_name(self):
-        return self.name.replace(self.domain_name, "", 1).strip(".")
+    def driver_base_name(self):
+        driver_base_name = ""
+        driver = self.driver
+        if hasattr(driver, "base_name"):
+            driver_base_name = driver.base_name
+        elif hasattr(driver, "name"):
+            if driver.name.startswith(self.driver_domain_name+"."):
+                driver_base_name = driver.name.replace(self.driver_domain_name+".", "", 1)
+        return driver_base_name
 
     @property
-    def object_class_name(self):
-        name = type(self.object).__name__
+    def driver_class_name(self):
+        name = type(self.driver).__name__
         name = name.replace("_Driver", "")
+        name = name.replace("_Simulator", "")
         return name
 
     run_cancelled = False
@@ -139,7 +147,7 @@ class IOC:
             # name = translate(name) # "METHOD.MOTOR1.CHOICES" -> "METHOD.CHOICES1"
             # noinspection PyBroadException
             try:
-                reference = attribute_reference(self.object, name)
+                reference = attribute_reference(self.driver, name)
             except Exception:
                 exception("{PV_name!r}")
         return reference
@@ -147,7 +155,7 @@ class IOC:
     @property
     @cached_function()
     def attribute_names(self):
-        names = dir(self.object)
+        names = dir(self.driver)
         names = dict([(name.upper(), name) for name in names])
         return names
 
@@ -282,14 +290,12 @@ if __name__ == "__main__":
             return type(self).__name__.lower()
 
         @property
-        def object(self):
+        def driver(self):
             from configuration_driver import configuration_driver
             return configuration_driver(self.name)
 
-        object_class_name = "conf"  # overrides default "configuration"
 
-
-    self = Configuration_IOC("LaserLab")
+    self = Configuration_IOC("BioCARS.power_configuration")
 
 
     @_handler
@@ -298,7 +304,7 @@ if __name__ == "__main__":
 
 
     # print('self.attribute_reference("LASERLAB:CONFIGURATION.CONFIGURATION_NAMES")')
-    # print('attribute_reference(self.object, "METHOD.MOTOR1.CURRENT_POSITION")')
+    # print('attribute_reference(self.driver, "METHOD.MOTOR1.CURRENT_POSITION")')
     # print('self.attribute_reference("LASERLAB:CONFIGURATION.METHOD.MOTOR1.CURRENT_POSITION")')
     # print('')
     # print('self.start()')

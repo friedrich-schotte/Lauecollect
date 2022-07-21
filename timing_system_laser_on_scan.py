@@ -1,13 +1,14 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-25
-Date last modified: 2022-06-30
-Revision comment: Simplified Scan_Driver.init
+Date last modified: 2022-07-14
+Revision comment: Overriding value_of_formatted_value, motor_name, motor
 """
-__version__ = "1.3.7"
+__version__ = "1.4"
 
 import logging
 
+from db_property import db_property
 from monitored_value_property import monitored_value_property
 from scan_driver import Scan_Driver
 from alias_property import alias_property
@@ -31,6 +32,29 @@ class Timing_System_Laser_On_Scan(Scan_Driver):
     @property
     def db_name(self):
         return f"{self.timing_system.db_name}/laser_on_scan"
+
+    motor_name = db_property("motor_name", "timing_system.composer.laser_on")
+
+    @monitored_property
+    def motor(self, motor_name):
+        full_motor_name = "self.domain." + motor_name
+        object_name = ".".join(full_motor_name.split(".")[0:-1])
+        property_name = full_motor_name.split(".")[-1]
+        # noinspection PyBroadException
+        try:
+            motor_object = eval(object_name)
+        except Exception as x:
+            logging.error(f"{object_name!r}: {x}")
+            if motor_name:
+                dummy_motor_name = f"{self.domain_name}.{motor_name}"
+            else:
+                dummy_motor_name = ""
+            from dummy_motor import Dummy_Motor
+            motor = Dummy_Motor(dummy_motor_name)
+        else:
+            from reference import reference
+            motor = reference(motor_object, property_name)
+        return motor
 
     # PVs to be hosted
     @monitored_property
@@ -64,10 +88,18 @@ class Timing_System_Laser_On_Scan(Scan_Driver):
     motor_command_value = alias_property("motor_value")
     motor_moving = monitored_value_property(False)
 
-    @staticmethod
-    def format(value):
+    def format(self, value):
         text = "on" if value else "off"
         return text
+
+    def value_of_formatted_value(self, formatted_value):
+        if formatted_value == "off":
+            value = False
+        elif formatted_value == "on":
+            value = True
+        else:
+            value = bool(eval(formatted_value))
+        return value
 
     def handle_values_index_change(self, values_index, time):
         logging.debug(f"[Ignoring values_index={values_index}]")
@@ -75,10 +107,9 @@ class Timing_System_Laser_On_Scan(Scan_Driver):
     def handle_collecting_dataset_change(self, collecting_dataset):
         logging.debug(f"[Ignoring collecting_dataset={collecting_dataset}]")
 
-    collection_variables_with_options = alias_property("acquisition_driver.collection_variables_with_options")
+    collection_variables_with_options = alias_property("acquisition_client.collection_variables_with_options")
 
     acquisition_client = alias_property("domain.acquisition_client")
-    acquisition_driver = alias_property("domain.acquisition_driver")
 
 
 if __name__ == '__main__':

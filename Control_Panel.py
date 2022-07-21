@@ -2,27 +2,22 @@
 """
 Author: Friedrich Schotte
 Date created: 2019-03-26
-Date last modified: 2022-06-09
-Revision comment: Added: panel_type
+Date last modified: 2022-07-19
+Revision comment: No auto-size by default
 """
-__version__ = "1.7"
+__version__ = "1.8.1"
 
-from logging import debug, info, error
-
+import logging
 import wx
+
+from db_property import db_property
 
 
 class Control_Panel(wx.Frame):
     """General-purpose toplevel window"""
     name = "BioCARS.test"
 
-    from setting import setting
-    default_size = (300, 200)
-    size = setting("size", default_size)
     auto_size = False
-
-    from persistent_property import persistent_property
-    icon = persistent_property("icon", "Tool")
 
     panel = None
 
@@ -33,7 +28,7 @@ class Control_Panel(wx.Frame):
         if panel_type is not None:
             self.panel_type = panel_type
 
-        info(f"{self} started")
+        logging.info(f"{self} started")
         wx.Frame.__init__(self, parent=parent)
 
         self.update()
@@ -51,20 +46,25 @@ class Control_Panel(wx.Frame):
     def __repr__(self):
         return f"{self.class_name}({self.name!r})"
 
+    icon = "Tool"
+
+    default_size = (300, 200)
+    size = db_property("size", default_size, local=True)
+
+    @property
+    def db_name(self):
+        if "." in self.name:
+            domain_name, base_name = self.name.split(".", 1)
+            db_name = f"domains/{domain_name}/{self.class_name.lower()}/{base_name}"
+        else:
+            domain_name = self.name
+            db_name = f"domains/{domain_name}/{self.class_name.lower()}"
+        return db_name
+
     @property
     def title(self):
-        from capitalize import capitalize
         if not self.saved_title:
-            class_name = self.panel_type.__name__
-            class_name = class_name.replace("_", " ")
-            class_name = capitalize(class_name)
-
-            name = self.name
-            name = name.replace(".", " ")
-            name = name.replace("_", " ")
-            name = capitalize(name)
-
-            title = f"{class_name} [{name}]"
+            title = self.default_title
         else:
             title = self.saved_title
         return title
@@ -73,11 +73,24 @@ class Control_Panel(wx.Frame):
     def title(self, title):
         self.saved_title = title
 
-    saved_title = persistent_property("title", "")
+    saved_title = ""
+
+    @property
+    def default_title(self):
+        from capitalize import capitalize
+        class_name = self.panel_type.__name__
+        class_name = class_name.replace("_", " ")
+        class_name = capitalize(class_name)
+        name = self.name
+        name = name.replace(".", " ")
+        name = name.replace("_", " ")
+        name = capitalize(name)
+        title = f"{class_name} [{name}]"
+        return title
 
     def OnDestroy(self, event):
         event.Skip()
-        info(f"{self}: Window destroyed")
+        logging.info(f"{self}: Window destroyed")
 
     def OnTimer(self, _event):
         """Perform periodic updates"""
@@ -85,7 +98,7 @@ class Control_Panel(wx.Frame):
         try:
             self.update_controls()
         except Exception as msg:
-            error("%s" % msg)
+            logging.error("%s" % msg)
             import traceback
             traceback.print_exc()
         self.timer.Start(5000, oneShot=True)
@@ -94,7 +107,7 @@ class Control_Panel(wx.Frame):
         module = __import__(self.module_name)
         my_class = getattr(module, self.class_name, None)
         if my_class and self.__class__ != my_class:
-            debug("Code change detected, updating panel")
+            logging.debug("Code change detected, updating panel")
             self.__class__ = my_class
             self.update()
 
@@ -102,21 +115,46 @@ class Control_Panel(wx.Frame):
         from Icon import SetIcon
         SetIcon(self, self.icon)
 
+        panel = self.ControlPanel
+        if self.panel is not None:
+            self.panel.Destroy()
+        self.panel = panel
+
         menuBar = self.menuBar
         old_menu_bar = self.MenuBar
         self.MenuBar = menuBar
         if old_menu_bar:
             old_menu_bar.Destroy()
 
-        panel = self.ControlPanel
-        if self.panel is not None:
-            self.panel.Destroy()
-        self.panel = panel
+        min_size = (100, 50)
+        max_size = (1024, 768)
 
         if self.auto_size:
+            logging.debug(f"{self}: Auto-sizing because auto-size requested")
+            auto_size = True
+        elif self.size[0] < min_size[0] or self.size[1] < min_size[1]:
+            logging.debug(f"{self}: Auto-sizing because size {self.size} is smaller than minimum size {min_size}")
+            auto_size = True
+        else:
+            auto_size = False
+
+        if auto_size:
+            self.panel.Fit()
             self.Fit()
-        elif self.size == self.default_size:
-            self.Fit()
+            logging.debug(f"{self}: Auto-sized to {self.Size}")
+            size = self.Size
+            size = (min(size[0], max_size[0]), min(size[1], max_size[1]))
+            if size != self.Size:
+                logging.debug(f"{self}: Auto-size {self.Size} is larger than {max_size}. Shrinking to {size}")
+                self.Size = size
+            if self.Size[0] < min_size[0] or self.Size[1] < min_size[1]:
+                size = self.Size
+                if size[0] < min_size[0]:
+                    size = self.default_size[0], size[1]
+                if size[1] < min_size[1]:
+                    size = size[0], self.default_size[1]
+                logging.debug(f"{self}: Auto-size {self.Size} is smaller than {min_size}. Growing to {size}")
+                self.Size = size
         else:
             w, h = self.size
             self.Size = w, h + 1  # size change needed, otherwise panel does not fill window
@@ -135,11 +173,10 @@ class Control_Panel(wx.Frame):
 
     @property
     def class_name(self):
-        class_name = self.__class__.__name__
-        return class_name
+        return type(self).__name__
 
     def OnResize(self, event):
-        # debug("%r" % event.Size)
+        # logging.debug("%r" % event.Size)
         if self.auto_size:
             self.Fit()
         else:

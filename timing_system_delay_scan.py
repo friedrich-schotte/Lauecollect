@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-25
-Date last modified: 2022-06-30
-Revision comment: Simplified Scan_Driver.init
+Date last modified: 2022-07-14
+Revision comment: Overriding value_of_formatted_value, motor_name, motor
 """
-__version__ = "1.3.7"
+__version__ = "1.4"
 
 import logging
 
@@ -13,6 +13,7 @@ from cached_function import cached_function
 from monitored_value_property import monitored_value_property
 from alias_property import alias_property
 from monitored_property import monitored_property
+from db_property import db_property
 
 
 @cached_function()
@@ -32,8 +33,31 @@ class Timing_System_Delay_Scan(Scan_Driver):
     def db_name(self):
         return f"{self.timing_system.db_name}/delay_scan"
 
+    motor_name = db_property("motor_name", "timing_system.composer.delay")
+
+    @monitored_property
+    def motor(self, motor_name):
+        full_motor_name = "self.domain." + motor_name
+        object_name = ".".join(full_motor_name.split(".")[0:-1])
+        property_name = full_motor_name.split(".")[-1]
+        # noinspection PyBroadException
+        try:
+            motor_object = eval(object_name)
+        except Exception as x:
+            logging.error(f"{object_name!r}: {x}")
+            if motor_name:
+                dummy_motor_name = f"{self.domain_name}.{motor_name}"
+            else:
+                dummy_motor_name = ""
+            from dummy_motor import Dummy_Motor
+            motor = Dummy_Motor(dummy_motor_name)
+        else:
+            from reference import reference
+            motor = reference(motor_object, property_name)
+        return motor
+
     # PVs to be hosted
-    values_string = alias_property("acquisition_driver.delay_configuration")
+    values_string = db_property("values_string", "", local=True)
     wait = monitored_value_property(False)
     return_value = alias_property("timing_system.delay.value")
     ready = monitored_value_property(True)
@@ -46,15 +70,20 @@ class Timing_System_Delay_Scan(Scan_Driver):
     enabled = alias_property("acquisition_client.scanning.delay")
     scan_point_divider = alias_property("acquisition_client.scan_point_dividers.delay")
 
+    acquisition_client = alias_property("domain.acquisition_client")
+
     # Diagnostics PVs to be hosted
     motor_value = alias_property("timing_system.composer.delay")
     motor_command_value = alias_property("motor_value")
     motor_moving = monitored_value_property(False)
 
-    @staticmethod
-    def format(value):
+    def format(self, value):
         from time_string import time_string
         return time_string(value)
+
+    def value_of_formatted_value(self, formatted_value):
+        from time_string import seconds
+        return seconds(formatted_value)
 
     def handle_values_index_change(self, values_index, time):
         logging.debug(f"[Ignoring values_index={values_index}]")
@@ -93,9 +122,6 @@ class Timing_System_Delay_Scan(Scan_Driver):
     @property
     def sequence(self):
         return self.timing_system_sequencer.Sequence(acquiring=True)
-
-    acquisition_client = alias_property("domain.acquisition_client")
-    acquisition_driver = alias_property("domain.acquisition_driver")
 
     timing_system_sequencer = alias_property("timing_system.sequencer")
 

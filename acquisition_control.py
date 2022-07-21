@@ -2,10 +2,10 @@
 Interface module for GUI
 Author: Friedrich Schotte
 Date created: 2020-09-21
-Date last modified: 2022-06-28
-Revision comment: Renamed configuration_tables
+Date last modified: 2022-07-12
+Revision comment: Simplified method_color
 """
-__version__ = "1.6.3"
+__version__ = "1.6.6"
 
 import logging
 
@@ -33,9 +33,10 @@ class Acquisition_Control(Acquisition_Client):
     method_applying = alias_property("method.applying")
 
     @monitored_property
-    def method_color(self, method_online, method_applying, method_in_position):
+    def method_color_with_orange(self, method_applying, method_in_position):
+        from numpy import isnan
         from color import red, orange, green, light_gray
-        if not method_online:
+        if isnan(method_in_position):
             color = light_gray
         elif method_applying:
             color = orange
@@ -45,7 +46,27 @@ class Acquisition_Control(Acquisition_Client):
             color = red
         return color
 
-    configuring = alias_property("method.applying")
+    @monitored_property
+    def method_color(self, method_in_position):
+        from numpy import isnan
+        from color import red, green, light_gray
+        if isnan(method_in_position):
+            color = light_gray
+        elif method_in_position:
+            color = green
+        else:
+            color = red
+        return color
+
+    @monitored_property
+    def configuring(self, method_applying):
+        return method_applying
+
+    @configuring.setter
+    def configuring(self, configuring):
+        self.method_applying = configuring
+        if configuring:
+            self.override_repeat = False
 
     @property
     def domain(self):

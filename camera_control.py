@@ -3,16 +3,21 @@
 Author: Friedrich Schotte
 Python Version: 2.7, 3.6
 Date created: 2020-04-15
-Date last modified: 2021-06-16
-Revision comment: Cleanup
+Date last modified: 2021-07-19
+Revision comment: Using monitored_property_1
 """
-__version__ = "1.6.1"
+__version__ = "1.6.5"
 
-from logging import info
+import logging
 
 from cached_function import cached_function
 from camera_client import Camera
 from reference import reference
+from db_property import db_property
+from local_property import local_property
+from monitored_property_1 import monitored_property
+from monitored_method import monitored_method
+from numpy import nan
 
 
 @cached_function()
@@ -21,12 +26,6 @@ def camera_control(name):
 
 
 class Camera_Control(Camera):
-    from db_property import db_property
-    from local_property import local_property
-    from monitored_property import monitored_property
-    from monitored_method import monitored_method
-    from numpy import nan
-
     @property
     def default_title(self): return f"{self.base_name} [{self.domain_name}]"
 
@@ -63,9 +62,9 @@ class Camera_Control(Camera):
     show_grid = local_property("show_grid", False)
     grid_type = local_property("grid_type", "xy")
     grid_x_spacing = local_property("grid_x_spacing", 1.0)  # mm
-    grid_x_offset = local_property("grid_x_offset", 0.0)  # mm with respect to the crosshairs
+    grid_x_offset = local_property("grid_x_offset", 0.0)  # mm, with respect to the crosshairs
     grid_y_spacing = local_property("grid_y_spacing", 1.0)  # mm
-    grid_y_offset = local_property("grid_y_offset", 0.0)  # mm with respect to the crosshairs
+    grid_y_offset = local_property("grid_y_offset", 0.0)  # mm, with respect to the crosshairs
     grid_color = local_property("grid_color", (0, 0, 255))
 
     ROI = local_property("ROI", [[-0.2, -0.2], [0.2, 0.2]])  # (xmin,ymin),(xmax,ymax)
@@ -85,7 +84,7 @@ class Camera_Control(Camera):
 
     @monitored_property
     def pixelsize(self, nominal_pixelsize, has_zoom, zoom_level):
-        """Scaled pixelsize if camera optics have zoom"""
+        """Scaled pixelsize if camera optics have a zoom"""
         if has_zoom:
             pixelsize = nominal_pixelsize / zoom_level
         else:
@@ -173,13 +172,13 @@ class Camera_Control(Camera):
            Extension (.jpg, .png, .tif) determines file format
         """
         from PIL import Image
-        image = Image.new('RGB', (self.image_width, self.image_height))
+        image = Image.new('RGB', (self.width, self.height))
         image.frombytes(self.image.T.tobytes())
         from os import makedirs
         from os.path import dirname, exists
         if dirname(filename) and not exists(dirname(filename)):
             makedirs(dirname(filename))
-        info("Saving %r" % filename)
+        logging.info("Saving %r" % filename)
         image.save(filename)
 
     @monitored_method
@@ -224,7 +223,7 @@ class Camera_Control(Camera):
 
     @monitored_method
     def transform_image(self, image):
-        """Transform from raw to displayed to displayed image.
+        """Transform from raw to displayed image.
         image: 3D numpy array with dimensions 3 x width x height
         Return value: rotated version of the input image"""
         if self.mirror:
@@ -259,7 +258,7 @@ class Camera_Control(Camera):
         return image
 
     def transform_mask(self, mask):
-        """Transform from raw to displayed to displayed image.
+        """Transform from raw to displayed image.
         mask: 2D numpy array dimensions width x height
         Return value: rotated version of the input image"""
         if self.mirror:
@@ -273,7 +272,7 @@ class Camera_Control(Camera):
         return mask
 
     def back_transform_mask(self, mask):
-        """Transform from raw to displayed to displayed image.
+        """Transform from raw to displayed image.
         mask: 2D numpy array dimensions width x height
         Return value: rotated version of the input image"""
         if self.normalized_orientation == 90:
@@ -300,11 +299,8 @@ class Camera_Control(Camera):
 
 
 if __name__ == "__main__":
-    import logging
-
-    level = logging.DEBUG
     msg_format = "%(asctime)s: %(message)s"
-    logging.basicConfig(level=level, format=msg_format)
+    logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
     from handler import handler as _handler
     from reference import reference as _reference
@@ -316,10 +312,14 @@ if __name__ == "__main__":
     # self = camera_control("LaserLab.LaserLabCamera")
     # self = camera_control("LaserLab.FLIR1")
 
-
     @_handler
     def report(event=None):
         logging.info(f"event={event}")
 
+    property_names = [
+        "image",
+    ]
+    for property_name in property_names:
+        _reference(self, property_name).monitors.add(report)
 
-    _reference(self, "scale_factor").monitors.add(report)
+    print(f"self.acquiring = {self.acquiring}")

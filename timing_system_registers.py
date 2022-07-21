@@ -1,16 +1,13 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-30
-Date last modified: 2022-05-02
-Revision comment: Fixed: Issue:
-    reference.get_value: timing_system('BioCARS').registers[:]
-    (type <class 'timing_system_registers.Timing_System_Registers'>):
-    unhashable type: 'slice'
+Date last modified: 2022-07-17
+Revision comment: Made monitored_property: names
 """
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
+from alias_property import alias_property
 from cached_function import cached_function
-from collections.abc import MutableMapping
 
 
 @cached_function()
@@ -67,9 +64,7 @@ class Timing_System_Registers:
             reg = dummy_register(self.timing_system, name)
         return reg
 
-    @property
-    def names(self):
-        return self.timing_system.all_register_names
+    names = alias_property("timing_system.all_register_names")
 
 
 if __name__ == '__main__':  # for testing

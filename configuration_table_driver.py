@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-16
-Date last modified: 2022-07-07
+Date last modified: 2022-07-11
 Revision comment: Updated example
 """
-__version__ = "1.0.5"
+__version__ = "1.0.7"
 
 import logging
 
@@ -29,8 +29,7 @@ class Configuration_Table_Driver(object):
     """Database save and recall motor positions"""
 
     def __init__(self, name):
-        """name: "domain_name.basename" e.g. "BioCARS.method"
-        """
+        """name: "domain_name.basename" e.g. "BioCARS.method" """
         self.name = name
 
         self.applying_row = None
@@ -92,10 +91,6 @@ class Configuration_Table_Driver(object):
             self.motor[i].formatted_position = formatted_values[i]
             if cancelled():
                 break
-
-    def motor_positions_match(self, formatted_values):
-        return [self.motor[i].formatted_position_matches(formatted_values[i])
-                for i in range(0, self.n_motors)]
 
     def apply(self):
         self.applying = True
@@ -268,7 +263,7 @@ if __name__ == '__main__':
     # base_name = "beamline_configuration"
     # base_name = "Julich_chopper_modes"
     # base_name = "heat_load_chopper_modes"
-    base_name = "timing_modes"
+    # base_name = "timing_modes"
     # base_name = "sequence_modes"
     # base_name = "delay_configuration"
     # base_name = "temperature_configuration"
@@ -276,20 +271,21 @@ if __name__ == '__main__':
     # base_name = "scan_configuration"
     # base_name = "diagnostics_configuration"
     # base_name = "detector_configuration"
-    # base_name = "method"
+    base_name = "method"
     # base_name = "laser_optics_modes"
     # base_name = "alio_diffractometer_saved"
 
-    from IOC import ioc as _ioc
     from handler import handler as _handler
 
+    from IOC import ioc as _ioc
     ioc = _ioc(f'{domain_name}.configuration.{base_name}')
-    # self = configuration_table_driver(name)
-    self = ioc.object
+    self = ioc.driver
+    # from IOC_3 import ioc as _ioc
+    # self = configuration_table_driver(f'{domain_name}.{base_name}')
+    # ioc = _ioc(driver=self)
 
     @_handler
     def report(event=None): logging.info(f"{event}")
-
 
     # from reference import reference as _reference
     # _reference(self, "command_row_saved").monitors.add(report)

@@ -2,15 +2,10 @@
 """Graphical User Interface
 Author: Friedrich Schotte
 Date created: 2008-11-23
-Date last modified: 2021-10-10
-Revision comment: Issue:
-    line 161, in __init__
-    layout.Add(component, flag=flag)
-    wx._core.wxAssertionError: C++ assertion "!(flags & (wxALIGN_BOTTOM | wxALIGN_CENTRE_VERTICAL))"
-    failed at sizer.cpp(2184) in DoInsert():
-    Vertical alignment flags are ignored with wxEXPAND
+Date last modified: 2022-07-20
+Revision comment: Silenced debug messages
 """
-__version__ = "1.15.3"
+__version__ = "1.15.5"
 
 import wx
 from EditableControls import ComboBox, TextCtrl  # customized versions
@@ -309,7 +304,7 @@ class BasePanel(wx.Frame):
     View = property(get_View, set_View)
 
     def OnMenuOpen(self, event):
-        debug("Menu opened: %r" % event.EventObject)
+        # debug(f"Menu opened: {event.EventObject!r}")
         if event.EventObject == self.ViewMenu:
             self.OnViewMenuOpen(event)
         if event.EventObject == self.RefreshMenu:
@@ -317,7 +312,7 @@ class BasePanel(wx.Frame):
 
     def OnViewMenuOpen(self, _event):
         """Handle "View" menu display"""
-        debug("View menu opened")
+        # debug("View menu opened")
         for i in range(0, len(self.views)):
             self.ViewMenu.Check(10 + i, list(self.views.keys())[i] == self.view)
         for i in range(0, len(self.controls)):
@@ -340,10 +335,10 @@ class BasePanel(wx.Frame):
 
     def OnRefreshMenuOpen(self, _event):
         """Handle "Refresh" menu display"""
-        debug("Refresh menu opened")
+        # debug("Refresh menu opened")
         menu = self.RefreshMenu
         for item in menu.MenuItems:
-            menu.RemoveItem(item)
+            menu.Remove(item)
 
         from time_string import time_string
         for i, choice in enumerate(self.refresh_period_choices):
@@ -362,11 +357,11 @@ class BasePanel(wx.Frame):
 
     def OnRefreshPeriod(self, event):
         """Called if one of the items of the "Refresh" menu is selected"""
-        debug("Refresh ID=%r selected" % event.Id)
+        # debug(f"Refresh ID={event.Id!r} selected")
         n = event.Id - 300
         if n in range(0, len(self.refresh_period_choices)):
             self.refresh_period = self.refresh_period_choices[n]
-            debug("refresh_period %r" % self.refresh_period)
+            # debug(f"refresh_period {self.refresh_period!r}")
 
     def OnRefreshPeriodOther(self, _event):
         panel = RefreshPeriodPanel(self)
@@ -401,7 +396,7 @@ class BasePanel(wx.Frame):
             module_name = module_name(class_object)
             python_code = class_object.__name__ + "()"
         from start import start
-        debug("Starting module %r, code %r..." % (module_name, python_code))
+        # debug(f"Starting module {module_name!r}, code {python_code!r}...")
         start(module_name, python_code)
 
     def OnAbout(self, _event):
@@ -425,7 +420,7 @@ class BasePanel(wx.Frame):
         self.apply()
 
     def OnButton(self, event):
-        # debug("Button %r pressed" % event.Id)
+        # debug(f"Button {event.Id!r} pressed")
         n = event.Id
         if 0 <= n < len(self.buttons):
             self.start(self.buttons[n][1])
@@ -695,8 +690,7 @@ class PropertyPanel(wx.Panel):
             try:
                 text = choices[int(value)]
             except Exception as x:
-                debug("PropertyPanel.refresh: %r: type %r, value %r: %s" %
-                      (self.name, self.type, value, x))
+                # debug(f"PropertyPanel.refresh: {self.name!r}: type {self.type!r}, value {value!r}: {x}")
                 text = str(value)
         else:
             if isnan(value):
@@ -804,7 +798,7 @@ class PropertyPanel(wx.Panel):
                 try:
                     value1, value2 = int(eval(text1)), int(eval(text2))
                 except Exception as msg:
-                    debug("%r" % msg)
+                    # debug(f"{msg}")
                     return
                 old_value = getattr(self.object, self.name)
                 value = value1 if value1 != old_value else value2
@@ -873,11 +867,11 @@ class PropertyPanel(wx.Panel):
         """If the control has changed apply the change to the object is
         is controlling."""
         try:
-            debug("Starting %r.%s = %r..." % (self.object, self.name, self.new_value))
+            # debug(f"Starting {self.object!r}.{self.name} = {self.new_value!r}...")
             setattr(self.object, self.name, self.new_value)
-            debug("Finished %r.%s = %r" % (self.object, self.name, self.new_value))
+            # debug(f"Finished {self.object!r}.{self.name} = {self.new_value!r}")
             self.update_data()
-            debug("Updated %r.%s = %r" % (self.object, self.name, self.values[self.name]))
+            # debug(f"Updated {self.object!r}.{self.name} = {self.values[self.name]!r}")
             self.changing = False
             self.force_refresh()
         except RuntimeError:
@@ -1013,7 +1007,7 @@ class TweakPanel(wx.Panel):
                 n += 1
         else:
             n = len(text) - cursor - 1
-        # debug("Tweak %+g,%r,cur %r,end %r,digit %r" % (sign,text,cursor,end,n))
+        # debug(f"Tweak {sign:+g},{text!r},cur {cursor!r},end {end!r},digit {n!r}")
         increment = 10 ** n
         try:
             value = eval(text)
@@ -1033,7 +1027,7 @@ class TweakPanel(wx.Panel):
             cursor = 0
         end = cursor + 1
 
-        # debug("Tweak %+g,%r,cur %r,end %r,digit %r" % (sign,text,cursor,end,n))
+        # debug(f"Tweak {sign:+g},{text!r},cur {cursor!r},end {end!r},digit {n!r}")
         setattr(self.object, self.name, value)
         self.Control.SetFocus()
         self.Control.Value = text
@@ -1158,7 +1152,7 @@ class TogglePanel(wx.Panel):
             value = int(value)
             valid = True
         except Exception as x:
-            debug("PropertyPanel.refresh: %r: value %r: %s" % (self.name, value, x))
+            # debug(f"PropertyPanel.refresh: {self.name!r}: value {value!r}: {x}")
             valid = False
         self.Control.Value = value if valid else False
         self.Control.Enabled = valid
@@ -1167,8 +1161,7 @@ class TogglePanel(wx.Panel):
             try:
                 text = choices[value]
             except Exception as x:
-                debug("PropertyPanel.refresh_status: %r: type %r, value %r: %s" %
-                      (self.name, self.type, value, x))
+                # debug(f"PropertyPanel.refresh_status: {self.name!r}: type {self.type!r}, value {value!r}: {x}")
                 text = str(value)
         else:
             text = self.label
@@ -1353,10 +1346,10 @@ def IsInVisibleWindow(obj):
 
     def IsFrame(object): return hasattr(object, "Title")
 
-    # debug("IsInVisibleWindow: object=%r" % object)
+    # debug(f"IsInVisibleWindow: object={object!r}")
     while not IsFrame(obj) and Parent(obj) is not None:
         obj = Parent(obj)
-        # debug("IsInVisibleWindow: object -> %r" % object)
+        # debug(f"IsInVisibleWindow: object -> {object!r}")
     IsInVisibleWindow = getattr(obj, "Shown", False)
     return IsInVisibleWindow
 

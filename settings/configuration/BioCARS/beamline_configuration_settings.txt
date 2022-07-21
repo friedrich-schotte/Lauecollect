@@ -1,1 +1,2 @@
 title = 'Beamline Configurations'
+show_in_list = False

@@ -1,5 +1,5 @@
 auto_start = True
-command = 'from channel_archiver_IOC import *; run("LaserLab")'
+command = 'from IOC import *; run("LaserLab.channel_archiver")'
 format_code = '"IOC offline" if value is None else "Active" if value else "Not Active"'
 label = 'Channel Archiver'
 log_level = 'DEBUG'

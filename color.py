@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-06-12
-Date last modified: 2022-06-20
-Revision comment:
+Date last modified: 2022-07-12
+Revision comment: Added gray
 """
-__version__ = "1.0"
+__version__ = "1.1"
 
 import logging
 
@@ -12,8 +12,9 @@ red = (255, 0, 0, 255)
 green = (0, 255, 0, 255)
 orange = (255, 192, 0, 255)
 
-light_gray = (224, 224, 224, 255)
 white = (255, 255, 255, 255)
+light_gray = (224, 224, 224, 255)
+gray = (180, 180, 180, 255)
 
 
 def mix_colors(color1, color2):

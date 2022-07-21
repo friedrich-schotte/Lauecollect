@@ -3,10 +3,10 @@
 Archive EPICS process variables via Channel Access
 Author: Friedrich Schotte
 Date created: 2017-10-04
-Date last modified: 2022-03-23
-Revision comment: Simplified logfile
+Date last modified: 2022-07-11
+Revision comment: __repr__: lower case
 """
-__version__ = "1.3.8"
+__version__ = "1.3.10"
 
 from logging import info
 from cached_function import cached_function
@@ -26,7 +26,11 @@ class Channel_Archiver_Driver(object):
             self.domain_name = domain_name
 
     def __repr__(self):
-        return "%s(%r)" % (type(self).__name__, self.domain_name)
+        return f"{self.class_name}({self.domain_name!r})"
+
+    @property
+    def class_name(self):
+        return type(self).__name__.lower()
 
     def start(self):
         self.archiving_enabled = True
