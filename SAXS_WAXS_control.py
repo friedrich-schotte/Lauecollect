@@ -2,11 +2,12 @@
 """Support module for SAXS/WAXS control panel.
 Author: Friedrich Schotte, Valentyn Stadnydskyi
 Date created: 2017-06-12
-Date last modified: 2022-04-05
-Revision comment: Using timing system server
+Date last modified: 2022-07-25
+Revision comment: Issue: using domain
 """
-__version__ = "2.3.9"
+__version__ = "2.3.12"
 
+import logging
 from logging import debug, warning
 
 
@@ -45,10 +46,10 @@ class SAXS_WAXS_Control(object):
 
     def get_environment_index(self):
         """0=NIH, 1=APS, 2=LCLS"""
-        return self.instrumentation.ensemble.UserInteger0
+        return self.domain.ensemble.UserInteger0
 
     def set_environment_index(self, value):
-        self.instrumentation.ensemble.UserInteger0 = value
+        self.domain.ensemble.UserInteger0 = value
 
     environment_index = property(get_environment_index, set_environment_index)
 
@@ -57,45 +58,45 @@ class SAXS_WAXS_Control(object):
 
     def get_det_inserted(self):
         from numpy import isnan, nan
-        value = abs(self.instrumentation.DetZ.value - self.det_inserted_pos) < 0.01 \
-            if not isnan(self.instrumentation.DetZ.value) else nan
+        value = abs(self.domain.DetZ.value - self.det_inserted_pos) < 0.01 \
+            if not isnan(self.domain.DetZ.value) else nan
         return value
 
     def set_det_inserted(self, value):
-        if self.instrumentation.DetZ.moving:
-            self.instrumentation.DetZ.moving = False
+        if self.domain.DetZ.moving:
+            self.domain.DetZ.moving = False
         else:
             if value:
-                self.instrumentation.DetZ.command_value = self.det_inserted_pos
+                self.domain.DetZ.command_value = self.det_inserted_pos
 
     det_inserted = property(get_det_inserted, set_det_inserted)
 
     def get_det_retracted(self):
         from numpy import isnan, nan
-        value = abs(self.instrumentation.DetZ.value - self.det_retracted_pos) < 0.001 \
-            if not isnan(self.instrumentation.DetZ.value) else nan
+        value = abs(self.domain.DetZ.value - self.det_retracted_pos) < 0.001 \
+            if not isnan(self.domain.DetZ.value) else nan
         return value
 
     def set_det_retracted(self, value):
-        if self.instrumentation.DetZ.moving:
-            self.instrumentation.DetZ.moving = False
+        if self.domain.DetZ.moving:
+            self.domain.DetZ.moving = False
         else:
             if value:
-                self.instrumentation.DetZ.command_value = self.det_retracted_pos
+                self.domain.DetZ.command_value = self.det_retracted_pos
 
     det_retracted = property(get_det_retracted, set_det_retracted)
 
     def get_det_moving(self):
-        return self.instrumentation.DetZ.moving
+        return self.domain.DetZ.moving
 
     def set_det_moving(self, value):
-        self.instrumentation.DetZ.moving = value
+        self.domain.DetZ.moving = value
 
     det_moving = property(get_det_moving, set_det_moving)
 
     def get_ensemble_homed(self):
         from numpy import product
-        homed = product(self.instrumentation.ensemble.homed[[0, 1, 2, 4, 5]])
+        homed = product(self.domain.ensemble.homed[[0, 1, 2, 4, 5]])
         return homed
 
     def set_ensemble_homed(self, value):
@@ -119,34 +120,34 @@ class SAXS_WAXS_Control(object):
         debug(f"Retracting detector to {det_z_retracted} mm...")
         self.det_z.value = det_z_retracted
 
-        laser_y_return = self.laser_y.value
+        laser_y_return = self.laser_y_value
         laser_y_retracted = self.laser_y_retracted
         debug(f"Retracting Laser Y to {laser_y_retracted} mm...")
-        self.laser_y.value = laser_y_retracted
+        self.laser_y_value = laser_y_retracted
 
         while not all([
             abs(self.det_z.value - det_z_retracted) < 0.001,
-            abs(self.laser_y.value - laser_y_retracted) < 0.001,
+            abs(self.laser_y_value - laser_y_retracted) < 0.001,
         ]):
             if self.action != "homing":
                 break
             sleep(0.10)
 
         debug(f"Detector at {self.det_z.value} mm")
-        debug(f"Laser Y at {self.laser_y.value} mm")
+        debug(f"Laser Y at {self.laser_y_value} mm")
 
         if all([
             self.action == "homing",
             abs(self.det_z.value - det_z_retracted) < 0.001,
-            abs(self.laser_y.value - laser_y_retracted) < 0.001,
+            abs(self.laser_y_value - laser_y_retracted) < 0.001,
         ]):
             debug(f"Starting {self.home_program_filename!r}...")
-            self.instrumentation.ensemble.program_filename = self.home_program_filename
-            while self.instrumentation.ensemble.program_filename != self.home_program_filename:
+            self.domain.ensemble.program_filename = self.home_program_filename
+            while self.domain.ensemble.program_filename != self.home_program_filename:
                 if self.action != "homing":
                     break
                 sleep(0.01)
-            while self.instrumentation.ensemble.program_filename == self.home_program_filename:
+            while self.domain.ensemble.program_filename == self.home_program_filename:
                 if self.action != "homing":
                     break
                 sleep(0.01)
@@ -156,34 +157,42 @@ class SAXS_WAXS_Control(object):
         self.det_z.value = det_z_return
 
         debug(f"Returning laser Y to {laser_y_return} mm...")
-        self.laser_y.value = laser_y_return
+        self.laser_y_value = laser_y_return
 
         while not all([
             abs(self.det_z.value - det_z_return) < 0.001,
-            abs(self.laser_y.value - laser_y_return) < 0.001,
+            abs(self.laser_y_value - laser_y_return) < 0.001,
         ]):
             sleep(0.10)
 
         debug(f"Detector at {self.det_z.value} mm")
-        debug(f"Laser Y at {self.laser_y.value} mm")
+        debug(f"Laser Y at {self.laser_y_value} mm")
 
         self.action = ""
 
     def stop_ensemble_homing(self):
         if self.action == "homing":
             self.action = ""
-        if self.instrumentation.ensemble.program_filename == self.home_program_filename:
-            self.instrumentation.ensemble.program_running = False
+        if self.domain.ensemble.program_filename == self.home_program_filename:
+            self.domain.ensemble.program_running = False
 
     @property
     def laser_y_retracted(self):
         from numpy import clip
-        return clip(self.laser_y.value + 5, self.laser_y.low_limit, self.laser_y.high_limit)
+        return clip(self.laser_y_value + 5, self.laser_y.low_limit, self.laser_y.high_limit)
 
     det_z_value = alias_property("det_z.value")
-    det_z = alias_property("instrumentation.DetZ")
-    laser_y_value = alias_property("laser_y.value")
-    laser_y = alias_property("instrumentation.LaserY")
+    det_z = alias_property("domain.DetZ")
+
+    @property
+    def laser_y_value(self):
+        return value(self.laser_y)
+
+    @laser_y_value.setter
+    def laser_y_value(self, value):
+        self.laser_y.value = value
+
+    laser_y = alias_property("domain..LaserY")
 
     @property
     def ensemble_homing_prohibited(self):
@@ -198,21 +207,21 @@ class SAXS_WAXS_Control(object):
     program_filename = "NIH-diffractometer_PP.ab"
 
     def get_ensemble_program_running(self):
-        return self.instrumentation.ensemble.program_filename == self.program_filename
+        return self.domain.ensemble.program_filename == self.program_filename
 
     def set_ensemble_program_running(self, value):
         if value:
-            self.instrumentation.ensemble.program_filename = self.program_filename
+            self.domain.ensemble.program_filename = self.program_filename
         else:
             self.ensemble.integer_registers[0] = 0
 
     ensemble_program_running = property(get_ensemble_program_running, set_ensemble_program_running)
 
     def get_timing_system_running(self):
-        return self.timing_system.composer.running
+        return self.timing_system.sequencer.running
 
     def set_timing_system_running(self, value):
-        self.timing_system.composer.running = value
+        self.timing_system.sequencer.running = value
 
     timing_system_running = property(get_timing_system_running,
                                      set_timing_system_running)
@@ -238,7 +247,7 @@ class SAXS_WAXS_Control(object):
     def set_at_inserted_position(self, value):
         """Define current position as 'inserted'"""
         if value:
-            self.x, self.y = self.instrumentation.SampleX.command_value, self.instrumentation.SampleY.command_value
+            self.x, self.y = self.domain.SampleX.command_value, self.domain.SampleY.command_value
             debug(f'x, y = {self.x}, {self.y}')
 
     at_inserted_position = property(get_at_inserted_position,
@@ -246,7 +255,7 @@ class SAXS_WAXS_Control(object):
 
     def get_inserted(self):
         from numpy import isnan, nan, allclose
-        x, y = self.instrumentation.SampleX.value, self.instrumentation.SampleY.value
+        x, y = self.domain.SampleX.value, self.domain.SampleY.value
         value = allclose((x, y), (self.x, self.y), atol=0.05)
         if any(isnan([x, y])):
             value = nan
@@ -262,7 +271,7 @@ class SAXS_WAXS_Control(object):
 
     def get_retracted(self):
         from numpy import isnan, nan, allclose
-        x, y = self.instrumentation.SampleX.value, self.instrumentation.SampleY.value
+        x, y = self.domain.SampleX.value, self.domain.SampleY.value
         value = allclose((x, y), (self.xr, self.yr), atol=0.005)
         if any(isnan([x, y])):
             value = nan
@@ -287,9 +296,9 @@ class SAXS_WAXS_Control(object):
         self.cancelled = False
         self.timeout = 10
         debug("insert sample: x -> %r" % x)
-        self.instrumentation.SampleX.command_value = x
-        debug("insert sample: x=%r" % self.instrumentation.SampleX.value)
-        while not abs(self.instrumentation.SampleX.value - x) < 0.005:
+        self.domain.SampleX.command_value = x
+        debug("insert sample: x=%r" % self.domain.SampleX.value)
+        while not abs(self.domain.SampleX.value - x) < 0.005:
             from time import sleep
             sleep(0.1)
             if self.cancelled:
@@ -298,21 +307,21 @@ class SAXS_WAXS_Control(object):
             if self.timed_out:
                 warning("insert sample: x timed out")
                 return
-            debug("insert sample: x=%r" % self.instrumentation.SampleX.value)
-        debug("insert sample: x=%r" % self.instrumentation.SampleX.value)
+            debug("insert sample: x=%r" % self.domain.SampleX.value)
+        debug("insert sample: x=%r" % self.domain.SampleX.value)
 
         debug("insert sample: y -> %r" % y)
-        self.instrumentation.SampleY.command_value = y
-        debug("insert sample: y=%r" % self.instrumentation.SampleY.value)
+        self.domain.SampleY.command_value = y
+        debug("insert sample: y=%r" % self.domain.SampleY.value)
 
     def retract_sample(self):
         x, y = self.xr, self.yr  # destination
         self.cancelled = False
         self.timeout = 10
         debug("retract sample: y -> %r" % y)
-        self.instrumentation.SampleY.command_value = y
-        debug("retract sample: y=%r" % self.instrumentation.SampleY.value)
-        while not abs(self.instrumentation.SampleY.value - y) < 0.005:
+        self.domain.SampleY.command_value = y
+        debug("retract sample: y=%r" % self.domain.SampleY.value)
+        while not abs(self.domain.SampleY.value - y) < 0.005:
             from time import sleep
             sleep(0.1)
             if self.cancelled:
@@ -321,13 +330,13 @@ class SAXS_WAXS_Control(object):
             if self.timed_out:
                 warning("retract sample: y timed out")
                 return
-            debug("retract sample: y=%r" % self.instrumentation.SampleY.value)
+            debug("retract sample: y=%r" % self.domain.SampleY.value)
 
-        debug("retract sample: y=%r" % self.instrumentation.SampleY.value)
+        debug("retract sample: y=%r" % self.domain.SampleY.value)
 
         debug("retract sample: x -> %r" % x)
-        self.instrumentation.SampleX.command_value = x
-        debug("retract sample: x=%r" % self.instrumentation.SampleX.value)
+        self.domain.SampleX.command_value = x
+        debug("retract sample: x=%r" % self.domain.SampleX.value)
 
     timeout_start = persistent_property("timeout_start", 0.0)
     timeout_period = persistent_property("timeout_period", 0.0)
@@ -348,7 +357,7 @@ class SAXS_WAXS_Control(object):
         return time() - self.timeout_start > self.timeout
 
     def stop_sample(self):
-        self.instrumentation.SampleX.moving, self.instrumentation.SampleY.moving = False, False
+        self.domain.SampleX.moving, self.domain.SampleY.moving = False, False
 
     def get_moving_sample(self):
         return self.inserting_sample or self.retracting_sample
@@ -361,23 +370,23 @@ class SAXS_WAXS_Control(object):
     moving_sample = property(get_moving_sample, set_moving_sample)
 
     def get_fault(self):
-        return self.instrumentation.ensemble.fault
+        return self.domain.ensemble.fault
 
     def set_fault(self, value):
-        self.instrumentation.ensemble.fault = value
+        self.domain.ensemble.fault = value
 
     fault = property(get_fault, set_fault)
 
     @property
     def ensemble_online(self):
         from numpy import isnan
-        return not isnan(self.instrumentation.SampleX.command_value)
+        return not isnan(self.domain.SampleX.command_value)
 
     def get_XY_enabled(self):
-        return self.instrumentation.SampleX.enabled * self.instrumentation.SampleY.enabled
+        return self.domain.SampleX.enabled * self.domain.SampleY.enabled
 
     def set_XY_enabled(self, value):
-        self.instrumentation.SampleX.enabled, self.instrumentation.SampleY.enabled = value, value
+        self.domain.SampleX.enabled, self.domain.SampleY.enabled = value, value
 
     XY_enabled = property(get_XY_enabled, set_XY_enabled)
 
@@ -427,49 +436,49 @@ class SAXS_WAXS_Control(object):
 
     @property
     def jog_table_motor(self):
-        return self.instrumentation.Table2X
+        return self.domain.Table2X
 
     def get_xray_safety_shutters_open(self):
-        return self.instrumentation.xray_safety_shutters_open.value
+        return self.domain.xray_safety_shutters_open.value
 
     def set_xray_safety_shutters_open(self, value):
-        self.instrumentation.xray_safety_shutters_open.value = value
+        self.domain.xray_safety_shutters_open.value = value
 
     xray_safety_shutters_open = property(get_xray_safety_shutters_open,
                                          set_xray_safety_shutters_open)
 
     def get_xray_safety_shutters_enabled(self):
-        return self.instrumentation.xray_safety_shutters_enabled.value
+        return self.domain.xray_safety_shutters_enabled.value
 
     def set_xray_safety_shutters_enabled(self, value):
-        self.instrumentation.xray_safety_shutters_enabled.value = value
+        self.domain.xray_safety_shutters_enabled.value = value
 
     xray_safety_shutters_enabled = property(get_xray_safety_shutters_enabled,
                                             set_xray_safety_shutters_enabled)
 
     def get_xray_safety_shutters_auto_open(self):
-        return self.instrumentation.xray_safety_shutters_auto_open.value
+        return self.domain.xray_safety_shutters_auto_open.value
 
     def set_xray_safety_shutters_auto_open(self, value):
-        self.instrumentation.xray_safety_shutters_auto_open.value = value
+        self.domain.xray_safety_shutters_auto_open.value = value
 
     xray_safety_shutters_auto_open = property(get_xray_safety_shutters_auto_open,
                                               set_xray_safety_shutters_auto_open)
 
     def get_laser_safety_shutter_open(self):
-        return self.instrumentation.laser_safety_shutter_open.value
+        return self.domain.laser_safety_shutter_open.value
 
     def set_laser_safety_shutter_open(self, value):
-        self.instrumentation.laser_safety_shutter_open.value = value
+        self.domain.laser_safety_shutter_open.value = value
 
     laser_safety_shutter_open = property(get_laser_safety_shutter_open,
                                          set_laser_safety_shutter_open)
 
     def get_laser_safety_shutter_auto_open(self):
-        return self.instrumentation.laser_safety_shutter_open.value
+        return self.domain.laser_safety_shutter_open.value
 
     def set_laser_safety_shutter_auto_open(self, value):
-        self.instrumentation.laser_safety_shutter_open.value = value
+        self.domain.laser_safety_shutter_open.value = value
 
     laser_safety_shutter_auto_open = property(get_laser_safety_shutter_auto_open,
                                               set_laser_safety_shutter_auto_open)
@@ -503,7 +512,8 @@ class SAXS_WAXS_Control(object):
     pump_on = property(get_pump_on, set_pump_on)
 
     def get_pump_on_command(self):
-        return self.timing_system.composer.get_default("pump_on")
+        # return self.timing_system.composer.get_default("pump_on")
+        return self.timing_system.composer.pump_on
 
     def set_pump_on_command(self, value):
         self.timing_system.composer.pump_on = value
@@ -537,7 +547,7 @@ class SAXS_WAXS_Control(object):
         """0-9 = 1(linear),0.1,0.2,0.5,1,2.5,5,10,25,50"""
         from numpy import nan
         try:
-            i = int(self.instrumentation.ensemble.integer_registers[2])
+            i = int(self.domain.ensemble.integer_registers[2])
         except (IndexError, ValueError):
             i = nan
         return i
@@ -548,28 +558,28 @@ class SAXS_WAXS_Control(object):
     pump_step_index = property(get_pump_step_index, set_pump_step_index)
 
     def get_pump_position(self):
-        return self.instrumentation.PumpA.value
+        return self.domain.PumpA.value
 
     def set_pump_position(self, value):
         self.action = "move pump"
-        self.instrumentation.PumpA.command_value = value
+        self.domain.PumpA.command_value = value
 
     pump_position = property(get_pump_position, set_pump_position)
 
     def get_pump_speed(self):
-        return self.instrumentation.PumpA.speed
+        return self.domain.PumpA.speed
 
     def set_pump_speed(self, value):
-        self.instrumentation.PumpA.speed = value
+        self.domain.PumpA.speed = value
 
     pump_speed = property(get_pump_speed, set_pump_speed)
 
     def get_pump_homed(self):
-        return self.instrumentation.PumpA.homed
+        return self.domain.PumpA.homed
 
     def set_pump_homed(self, value):
         self.action = "home pump"
-        self.instrumentation.PumpA.homing = value
+        self.domain.PumpA.homing = value
 
     pump_homed = property(get_pump_homed, set_pump_homed)
 
@@ -578,15 +588,15 @@ class SAXS_WAXS_Control(object):
         pump_movable = True
         if self.pump_on and self.ensemble_program_running:
             pump_movable = False
-        if self.instrumentation.PumpA.moving:
+        if self.domain.PumpA.moving:
             pump_movable = False
         return pump_movable
 
     def get_pump_enabled(self):
-        return self.instrumentation.PumpA.enabled
+        return self.domain.PumpA.enabled
 
     def set_pump_enabled(self, value):
-        self.instrumentation.PumpA.enabled = value
+        self.domain.PumpA.enabled = value
 
     pump_enabled = property(get_pump_enabled, set_pump_enabled)
 
@@ -604,41 +614,41 @@ class SAXS_WAXS_Control(object):
     action = persistent_property("action", "")
 
     def get_sample_loading(self):
-        return self.instrumentation.PumpA.moving and self.action == "load sample"
+        return self.domain.PumpA.moving and self.action == "load sample"
 
     def set_sample_loading(self, value):
         if value:
             self.action = "load sample"
-            self.instrumentation.PumpA.command_value += self.load_step
+            self.domain.PumpA.command_value += self.load_step
         else:
             self.action = ""
-            self.instrumentation.PumpA.moving = False
+            self.domain.PumpA.moving = False
 
     sample_loading = property(get_sample_loading, set_sample_loading)
 
     def get_sample_extracting(self):
-        return self.instrumentation.PumpA.moving and self.action == "extract sample"
+        return self.domain.PumpA.moving and self.action == "extract sample"
 
     def set_sample_extracting(self, value):
         if value:
             self.action = "extract sample"
-            self.instrumentation.PumpA.command_value += self.extract_step
+            self.domain.PumpA.command_value += self.extract_step
         else:
             self.action = ""
-            self.instrumentation.PumpA.moving = False
+            self.domain.PumpA.moving = False
 
     sample_extracting = property(get_sample_extracting, set_sample_extracting)
 
     def get_sample_circulating(self):
-        return self.instrumentation.PumpA.moving and self.action == "circulate sample"
+        return self.domain.PumpA.moving and self.action == "circulate sample"
 
     def set_sample_circulating(self, value):
         if value:
             self.action = "circulate sample"
-            self.instrumentation.PumpA.command_value += self.circulate_step
+            self.domain.PumpA.command_value += self.circulate_step
         else:
             self.action = ""
-            self.instrumentation.PumpA.moving = False
+            self.domain.PumpA.moving = False
 
     sample_circulating = property(get_sample_circulating, set_sample_circulating)
 
@@ -646,33 +656,33 @@ class SAXS_WAXS_Control(object):
     def temperature_online(self):
         """"""
         from numpy import isnan
-        return not isnan(self.instrumentation.temperature.value)
+        return not isnan(self.domain.temperature.value)
 
     def get_temperature_setpoint(self):
         """sample temperature"""
-        return self.instrumentation.temperature.command_value
+        return self.domain.temperature.command_value
 
     def set_temperature_setpoint(self, value):
-        self.instrumentation.temperature.command_value = value
+        self.domain.temperature.command_value = value
 
     temperature_setpoint = property(get_temperature_setpoint, set_temperature_setpoint)
 
     def get_temperature(self):
         """sample temperature"""
-        return self.instrumentation.temperature.value
+        return self.domain.temperature.value
 
     def set_temperature(self, value):
-        self.instrumentation.temperature.value = value
+        self.domain.temperature.value = value
 
     temperature = property(get_temperature, set_temperature)
 
     @property
     def timing_system(self):
-        return self.instrumentation.timing_system_client
+        return self.domain.timing_system_client
 
     @property
-    def instrumentation(self):
-        from instrumentation import domain
+    def domain(self):
+        from domain import domain
         return domain(self.domain_name)
 
     domain_name = "BioCARS"
@@ -685,9 +695,22 @@ class SAXS_WAXS_Control(object):
 
 SAXS_WAXS_control = control = SAXS_WAXS_Control()
 
-if __name__ == "__main__":  # for debugging
-    import logging
 
+def value(motor):
+    from numpy import nan, isnan
+    from time import sleep
+    value = nan
+    retries = 3
+    for _ in range(0, retries):
+        value = motor.value
+        logging.debug(f"{motor}.value = {value}")
+        if not isnan(value):
+            break
+        sleep(1)
+    return value
+
+
+if __name__ == "__main__":  # for debugging
     logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s %(levelname)s: %(message)s")
     self = SAXS_WAXS_control

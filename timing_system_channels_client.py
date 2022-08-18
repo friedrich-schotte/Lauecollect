@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-28
-Date last modified: 2022-06-17
-Revision comment:
+Date last modified: 2022-08-03
+Revision comment: Added: mnemonics
 """
-__version__ = "1.0"
+__version__ = "1.1"
 
 from cached_function import cached_function
 from PV_record import PV_record
@@ -40,15 +40,11 @@ class Timing_System_Channels_Client(PV_record, MutableMapping):
 
     def __getattr__(self, name):
         if name.startswith("__") and name.endswith("__"):
-            return object.__getattribute__(self, name)
-
-        if name in self.names:
-            from timing_system_channel_client import timing_system_channel_client
-            channel = timing_system_channel_client(self, name)
+            attribute = object.__getattribute__(self, name)
         else:
-            from timing_system_dummy_channel import dummy_channel
-            channel = dummy_channel(self.timing_system, name)
-        return channel
+            from timing_system_channel_client import timing_system_channel_client
+            attribute = timing_system_channel_client(self, name)
+        return attribute
 
     def __len__(self):
         return len(self.names)
@@ -70,6 +66,7 @@ class Timing_System_Channels_Client(PV_record, MutableMapping):
         return sorted(set(self.names + super().__dir__() + list(self.__dict__.keys())))
 
     names = PV_property(dtype=list)
+    mnemonics = PV_property(dtype=list)
 
 
 if __name__ == '__main__':

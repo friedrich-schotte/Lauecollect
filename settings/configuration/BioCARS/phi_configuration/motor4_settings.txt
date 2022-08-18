@@ -1,0 +1,3 @@
+motor_name = 'phi_scan.offset'
+name = 'offset'
+format_string = '%s'

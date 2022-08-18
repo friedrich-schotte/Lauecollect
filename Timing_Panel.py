@@ -3,10 +3,10 @@
 Graphical User Interface for FPGA Timing System.
 Author: Friedrich Schotte
 Date created: 2015-05-27
-Date last modified: 2022-06-13
-Revision comment: Using: Configuration_Table_Panel
+Date last modified: 2022-07-31
+Revision comment: Cleanup: self.timing_system.sequencer, self.timing_system.composer
 """
-__version__ = "7.3.1"
+__version__ = "7.3.3"
 
 from logging import warning
 from traceback import format_exc
@@ -40,16 +40,16 @@ class Timing_Panel(BasePanel):
     @property
     def parameters(self):
         return [
-            [("Delay", self.composer, "delay", "time"), {"choices": self.delay_choices}],
-            [("Nom. Delay", self.composer, "nom_delay", "time"), {"choices": self.delay_choices}],
-            [("Mode", self.composer, "mode", "str"), {"choices_reference": reference(self.composer, "modes")}],
-            [("Period [1-kHz cycles]", self.composer, "trigger_period_in_1kHz_cycles", "int"), {}],
-            [("Detector", self.composer, "xdet_on", "Off/On"), {}],
-            [("Pump (laser)", self.composer, "laser_on", "Off/On"), {}],
-            [("Probe (X-Ray)", self.composer, "ms_on", "Off/On"), {}],
-            [("Trans", self.composer, "trans_on", "Off/On"), {}],
-            [("Circulate", self.composer, "pump_on", "Off/On"), {}],
-            [("Trigger code", self.composer, "transc", "binary"), {}],
+            [("Delay", self.timing_system.composer, "delay", "time"), {"choices": self.delay_choices}],
+            [("Nom. Delay", self.timing_system.composer, "nom_delay", "time"), {"choices": self.delay_choices}],
+            [("Mode", self.timing_system.composer, "mode", "str"), {"choices_reference": reference(self.timing_system.composer, "modes")}],
+            [("Period [1-kHz cycles]", self.timing_system.composer, "trigger_period_in_1kHz_cycles", "int"), {}],
+            [("Detector", self.timing_system.composer, "xdet_on", "Off/On"), {}],
+            [("Pump (laser)", self.timing_system.composer, "laser_on", "Off/On"), {}],
+            [("Probe (X-Ray)", self.timing_system.composer, "ms_on", "Off/On"), {}],
+            [("Trans", self.timing_system.composer, "trans_on", "Off/On"), {}],
+            [("Circulate", self.timing_system.composer, "pump_on", "Off/On"), {}],
+            [("Trigger code", self.timing_system.composer, "transc", "binary"), {}],
             [("Image number", self.timing_system.registers.image_number, "count", "int"), {}],
             [("X-ray detector trigger count", self.timing_system.channels.xdet.trig_count, "count", "int"), {}],
             [("X-ray detector acquisition count", self.timing_system.channels.xdet.acq_count, "count", "int"), {}],
@@ -59,27 +59,32 @@ class Timing_Panel(BasePanel):
             [("Laser scope acquisition count", self.timing_system.channels.losct.acq_count, "count", "int"), {}],
             [("Pass number", self.timing_system.registers.pass_number, "count", "int"), {}],
             [("Pulses", self.timing_system.registers.pulses, "count", "int"), {}],
-            [("Image number increment", self.composer, "image_number_inc", "Off/On"), {}],
-            [("Pass number increment", self.composer, "pass_number_inc", "Off/On"), {}],
-            [("Queue active", self.sequencer, "queue_active", "Not Active/Active"), {}],
-            [("Acquiring", self.sequencer, "acquiring", "Idle/Acquiring"), {}],
-            [("Current queue length [seq]", self.sequencer, "current_queue_length", "int"), {}],
-            [("Current queue sequence cnt", self.sequencer, "current_queue_sequence_count", "int"), {}],
-            [("Current queue repeat count", self.sequencer, "current_queue_repeat_count", "int"), {}],
-            [("Current queue max repeat", self.sequencer, "current_queue_max_repeat_count", "int"), {}],
-            [("Queue length [sequences]", self.sequencer, "queue_length", "int"), {}],
-            [("Queue sequence count", self.sequencer, "queue_sequence_count", "int"), {}],
-            [("Queue repeat count", self.sequencer, "queue_repeat_count", "int"), {}],
-            [("Queue max repeat count", self.sequencer, "queue_max_repeat_count", "int"), {}],
-            [("Next queue sequence cnt", self.sequencer, "next_queue_sequence_count", "int"), {}],
-            [("Cache", self.sequencer, "cache_enabled", "Disabled/Caching"), {}],
-            [("Packets generated", self.sequencer, "cache_size", "int"), {}],
-            [("Packets loaded", self.sequencer, "remote_cache_size", "int"), {}],
-            [("Sequencer Configured", self.sequencer, "configured", "Not Configured/Configured"), {}],
-            [("Sequencer Running", self.sequencer, "running", "Stopped/Running"), {}],
-            [("Sequence generator", self.composer, "generator", "str"), {"read_only": True}],
-            [("Sequence generator version", self.composer, "generator_version", "str"), {"read_only": True}],
-            [("Timing sequence version", self.composer, "timing_sequence_version", "str"), {"read_only": True}],
+            [("Image number increment", self.timing_system.composer, "image_number_inc", "Off/On"), {}],
+            [("Pass number increment", self.timing_system.composer, "pass_number_inc", "Off/On"), {}],
+            [("Queue active", self.timing_system.sequencer, "queue_active", "Not Active/Active"), {}],
+            [("Acquiring", self.timing_system.sequencer, "acquiring", "Idle/Acquiring"), {}],
+            [("Current queue length [seq]", self.timing_system.sequencer, "current_queue_length", "int"), {}],
+            [("Current queue sequence cnt", self.timing_system.sequencer, "current_queue_sequence_count", "int"), {}],
+            [("Current queue repeat count", self.timing_system.sequencer, "current_queue_repeat_count", "int"), {}],
+            [("Current queue max repeat", self.timing_system.sequencer, "current_queue_max_repeat_count", "int"), {}],
+            [("Default queue name", self.timing_system.sequencer, "default_queue_name", "str"), {"choices": self.queue_choices}],
+            [("Current queue name", self.timing_system.sequencer, "current_queue_name", "str"), {"choices": self.queue_choices}],
+            [("Next queue name", self.timing_system.sequencer, "next_queue_name", "str"), {"choices": self.queue_choices}],
+            [("Next queue sequence cnt", self.timing_system.sequencer, "next_queue_sequence_count", "int"), {}],
+            [("Queue length [sequences]", self.timing_system.sequencer, "queue_length", "int"), {}],
+            [("Queue sequence count", self.timing_system.sequencer, "queue_sequence_count", "int"), {}],
+            [("Queue repeat count", self.timing_system.sequencer, "queue_repeat_count", "int"), {}],
+            [("Queue max repeat count", self.timing_system.sequencer, "queue_max_repeat_count", "int"), {}],
+            [("Cache", self.timing_system.sequencer, "cache_enabled", "Disabled/Caching"), {}],
+            [("Generating Packets", self.timing_system.acquisition, "generating_packets", "Idle/Generating"), {}],
+            [("Updating Queues", self.timing_system.sequencer, "update_queues", "Idle/Updating"), {}],
+            [("Packets generated", self.timing_system.sequencer, "cache_size", "int"), {}],
+            [("Packets loaded", self.timing_system.sequencer, "remote_cache_size", "int"), {}],
+            [("Sequencer Configured", self.timing_system.sequencer, "configured", "Not Configured/Configured"), {}],
+            [("Sequencer Running", self.timing_system.sequencer, "running", "Stopped/Running"), {}],
+            [("Sequence generator", self.timing_system.composer, "generator", "str"), {"read_only": True}],
+            [("Sequence generator version", self.timing_system.composer, "generator_version", "str"), {"read_only": True}],
+            [("Timing sequence version", self.timing_system.composer, "timing_sequence_version", "str"), {"read_only": True}],
             [("Heatload chopper phase", self.timing_system.registers.hlcnd, "value", "time.6"),
              {"choices": self.hlc_choices}],
             [("Heatload chop. act. phase", self.timing_system.registers.hlcad, "value", "time.6"),
@@ -87,7 +92,7 @@ class Timing_Panel(BasePanel):
             [("High-speed chopper phase", self.timing_system.channels.hsc.delay, "value", "time.4"),
              {"choices": self.hsc_choices}],
             [("P0 shift", self.timing_system.p0_shift, "value", "time.4"), {}],
-            [("X-ray delay", self.composer, "xd", "time.6"), {}],
+            [("X-ray delay", self.timing_system.composer, "xd", "time.6"), {}],
         ]
 
     standard_view = [
@@ -165,14 +170,6 @@ class Timing_Panel(BasePanel):
         ]
 
     @property
-    def composer(self):
-        return self.timing_system.composer
-
-    @property
-    def sequencer(self):
-        return self.timing_system.sequencer
-
-    @property
     def timing_system(self):
         from timing_system_client import timing_system_client
         return timing_system_client(self.timing_system_name)
@@ -186,6 +183,8 @@ class Timing_Panel(BasePanel):
         from numpy import concatenate, arange
         choices = concatenate(([-100e-12, 0], 10 ** (arange(-10, 1, 1.0))))
         return choices
+
+    queue_choices = ["queue1", "queue2", "queue", ""]
 
     @property
     def hlc_choices(self):
@@ -221,7 +220,6 @@ if __name__ == '__main__':
     from redirect import redirect
 
     redirect("%s.Timing_Panel" % timing_system_name, format=msg_format)
-    # import autoreload
     import wx
 
     app = wx.GetApp() if wx.GetApp() else wx.App()

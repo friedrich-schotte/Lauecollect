@@ -68,7 +68,7 @@ class Scan_Diagnostics_Panel(BasePanel):
             [("Values Index", self.scan, "values_index", "int"), {"read_only": True}],
             [("Command Value", self.scan, "formatted_command_value", "str"), {}],
             [("Value", self.scan, "formatted_value", "str"), {}],
-            [("Status", self.scan, "motor_moving", "Stopped/Moving"), {}],
+            [("Status", self.scan, "motor_moving", "Holding/Moving"), {}],
             [("Enabled", self.scan, "enabled", "False/True"), {}],
             [("Collecting Dataset", self.scan, "collecting_dataset", "False/True"), {}],
             [("Acquiring", self.scan, "acquiring", "False/True"), {}],

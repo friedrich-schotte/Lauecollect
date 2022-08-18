@@ -2,10 +2,10 @@
 EPICS Input/Output Controller
 Author: Friedrich Schotte
 Date created: 2020-12-02
-Date last modified: 2022-07-11
-Revision comment: Refactored: driver_base_name
+Date last modified: 2022-08-18
+Revision comment: Debug messages
 """
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 
 from logging import debug, exception
 from cached_function import cached_function
@@ -113,9 +113,9 @@ class IOC:
         value = None
         attribute_reference = self.attribute_reference(PV_name)
         if attribute_reference:
-            debug(f"Accepted read request for {PV_name}")
+            debug(f"{PV_name}...")
             value = attribute_reference.value
-            debug(f"Returning {PV_name} = {attribute_reference} = {value!r}")
+            debug(f"{PV_name} = {attribute_reference} = {value!r}")
         return value
 
     def handle_PV_put(self, PV_name, value):

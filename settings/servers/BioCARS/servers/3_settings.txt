@@ -1,5 +1,5 @@
 auto_start = True
-command = "from IOC import *; run('BioCARS.timing_system')"
+command = "from IOC import *; run('BioCARS.timing_system_driver_9')"
 format_code = '"IOC offline" if value is None else "Device offline" if not value else "Device online"'
 label = 'Timing System IOC'
 log_level = 'DEBUG'

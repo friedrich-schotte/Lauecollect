@@ -1,6 +1,6 @@
 prefix = '14IDB:m152'
 description = 'Alio X'
-target = -0.08
+target = -1.545
 EPICS_enabled = True
 max_dial = 6.0
 min_dial = -5.5

@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-07-12
-Date last modified: 2022-06-16
-Revision comment: Fixed: Issue: Setting shared between "xray_scope" and "laser_scope"
+Date last modified: 2022-08-03
+Revision comment: Using local settings
 """
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 from cached_function import cached_function
 
@@ -44,7 +44,7 @@ class Lecroy_Scope_Simulator:
     def db_name(self):
         return f"domains/{self.domain_name}/lecroy_scope_simulator/{self.base_name}"
 
-    setup = db_property("setup", "")
+    setup = db_property("setup", "", local=True)
     
     @monitored_property
     def setup_choices(self, setup_filenames):
@@ -78,9 +78,9 @@ class Lecroy_Scope_Simulator:
         from module_dir import module_dir
         return f"{module_dir(self)}/lecroy_scope/{self.domain_name}/{self.base_name}"
 
-    acquiring_waveforms = db_property("acquiring_waveforms", False)
+    acquiring_waveforms = db_property("acquiring_waveforms", False, local=True)
 
-    trace_acquisition_running = db_property("trace_acquisition_running", False)
+    trace_acquisition_running = db_property("trace_acquisition_running", False, local=True)
 
 
 if __name__ == "__main__":  # for testing

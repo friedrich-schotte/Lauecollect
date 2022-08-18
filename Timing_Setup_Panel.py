@@ -3,10 +3,10 @@
 Graphical User Interface for FPGA Timing System.
 Author: Friedrich Schotte
 Date created: 2018-12-04
-Date last modified: 2022-04-12
-Revision comment: Using timing system server
+Date last modified: 2022-08-02
+Revision comment: Simplified: prefix
 """
-__version__ = "1.5"
+__version__ = "1.5.1"
 
 import wx
 
@@ -34,18 +34,17 @@ class Timing_Setup_Panel(wx.Frame):
         SetIcon(self, self.icon)
 
         # Controls
-        from EditableControls import ComboBox
+        from EditableControls import TextCtrl
         style = wx.TE_PROCESS_ENTER
         width = 160
 
-        self.Prefix = ComboBox(panel, style=style, size=(width, -1))
+        self.Prefix = TextCtrl(panel, style=style, size=(width, -1))
 
         self.Address = wx.TextCtrl(panel, style=wx.TE_READONLY, size=(width, -1))
         self.Address.Enabled = False
 
         # Callbacks
         self.Bind(wx.EVT_TEXT_ENTER, self.OnEnterPrefix, self.Prefix)
-        self.Bind(wx.EVT_COMBOBOX, self.OnEnterPrefix, self.Prefix)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # Layout
@@ -90,7 +89,6 @@ class Timing_Setup_Panel(wx.Frame):
         """Update the controls and indicators with current values"""
         if self.Shown:
             self.Prefix.Value = self.timing_system.timing_system_prefix
-            self.Prefix.Items = self.timing_system.prefixes
             self.Address.Value = self.timing_system.ip_address
             self.timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.refresh, self.timer)

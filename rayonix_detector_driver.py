@@ -18,10 +18,10 @@ Rayonix MX series CCD X-ray detector
 
 Author: Friedrich Schotte
 Date created: 2016-06-17
-Date last modified: 2022-07-18
-Revision comment: X-ray image extension hard-coded as .mccd
+Date last modified: 2022-07-21
+Revision comment: Filtering xdet_trig_count_offsets
 """
-__version__ = "8.4.3"
+__version__ = "8.4.5"
 
 import logging
 from os.path import basename
@@ -96,10 +96,12 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
                 self.monitoring_temp_basenames = True
                 self.limit_files_autostart()
                 if self.acquiring:
-                    self.acquiring_images = True
+                    self.monitoring_acquisition = True
             else:
+                logging.debug("Stopping...")
+                self.monitoring_acquisition = False
+                # self.limiting_files = False
                 self.monitoring_temp_basenames = False
-                self.limiting_files = False
 
     @property
     def class_name(self):
@@ -141,13 +143,10 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
         return acquiring_images
 
     @monitored_property
-    def acquiring_images(self, acquiring, trigger_monitoring, updating_file_timestamps, monitoring_new_temp_filenames):
+    def acquiring_images(self, acquiring, monitoring_acquisition):
         acquiring_images = all([
             acquiring,
-            trigger_monitoring,
-            updating_file_timestamps,
-            monitoring_new_temp_filenames,
-            # saving_images,
+            monitoring_acquisition,
         ])
         return acquiring_images
 
@@ -155,11 +154,27 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
     def acquiring_images(self, value):
         if value != self.acquiring_images:
             if value:
-                self.temp_images = {}
                 self.acquiring = True
+                self.monitoring_acquisition = True
+            else:
+                self.monitoring_acquisition = False
+
+    @property
+    def monitoring_acquisition(self):
+        acquiring_images = all([
+            self.trigger_monitoring,
+            self.updating_file_timestamps,
+            self.monitoring_new_temp_filenames,
+        ])
+        return acquiring_images
+
+    @monitoring_acquisition.setter
+    def monitoring_acquisition(self, value):
+        if value != self.monitoring_acquisition:
+            if value:
+                self.temp_images = {}
                 self.trigger_monitoring = True
                 self.updating_file_timestamps = True
-                # self.saving_images = True
                 self.monitoring_new_temp_filenames = True
                 self.xdet_trig_count_history.recording = True
                 self.xdet_acq_count_history.recording = True
@@ -167,7 +182,12 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
                 self.timing_system_acquiring_history.recording = True
             else:
                 self.trigger_monitoring = False
-                # self.updating_file_timestamps = False
+                self.updating_file_timestamps = False
+                self.monitoring_new_temp_filenames = False
+                self.xdet_trig_count_history.recording = False
+                self.xdet_acq_count_history.recording = False
+                self.xdet_acq_history.recording = False
+                self.timing_system_acquiring_history.recording = False
 
     @property
     def trigger_monitoring(self):
@@ -525,26 +545,29 @@ class Rayonix_Detector_Driver(Rayonix_Detector):
 
     @property
     def xdet_trig_count_offsets(self):
-        from numpy import array, nanargmin, abs, nan
+        from numpy import array, nanargmin, abs, nan, isnan, diff, median
 
         offsets = []
         images = list(self.temp_images.values())
         trigger_events = list(self.trigger_events)
         trigger_times = array([event.time for event in trigger_events])
+        trigger_period = median(diff(trigger_times))
         for image in images:
+            offset = nan
             t = image.acquire_timestamp - self.acquire_timestamp_offset
             dt = abs(t - trigger_times)
             try:
                 i = nanargmin(dt)
             except ValueError:
-                offset = nan
+                pass
             else:
-                event = trigger_events[i]
-                xdet_trig_count = event.value
-                n = self.file_image_number(image.filename)
-                offset = xdet_trig_count - n
-                # offset = (xdet_trig_count - 1) - n
-            offsets.append(offset)
+                if dt[i] <= trigger_period / 2:
+                    event = trigger_events[i]
+                    xdet_trig_count = event.value
+                    n = self.file_image_number(image.filename)
+                    offset = xdet_trig_count - n
+            if not isnan(offset):
+                offsets.append(offset)
         return offsets
 
     @property
@@ -885,12 +908,11 @@ if __name__ == "__main__":  # for debugging
 
     domain_name = "BioCARS"
     from IOC import ioc as _ioc
-    ioc = _ioc(f'{domain_name}.rayonix_detector')
-    self = ioc.driver
-    # self = rayonix_detector_driver(domain_name)
+    self = rayonix_detector_driver(domain_name)
+    ioc = _ioc(driver=self)
 
     print("ioc.start()")
-    print('self.start()')
+    print(f"self.running = {self.running}")
     # print('self.monitoring_temp_basenames = True')
 
 

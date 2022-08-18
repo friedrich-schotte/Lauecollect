@@ -1,0 +1,3 @@
+motor_name = 'phi_scan.speed'
+name = 'speed'
+format_string = '%g'

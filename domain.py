@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2020-06-18
-Date last modified: 2021-06-17
-Revision comment: Cleanup
+Date last modified: 2021-06-20
+Revision comment: Added: __dir__
 """
-__version__ = "1.1.5"
+__version__ = "1.2"
 
 
 class Domains(object):
@@ -30,7 +30,7 @@ class Domains(object):
 domain = Domains()
 
 
-class Domain(object):
+class Domain:
     def __init__(self, domain_name, globals=None, locals=None):
         self.domain_name = domain_name
         if globals is not None: self.globals = globals
@@ -70,6 +70,13 @@ class Domain(object):
         self.__locals__ = value
 
     locals = property(get_locals, set_locals)
+
+    def __dir__(self):
+        return sorted(set(self.names + list(super().__dir__()) + list(self.__dict__.keys())))
+
+    @property
+    def names(self):
+        return list(self.locals.keys())
 
 
 if __name__ == "__main__":

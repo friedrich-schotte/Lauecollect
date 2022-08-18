@@ -3,10 +3,17 @@
 Start a Python GUI module as an App bundle in macOS
 Author: Friedrich Schotte
 Date created: 2020-11-05
-Date last modified: 2022-05-10
-Revision comment: Refactored
+Date last modified: 2022-08-07
+Revision comment: Issue: App not launching on M1 Mac
+   Traceback (most recent call last):
+   File "<string>", line 1, in <module>
+   File site-packages/wx/__init__.py, line 17, in <module>
+      from wx.core import *
+   File site-packages/wx/core.py, line 12, in <module>
+       from ._core import *
+   ImportError: dynamic module does not define module export function (PyInit__core)
 """
-__version__ = "1.1"
+__version__ = "1.1.1"
 
 from application import Application
 
@@ -51,6 +58,10 @@ class Application_MacOS(Application):
         script = """#!/bin/zsh -l
         # The -l (login) option makes sure that the environment is the same as for
         # an interactive shell. 
+        if uname -v | grep -qi arm64 && [ `arch` != arm64 ] ; then
+            echo "Switching from `arch` to arm64."
+            exec arch -arm64 "$0"
+        fi
         localdir=`dirname "$0"`
         cd "${localdir}/../../../../../.."
         export PATH=%s:$PATH

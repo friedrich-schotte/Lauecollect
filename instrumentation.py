@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2014-03-14
-Date last modified: 2022-07-15
-Revision comment: Updated example
+Date last modified: 2022-08-17
+Revision comment: Added phi_scan
 """
-__version__ = "2.15.1"
+__version__ = "2.16"
 
 from instrumentation_id14 import *
 
@@ -19,7 +19,6 @@ from configuration_tables_driver import configuration_tables_driver
 from timing_system import timing_system
 from timing_system_driver import timing_system_driver
 from timing_system_client import timing_system_client
-from timing_system_sequencer import timing_system_sequencer
 from channel_archiver_driver import channel_archiver_driver
 from channel_archiver import channel_archiver
 from sequence_expander import sequence_expander
@@ -39,6 +38,8 @@ from power_scan_client import power_scan_client
 from power_scan_driver import power_scan_driver
 from alio_scan import alio_scan
 from alio_scan_client import alio_scan_client
+from phi_scan import phi_scan
+from phi_scan_client import phi_scan_client
 
 
 # Still needed?

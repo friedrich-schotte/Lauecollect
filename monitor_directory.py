@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2018-01-25
-Date last modified: 2021-09-21
-Revision comment: Suppressing debug messages from "watchdog" module
+Date last modified: 2022-08-07
+Revision comment: Using silence_watchdog_messages
 """
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 
 class monitor(object):
@@ -59,12 +59,8 @@ class monitor(object):
     def monitoring_posix(self, value):
         if bool(value) != self.monitoring_posix:
             if value:
-                # Turn off a deluge of debug messages in "watchdog" module
-                # site-packages/watchdog/observers/inotify_buffer.py. line 62:
-                # logger.debug("in-event %s", inotify_event)
-                import logging
-                logging.getLogger("watchdog.observers.inotify_buffer").level = logging.INFO
-                logging.getLogger("watchdog.observers.fsevents").level = logging.INFO
+                from silence_watchdog_messages import silence_watchdog_messages
+                silence_watchdog_messages()
                 # https://stackoverflow.com/questions/18599339/python-watchdog-monitoring-file-for-changes
                 from watchdog.observers import Observer
                 from watchdog.events import FileSystemEventHandler

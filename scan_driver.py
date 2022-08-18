@@ -1,13 +1,14 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-10-22
-Date last modified: 2022-07-16
-Revision comment: Issue: When collecting discreet temperatures, hanging at first
-   temperature_change
+Date last modified: 2022-07-20
+Revision comment: Added: motor_names
 """
-__version__ = "1.8.1"
+__version__ = "1.9"
 
 import logging
+
+from attribute_property import attribute_property
 from cached_function import cached_function
 from handler import handler
 from reference import reference
@@ -25,6 +26,9 @@ def scan_driver(domain_name): return Scan_Driver(domain_name)
 class Scan_Driver:
     def __init__(self, domain_name):
         self.domain_name = domain_name
+
+    def __repr__(self):
+        return "%s(%r)" % (self.class_name, self.domain_name)
 
     @property
     def running(self):
@@ -255,10 +259,10 @@ class Scan_Driver:
         if abs(new_start_time - self.start_time) > 10:
             self.start_time = new_start_time
 
-    motor_value = alias_property("motor.value")
-    motor_command_value = alias_property("motor.command_value")
-    tolerance = alias_property("motor.readback_slop")
-    motor_moving = alias_property("motor.moving")
+    motor_value = attribute_property("motor", "value")
+    motor_command_value = attribute_property("motor", "command_value")
+    tolerance = attribute_property("motor", "readback_slop")
+    motor_moving = attribute_property("motor", "moving")
 
     @monitored_property
     def motor(self, motor_name):
@@ -274,8 +278,21 @@ class Scan_Driver:
 
     motor_name = db_property("motor_name", "HuberPhi", local=True)
 
-    def __repr__(self):
-        return "%s(%r)" % (self.class_name, self.domain_name)
+    @property
+    def motor_names(self):
+        domain = self.domain
+        names = dir(domain)
+        names = [name for name in names if is_motor(getattr(domain, name))]
+        return names
+
+
+def is_motor(obj):
+    object_type = type(obj)
+    return all([
+        hasattr(object_type, "value"),
+        hasattr(object_type, "command_value"),
+        hasattr(object_type, "moving"),
+    ])
 
 
 if __name__ == '__main__':
@@ -285,3 +302,18 @@ if __name__ == '__main__':
     domain_name = "BioCARS"
 
     self = scan_driver(domain_name)
+
+    from handler import handler as _handler
+
+    @_handler
+    def report(event=None):
+        logging.info(f'event = {event}')
+
+    property_names = [
+        "motor_value",
+        "motor_command_value",
+        "tolerance",
+        "motor_moving",
+    ]
+    for property_name in property_names:
+        reference(self, property_name).monitors.add(report)

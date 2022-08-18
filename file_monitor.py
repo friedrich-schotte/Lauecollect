@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2019-11-05
-Date last modified: 2022-07-02
-Revision comment: Keeping track of file ID change to resubscribe
+Date last modified: 2022-08-07
+Revision comment: Using silence_watchdog_messages module
 """
-__version__ = "1.5.7"
+__version__ = "1.5.8"
 
 import logging
 from traceback import format_exc
@@ -81,6 +81,7 @@ class monitor(object):
                 from os.path import exists
                 # from watchdog.observers import Observer
                 from watchdog.observers.polling import PollingObserver as Observer
+                from silence_watchdog_messages import silence_watchdog_messages
                 silence_watchdog_messages()
 
                 for directory_name in self.directory_names:
@@ -246,16 +247,6 @@ def all_file_monitors():
 
 
 monitors = []
-
-
-def silence_watchdog_messages():
-    # Turn off a deluge of debug messages in "watchdog" module
-    # site-packages/watchdog/observers/inotify_buffer.py. line 62:
-    # logger.debug("in-event %s", inotify_event)
-    import logging
-    logging.getLogger("watchdog.observers.inotify_buffer").level = logging.INFO
-    logging.getLogger("watchdog.observers.fsevents").level = logging.INFO
-
 
 if __name__ == "__main__":
     import logging

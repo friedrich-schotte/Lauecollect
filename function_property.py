@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
 Date created: 2020-11-12
-Date last modified: 2020-11-12
-Revision comment:
+Date last modified: 2020-08-02
+Revision comment: calculate_property: Using "self" is first argument
 """
-__version__ = "1.0"
+__version__ = "1.0.2"
 
 import logging
 from logging import info
@@ -17,7 +17,7 @@ def function_property(function, property_name):
         from reference import reference
         return [reference(self, property_name)]
 
-    def calculate_property(_self, filename):
+    def calculate_property(self, filename):  # noqa - Parameter 'self' value is not used
         return function(filename)
 
     property_object = monitored_property(

@@ -3,7 +3,7 @@
 Push notifications
 Author: Friedrich Schotte
 Date created: 2020-09-05
-Date last modified: 2022-07-19
+Date last modified: 2022-07-20
 Revision comment: Added checks: event_valid, inputs_values_valid
 """
 __version__ = "2.2.3"

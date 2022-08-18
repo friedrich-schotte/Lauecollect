@@ -1,14 +1,20 @@
 """
 Authors: Philip Anfinrud, Friedrich Schotte
 Date created: 2022-01-28
-Date last modified: 2022-07-11
-Revision comment: Renamed: xray_beam_center_driver
+Date last modified: 2022-07-24
+Revision comment: Fixed Issues
+    2022-07-24 07:04:39,434 DEBUG: rayonix_image.file_timestamp: Resetting timestamp of '/net/mx340hs/data/tmp/0461271.rx' from 2022-07-24 07:04:36.025429-0500 to 2022-07-24 07:04:36.984416-0500
+    line 145: M1X = (x_mask * roi_bs).sum() / M0
+    RuntimeWarning: invalid value encountered in double_scalars
 """
-__version__ = "1.1"
+__version__ = "1.1.3"
 
 import logging
 
 from cached_function import cached_function
+from db_property import db_property
+from alias_property import alias_property
+from monitored_property_1 import monitored_property
 
 
 @cached_function()
@@ -17,10 +23,6 @@ def xray_beam_center_driver(domain_name):
 
 
 class XRay_Beam_Center_Driver:
-    from db_property import db_property
-    from alias_property import alias_property
-    from monitored_property import monitored_property
-
     def __init__(self, domain_name):
         self.domain_name = domain_name
 
@@ -68,7 +70,7 @@ class XRay_Beam_Center_Driver:
 
     @monitored_property
     def ROI(self,
-            image_data,
+            image,
             nominal_beam_center_x,
             nominal_beam_center_y,
             nominal_image_width,
@@ -77,24 +79,19 @@ class XRay_Beam_Center_Driver:
             ):
         from numpy import rint, zeros, uint16
 
-        width, height = image_data.shape
+        width, height = image.shape
         X0 = int(rint(nominal_beam_center_x * width / nominal_image_width))
         Y0 = int(rint(nominal_beam_center_y * height / nominal_image_height))
         r = (ROI_size-1) // 2
         try:
-            ROI = image_data[X0 - r:X0 + r + 1, Y0 - r:Y0 + r + 1]
+            ROI = image[X0 - r:X0 + r + 1, Y0 - r:Y0 + r + 1]
         except NotImplementedError as x:
-            logging.warning(f"{image_data}: {x}")
+            logging.warning(f"{image}: {x}")
             ROI = zeros(shape=(ROI_size, ROI_size), dtype=uint16)
         if ROI.shape != (ROI_size, ROI_size):
             logging.warning(f"ROI shape expecting {(ROI_size, ROI_size)}, got {ROI.shape}")
             ROI = zeros(shape=(ROI_size, ROI_size), dtype=uint16)
         return ROI
-
-    @monitored_property
-    def image_data(self, image):
-        image_data = image.data
-        return image_data
 
     @monitored_property
     def image(self, image_filename):
@@ -126,7 +123,9 @@ def M0_M1X_M1Y_from_roi(roi):
     number of counts in pixels near the center, as well as (M1X,M1Y),
     center-of-mass coordinates relative to the center. """
     # Based on: /net/femto/C/SAXS-WAXS Analysis/SAXS_WAXS_Analysis.py, M0_M1X_M1Y_from_roi
-    from numpy import array, indices
+    from numpy import seterr, array, indices
+    seterr(invalid="ignore", divide="ignore")  # invalid value encountered in double_scalars
+
     # Define masks needed to determine M0, M1X, and M1Y
     spot = array([[0, 0, 0, 0, 0, 0, 0],
                   [0, 0, 1, 1, 1, 0, 0],

@@ -1,10 +1,12 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-28
-Date last modified: 2022-07-17
-Revision comment: Updated example
+Date last modified: 2022-08-03
+Revision comment: Removed property no longer needed
 """
-__version__ = "1.2.3"
+__version__ = "1.2.5"
+
+import logging
 
 from PV_connected_property import PV_connected_property
 from PV_record import PV_record
@@ -61,30 +63,27 @@ class Timing_System_Client(PV_record):
     loading_configuration = PV_property(dtype=bool)
     saving_configuration = PV_property(dtype=bool)
 
-    channel_mnemonics = PV_property(dtype=list)
-
 
 for i in range(0, 24):
     setattr(Timing_System_Client, f"ch{i + 1}", PV_record_property(channel))
 
 if __name__ == '__main__':
-    import logging
-    from handler import handler
-    from reference import reference
-
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=msg_format)
 
     domain_name = "BioCARS"
     self = timing_system_client(domain_name)
 
-    @handler
+    from handler import handler as _handler
+    from reference import reference as _reference
+
+    @_handler
     def report(event=None):
         logging.info(f'event = {event}')
 
     references = [
-        # reference(self.sequencer, "queue_active"),
-        # reference(self.registers.acquiring, "count"),
+        _reference(self.registers.image_number, "count"),
+        _reference(self.registers.hlcnd, "value"),
     ]
     for ref in references:
         ref.monitors.add(report)

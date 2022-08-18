@@ -1,21 +1,22 @@
 """EPICS Channel Access Process Variable as class property
 Author: Friedrich Schotte
 Date created: 2020-11-12
-Date last modified: 2022-06-17
-Revision comment: Compatible with PV_property 2.0
+Date last modified: 2022-07-31
+Revision comment: Added: option: upper_case
 """
-__version__ = "1.1"
+__version__ = "1.2"
 
 import logging
 from PV_property import PV_property
 
 
 class PV_connected_property(PV_property):
-    def __init__(self, name):
-        super().__init__(name, default_value=None)
+    def __init__(self, name, upper_case=True):
+        super().__init__(name, default_value=None, upper_case=upper_case)
 
     def PV_value(self, instance, value):
         return value is not None
+
 
 if __name__ == "__main__":
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"

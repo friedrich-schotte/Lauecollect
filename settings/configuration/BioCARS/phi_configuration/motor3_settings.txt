@@ -1,0 +1,3 @@
+motor_name = 'phi_scan.step'
+name = 'step'
+format_string = '%s'

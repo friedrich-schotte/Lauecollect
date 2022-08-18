@@ -1,0 +1,3 @@
+motor_name = 'phi_scan.stop'
+name = 'stop'
+format_string = '%g'

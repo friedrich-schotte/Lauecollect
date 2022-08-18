@@ -4,11 +4,10 @@ FPGA Timing System Simulator
 
 Author: Friedrich Schotte
 Date created: 2020-05-20
-Date last modified: 2022-05-24
-Revision comment: Fixed: Issue: Reports send prematurely
-    (by 2.2 s for example is packet length is 2.2 s)
+Date last modified: 2022-08-12
+Revision comment: Fixed: imports
 """
-__version__ = "1.5.3"
+__version__ = "1.5.4"
 
 import logging
 
@@ -134,7 +133,7 @@ class Timing_System_Simulator_Sequencer:
                     self.current_sequence_length)
 
         from struct import unpack
-        from timing_system_sequencer import packet, type_names
+        from timing_system_sequencer_driver_9 import packet, type_names
         from sleep_until import sleep_until
 
         i = 0

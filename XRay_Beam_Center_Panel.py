@@ -2,10 +2,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-02-01
-Date last modified: 2022-02-01
-Revision comment:
+Date last modified: 2022-07-21
+Revision comment: Mode digits of precision
 """
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 from Panel_3 import BasePanel
 
@@ -34,8 +34,8 @@ class XRay_Beam_Center_Panel(BasePanel):
     @property
     def parameters(self):
         return [
-            [("X", self.instrument, "X", "float"), {"unit": "pixels", "format": "%.1f", "read_only": True}],
-            [("Y", self.instrument, "Y", "float"), {"unit": "pixels", "format": "%.1f", "read_only": True}],
+            [("X", self.instrument, "X", "float"), {"unit": "pixels", "format": "%.3f", "read_only": True}],
+            [("Y", self.instrument, "Y", "float"), {"unit": "pixels", "format": "%.3f", "read_only": True}],
             [("I", self.instrument, "I", "float"), {"unit": "counts", "format": "%.1f", "read_only": True}],
         ]
 

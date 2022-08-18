@@ -2,10 +2,10 @@
 Instrumentation of the 14-ID beamline
 Author: Friedrich Schotte
 Date created: 2007-12-08
-Date last modified: 2022-07-19
-Revision comment: Added: Slit1H, Slit1V: done_moving=
+Date last modified: 2022-08-03
+Revision comment: Removed imports no longer needed
 """
-__version__ = "3.29.6"
+__version__ = "3.29.7"
 
 from pdb import pm
 # from refill import time_to_next_refill #Needs to be deleted Valentyn Sept 5 2019
@@ -35,10 +35,6 @@ from rayonix_detector import rayonix_detector
 from Ensemble import SampleX, SampleY, SampleZ, SamplePhi, PumpA, PumpB, msShut
 from Ensemble_triggered_motion import triggered_motion
 from Ensemble import ensemble_motors, ensemble
-
-# Syringe Tower
-# Pumps for Laue Crystallography
-from syringe_pump_DL_client import pump_waste, pump_xtals, pump_motherliquor, pump_aux
 
 # Machine
 ring_current = PV("S:SRcurrentAI.VAL")

@@ -1,0 +1,3 @@
+motor_name = 'motor_scan.scan_speed'
+name = 'speed'
+format_string = '%g'

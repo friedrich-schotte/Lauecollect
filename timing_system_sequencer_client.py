@@ -1,7 +1,7 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-28
-Date last modified: 2022-04-11
+Date last modified: 2022-07-23
 Revision comment:
 """
 __version__ = "1.0"
@@ -48,7 +48,14 @@ class Timing_System_Sequencer_Client(PV_record):
     remote_cache_size = PV_property(dtype=int)
     configured = PV_property(dtype=bool)
     running = PV_property(dtype=bool)
+
+    # Diagnostics
     phase_matching_period = PV_property(dtype=float)
+    next_queue_name = PV_property(dtype=str)
+    current_queue_name = PV_property(dtype=str)
+    default_queue_name = PV_property(dtype=str)
+    update_queues = PV_property(dtype=bool)
+    interrupt_handler_enabled = PV_property(dtype=bool)
 
     @property
     def composer(self):

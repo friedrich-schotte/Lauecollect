@@ -1,13 +1,12 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-03-28
-Date last modified: 2022-06-18
+Date last modified: 2022-06-21
 Revision comment: Fixed: Issue:
-    line 37, in __getattr__:
-    if name in self.names:
-    RecursionError: STDERR maximum recursion depth exceeded
+    2022-07-21 16:22:36,209 DEBUG Panel_3.start_monitoring: Subscribing to Dummy_Register(timing_system_client(domain_name='BioCARS'),'image_number').count
+    2022-07-21 16:22:36,335 DEBUG Panel_3.start_monitoring: Subscribing to Dummy_Register(timing_system_client(domain_name='BioCARS'),'hlcnd').value
 """
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from PV_record import PV_record
 from cached_function import cached_function
@@ -62,13 +61,8 @@ class Timing_System_Registers_Client(PV_record, MutableMapping):
         return sorted(set(self.names + super().__dir__() + list(self.__dict__.keys())))
 
     def register(self, name):
-        if name in self.names:
-            from timing_system_register_client import timing_system_register_client
-            reg = timing_system_register_client(self, name)
-        else:
-            from timing_system_dummy_register import dummy_register
-            reg = dummy_register(self.timing_system, name)
-        return reg
+        from timing_system_register_client import timing_system_register_client
+        return timing_system_register_client(self, name)
 
     names = PV_property("names", [])
 

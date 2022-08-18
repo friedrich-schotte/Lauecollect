@@ -54,12 +54,16 @@ Reads the number of measurement that where averaged.
 
 Author: Friedrich Schotte
 Date created: 2008-03-28
-Date last modified: 2022-07-11
-Revision comment: Prefix: Added LECROY_SCOPE: BIOCARS:LECROY_SCOPE.XRAY_SCOPE
+Date last modified: 2022-08-03
+Revision comment: Issue:
+    line 363, in scope_trace_filename
+    filename = self.file_basenames[i]
+    IndexError: list index out of range
 """
-__version__ = "2.15.10"
+__version__ = "2.15.11"
 
 import traceback
+import logging
 from logging import debug, info, warning, error
 
 from numpy import nan, inf
@@ -244,8 +248,8 @@ class Lecroy_Scope(object):
         from os.path import basename
         for channel_index, channel_name in enumerate(self.enabled_channels):
             filename = self.save_filename(acq_count, channel_name)
-            info("Acquiring %r: trig %r: %s" % (acq_count, trig_count, basename(filename)))
             if filename:
+                info("Acquiring %r: trig %r: %s" % (acq_count, trig_count, basename(filename)))
                 self.files_to_save[trig_count, channel_index] = filename
 
     # When the trace count reaches 99999, it goes to 100000, then wraps back
@@ -360,12 +364,16 @@ class Lecroy_Scope(object):
         """
         N = self.sequences_per_scan_point
         i = acq_count // N
-        filename = self.file_basenames[i]
-        suffix = "_%02.0f" % (acq_count % N + 1)
-        filename = filename + suffix
-        filename = filename + "_" + channel_name
-        subdir = name.replace("_scope", "") + "_traces"
-        filename = self.directory + "/" + subdir + "/" + filename + ".trc"
+        if i < len(self.file_basenames):
+            filename = self.file_basenames[i]
+            suffix = "_%02.0f" % (acq_count % N + 1)
+            filename = filename + suffix
+            filename = filename + "_" + channel_name
+            subdir = name.replace("_scope", "") + "_traces"
+            filename = self.directory + "/" + subdir + "/" + filename + ".trc"
+        else:
+            logging.warning(f"{name}: Dataset has no filename for acq_count={acq_count}")
+            filename = ""
         return filename
 
     file_basenames = alias_property("acquisition_client.file_basenames")
@@ -1451,8 +1459,6 @@ def run(name):
 run_server = run  # for backward compatibility
 
 if __name__ == "__main__":
-    import logging
-
     msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=msg_format)
 

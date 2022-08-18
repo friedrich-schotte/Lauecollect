@@ -351,7 +351,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(message)s")
 
     auto_backup()
-    # auto_backup(file_type="*_settings.txt")
-    # auto_backup(file_type="*/table/*.txt")
-    # auto_backup(file_type="*/configuration/*_settings.txt")
-    # auto_backup(file_type="*/servers/*_settings.txt")
+    # auto_backup(file_type="*_settings.txt", confirm=True)
+    # auto_backup(file_type="*/table/*.txt", confirm=True)
+    # auto_backup(file_type="*/configuration/*_settings.txt", confirm=True)
+    # auto_backup(file_type="*/servers/*_settings.txt", confirm=True)

@@ -1,10 +1,10 @@
 """
 Author: Friedrich Schotte
 Date created: 2021-11-30
-Date last modified: 2022-07-16
-Revision comment: Added: Diagnostics for debugging
+Date last modified: 2022-07-20
+Revision comment: Added: motor_names
 """
-__version__ = "1.8.2"
+__version__ = "1.9"
 
 from PV_record import PV_record
 from cached_function import cached_function
@@ -20,6 +20,7 @@ def scan_client(domain_name=None, base_name=None, prefix=None):
 
 class Scan_Client(PV_record):
     motor_name = PV_property(dtype=str)
+    motor_names = PV_property(dtype=list)
     values_string = PV_property(dtype=str)
     wait = PV_property(dtype=bool)
     return_value = PV_property(dtype=float)
@@ -64,7 +65,6 @@ class Scan_Client(PV_record):
     running = PV_property(dtype=bool)
     handling_value_index = PV_property(dtype=bool)
     handling_collecting_dataset = PV_property(dtype=bool)
-    collecting_dataset = PV_property(dtype=bool)
 
 
 if __name__ == "__main__":  # for debugging

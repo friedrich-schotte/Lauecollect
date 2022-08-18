@@ -4,10 +4,10 @@ Data Collection
 
 Author: Friedrich Schotte
 Date created: 2018-10-09
-Date last modified: 2022-07-18
-Revision comment: Cleanup: Using f-string for formatting
+Date last modified: 2022-08-04
+Revision comment: Issue: Added debug messages
 """
-__version__ = "7.4.9"
+__version__ = "7.5"
 
 import logging
 from warnings import filterwarnings
@@ -15,7 +15,6 @@ from numpy import VisibleDeprecationWarning
 from typing import List, Iterable, Sized
 
 from cached_function import cached_function
-from reference import reference
 from alias_property import alias_property
 from db_property import db_property
 from monitored_property import monitored_property
@@ -121,20 +120,53 @@ class Acquisition_Driver(object):
 
         return i
 
+    def collection_range_first_i(self, i):
+        """i: current scan point number (0-based)"""
+        from numpy import arange
+
+        acquired = self.acquired
+        all_i = arange(0, len(acquired))
+        all_i_not_acquired = all_i[(all_i >= i) & ~acquired]
+        if len(all_i_not_acquired) > 0:
+            next_i = all_i_not_acquired[0]
+        else:
+            next_i = len(acquired)
+
+        return next_i
+
+    def collection_range_last_i(self, i):
+        """i: current scan point number (0-based)"""
+        from numpy import arange
+
+        i = self.collection_range_first_i(i)
+        acquired, collection_pass = make_same_length(self.acquired, self.collection_pass)
+        if 0 <= i < len(collection_pass):
+            i_pass = collection_pass[i]
+            all_i = arange(0, len(acquired))
+            i = all_i[(collection_pass == i_pass) & (all_i >= i) & ~acquired]
+            ranges = self.ranges(i)
+            if len(ranges) > 0:
+                last_i = ranges[0][1]
+            else:
+                last_i = len(acquired)
+        else:
+            last_i = len(acquired)
+
+        return last_i
+
     @monitored_property
     def collection_pass_count(
         self,
-        collection_variables_with_count,
         collection_variable_wait,
         collection_variable_value_lists,
     ):
         """Into how many passes does the data collection need to be broken up?"""
         count = 1
-        for i in range(0, len(collection_variables_with_count)):
+        N_var = min(len(collection_variable_value_lists), len(collection_variable_wait))
+        for i in range(0, N_var):
             wait = collection_variable_wait[i]
-            N = len(collection_variable_value_lists[i])
             if wait or count > 1:
-                count *= N
+                count *= len(collection_variable_value_lists[i])
         return count
 
     @monitored_property
@@ -974,7 +1006,9 @@ class Acquisition_Driver(object):
 
         self.timing_system_sequences_load()
         self.actual("Timing system setup...")
-        first, last = self.collection_first_range
+        first = self.collection_range_first_i(0)
+        last = self.collection_range_last_i(0)
+        self.current = first
         self.timing_system_acquisition.first_scan_point = first
         self.timing_system_acquisition.last_scan_point = last
         self.xray_detector_start()
@@ -987,47 +1021,49 @@ class Acquisition_Driver(object):
         self.logging_start()
         self.update_status_start()
 
-        while len(self.collection_passes) > 0:
-            for collection_pass in self.collection_passes:
-                if self.cancelled:
-                    break
-                for (first, last) in self.collection_pass_ranges(collection_pass):
-                    if first >= self.n_collect:
-                        break
-
-                    self.timing_system_acquisition.first_scan_point = first
-                    self.timing_system_acquisition.last_scan_point = last
-                    self.xray_detector_timing_system_setup(first)
-                    self.scope_timing_system_setup("xray_scope", first)
-                    self.scope_timing_system_setup("laser_scope", first)
-
-                    sleep(1)  # needed for temperature?
-                    self.wait_for_collection_variables()
-
-                    self.timing_system_acquisition_start()
-
-                    while True:
-                        if not self.timing_system_sequencer.queue_active:
-                            logging.debug("Acquisition completed.")
-                            break
-                        if self.cancelled:
-                            logging.debug("Cancelled. Stopping acquisition.")
-                            break
-                        if self.data_collection_completed:
-                            logging.debug("Data collection completed. Stopping acquisition.")
-                            break
-                        sleep(0.1)
-
-                    self.timing_system_acquisition_stop()
-
-                    self.status("Collection suspended")
-                    if self.current >= self.n_collect:
-                        break
-
+        while True:
             if self.cancelled:
+                logging.info("Ending because cancelled")
                 break
+
             if self.current >= self.n_collect:
+                logging.info(f"Ending because current {self.current} >= n_collect {self.n_collect}")
                 break
+
+            first = self.collection_range_first_i(self.current)
+            last = self.collection_range_last_i(self.current)
+            logging.info(f"Starting collection range first {first}, last {last}")
+
+            if first >= self.n_collect:
+                logging.info(f"Ending because first {first} >= n_collect {self.n_collect}")
+                break
+
+            self.timing_system_acquisition.first_scan_point = first
+            self.timing_system_acquisition.last_scan_point = last
+            self.xray_detector_timing_system_setup(first)
+            self.scope_timing_system_setup("xray_scope", first)
+            self.scope_timing_system_setup("laser_scope", first)
+
+            sleep(1)  # needed for temperature?
+            self.wait_for_collection_variables()
+
+            self.timing_system_acquisition_start()
+
+            while True:
+                if not self.timing_system_sequencer.queue_active:
+                    logging.info("Acquisition completed.")
+                    break
+                if self.cancelled:
+                    logging.info("Cancelled. Stopping acquisition.")
+                    break
+                if self.data_collection_completed:
+                    logging.info("Data collection completed. Stopping acquisition.")
+                    break
+                sleep(0.1)
+
+            self.timing_system_acquisition_stop()
+
+            self.status("Collection suspended")
 
         self.update_status_stop()
         self.diagnostics_stop()
@@ -1147,9 +1183,11 @@ class Acquisition_Driver(object):
                 first = self.collection_first_i
             count = first
             channel_mnemonic = "xdet"
-            if channel_mnemonic in self.timing_system.channel_mnemonics:
+            if channel_mnemonic in self.timing_system.channels.mnemonics:
                 channel = getattr(self.timing_system.channels, channel_mnemonic)
                 channel.acq_count.count = count
+            else:
+                logging.warning(f"Timing system channel {channel_mnemonic!r} not found")
 
     def scope_start(self, name):
         """name: "xray_scope" or "laser_scope" """
@@ -1171,9 +1209,11 @@ class Acquisition_Driver(object):
                 channel_mnemonic = "xosct"
             if name == "laser_scope":
                 channel_mnemonic = "losct"
-            if channel_mnemonic in self.timing_system.channel_mnemonics:
+            if channel_mnemonic in self.timing_system.channels.mnemonics:
                 channel = getattr(self.timing_system.channels, channel_mnemonic)
                 channel.acq_count.count = count
+            else:
+                logging.warning(f"Timing system channel {channel_mnemonic!r} not found")
 
     def scope_stop(self, name):
         """name: "xray_scope" or "laser_scope" """
@@ -1631,20 +1671,18 @@ if __name__ == '__main__':
 
     self = acquisition_driver(domain_name)
     ioc = _ioc(driver=self)
-    print('ioc.run')
+    print('ioc.running = True')
     # ioc.run()
 
-    property_names = [
-        # "acquisition_status",
-    ]
-
     from handler import handler as _handler
-
+    from reference import reference as _reference
 
     @_handler
     def report(event=None):
         logging.info(f'event = {event}')
 
-
+    property_names = [
+        # "acquisition_status",
+    ]
     for property_name in property_names:
-        reference(self, property_name).monitors.add(report)
+        _reference(self, property_name).monitors.add(report)

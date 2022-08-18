@@ -1,0 +1,2 @@
+motor_name = 'configuration_tables.phi_configuration'
+name = 'phi'

@@ -3,11 +3,11 @@
 Author: Friedrich Schotte
 Date created: 2008-11-23
 Date last modified: 2022-04-01
-Revision comment: Fixed: Issue:
-    format(value, "#08b")
-    ValueError: Unknown format code 'b' for object of type 'float'
+Revision comment: Issue: Displaying user input value in the absence of push
+    notification, e.g. Timing System > Sequencer Running > Running,
+    even though Timing System IOC is offline.
 """
-__version__ = "3.3.5"
+__version__ = "3.3.6"
 
 from logging import debug, warning, error
 from traceback import format_exc
@@ -656,7 +656,13 @@ class PropertyPanel(wx.Panel):
 
     def OnChange(self, _event):
         from numpy import nan  # needed for "eval"
+
         text = str(self.Current.Value)
+
+        old_value = self.reference.value
+        old_text = self.formatted_text(old_value)
+        self.Current.Value = old_text
+
         text = text.replace(self.unit, "")
         text = text.rstrip()  # ignore trailing blanks
         if self.type.startswith("time") or self.type.startswith("frequency"):

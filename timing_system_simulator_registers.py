@@ -4,13 +4,12 @@ FPGA Timing System Simulator
 
 Author: Friedrich Schotte
 Date created: 2021-08-30
-Date last modified: 2021-09-16
-Revision comment: Multiplied software register addresses by 4
+Date last modified: 2022-07-29
+Revision comment: Cleanup
 """
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
-import traceback
-from logging import info, warning
+from logging import warning
 
 from cached_function import cached_function
 

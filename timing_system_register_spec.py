@@ -4,19 +4,19 @@ FPGA Timing System
 
 Author: Friedrich Schotte
 Date created: 2021-05-03
-Date last modified: 2022-03-38
-Revision comment: Renamed: timing_system_register_spec
+Date last modified: 2022-08-12
+Revision comment: Fixed: imports
 """
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 
 class timing_system_register_spec:
     from sparse_array import sparse_array
-    from timing_system_register import Register
+    from timing_system_register_driver_2 import Timing_System_Register_Driver
 
     def __init__(
             self,
-            register: Register,
+            register: Timing_System_Register_Driver,
             counts: sparse_array,
             op: str,
     ):

@@ -1,25 +1,25 @@
 """
 Author: Friedrich Schotte
 Date created: 2022-04-05
-Date last modified: 2022-04-05
-Revision comment:
+Date last modified: 2022-07-31
+Revision comment: Cleanup: docstring formatting; logging; f-string; Added Example
 """
-__version__ = "1.0"
+__version__ = "1.0.1"
 
-from logging import warning
+import logging
 
 from timing_system_parameter import Parameter
 
 
 class Variable(object):
     """Software-defined parameter controlling the timing,
-  not associated with any hardware register in the FPGA"""
+    not associated with any hardware register in the FPGA"""
 
     def __init__(self, timing_system, name, stepsize=None, sign=1):
         """name: common base name for registers
-    sign: user to dial scale factor
-    stepsize: e.g. 1 or "hlct"
-    """
+        sign: user to dial scale factor
+        stepsize: e.g. 1 or "hlct"
+        """
         self.timing_system = timing_system
         self.name = name
         self.stepsize_ref = "parameters." + self.name + ".stepsize"
@@ -30,11 +30,11 @@ class Variable(object):
 
     def get_stepsize(self):
         if type(self.stepsize_ref) == str:
-            expr = "self.timing_system." + self.stepsize_ref
+            expr = f"self.timing_system.{self.stepsize_ref}"
             try:
                 stepsize = eval(expr)
             except Exception as msg:
-                warning("%s.stepsize: %s: %s" % (self.name, expr, msg))
+                logging.warning(f"{self.name}.stepsize: {expr}: {msg}")
                 stepsize = 1
         else:
             stepsize = self.stepsize_ref  # numeric value
@@ -42,11 +42,11 @@ class Variable(object):
 
     def set_stepsize(self, value):
         if type(self.stepsize_ref) == str:
-            cmd = "self.timing_system.%s=%r" % (self.stepsize_ref, value)
+            cmd = f"self.timing_system.{self.stepsize_ref}={value!r}"
             try:
                 exec(cmd)
             except Exception as msg:
-                warning("%s.stepsize: %s: %s" % (self.name, cmd, msg))
+                logging.warning(f"{self.name}.stepsize: {cmd}: {msg}")
         else:
             self.stepsize_ref = value
 
@@ -94,3 +94,16 @@ class Variable(object):
 
     def __repr__(self):
         return self.name
+
+
+if __name__ == '__main__':
+    msg_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s, line %(lineno)d: %(message)s"
+    logging.basicConfig(level=logging.DEBUG, format=msg_format)
+
+    domain_name = "BioCARS"
+    # domain_name = "LaserLab"
+
+    from timing_system_driver import timing_system_driver
+
+    timing_system = timing_system_driver(domain_name)
+    self = Variable(timing_system, "delay", stepsize=1e-12)
